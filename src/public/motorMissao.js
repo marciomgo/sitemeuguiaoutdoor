@@ -1,5 +1,6 @@
 import wixWindow from 'wix-window';
 import { local } from 'wix-storage';
+import { htmlPainelConteudo } from 'public/conteudoPanelHtml';
 
 let $wPage;
 let missao;
@@ -32,6 +33,47 @@ export function iniciarMotor($w, dadosMissao) {
     console.log("=================================");
 
     conectarBotoes();
+
+    iniciarPainelConteudo();
+
+}
+
+//==================================================
+// PAINEL FIXO DE CONTEÚDO
+//==================================================
+
+function iniciarPainelConteudo() {
+
+    try {
+
+        $wPage("#painelConteudo").src =
+            `data:text/html;charset=utf-8,${encodeURIComponent(htmlPainelConteudo)}`;
+
+        $wPage("#painelConteudo").onMessage((event) => {
+
+            const dados = event.data;
+
+            switch (dados.acao) {
+
+                case "fechar":
+
+                    $wPage("#painelConteudo").postMessage({});
+
+                    break;
+
+                // "enviar", "dica" e "salvarDiario" ainda não têm
+                // tratamento nesta fase (ponto/enigma e diário
+                // continuam passando pelo popup "Conteudo").
+
+            }
+
+        });
+
+    } catch (err) {
+
+        console.warn("#painelConteudo não existe na página.", err);
+
+    }
 
 }
 
@@ -449,35 +491,13 @@ function adicionarNaMochila(ponto, resposta) {
 
 export function abrirMochila() {
 
-    let texto = "";
-
-    if (progresso.mochila.length === 0) {
-
-        texto = "A mochila ainda está vazia.";
-
-    } else {
-
-        progresso.mochila.forEach(item => {
-
-        texto += `📍 ${item.titulo}\n`;
-
-        texto += `${item.texto}\n`;
-
-        texto += "───────────────────────\n";
-
-});
-
-    }
-
-    wixWindow.openLightbox("Conteudo", {
+    $wPage("#painelConteudo").postMessage({
 
         modo: "mochila",
 
         titulo: "🎒 Mochila",
 
-        mensagem: texto.replace(/\n/g,"<br>"),
-
-        tipo: "texto"
+        mochila: progresso.mochila
 
     });
 
