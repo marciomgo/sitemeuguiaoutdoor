@@ -17,6 +17,8 @@ $w.onReady(function () {
 
         const resgate = $w("#dynamicDataset").getCurrentItem();
 
+        console.log("Resgate carregado no Tesouro:", resgate);
+
         $w("#txtCodigo").text = resgate.codigo || "";
         $w("#txtNomeFamilia").text = resgate.nomeFamilia || "";
 
@@ -34,11 +36,15 @@ $w.onReady(function () {
 
 function carregarParceiros(missaoId) {
 
+    console.log("Buscando parceiros pra missaoId:", missaoId);
+
     wixData.query("Parceiros")
         .eq("missao", missaoId)
         .eq("ativo", true)
         .find()
         .then((resultado) => {
+
+            console.log("Parceiros encontrados:", resultado.items);
 
             $w("#repeaterParceiros").data = resultado.items;
 
@@ -47,6 +53,7 @@ function carregarParceiros(missaoId) {
                 $item("#txtValorParceiro").text = "R$" + itemData.valor;
                 $item("#txtDescricaoParceiro").text = itemData.descricao || "";
                 $item("#txtEnderecoParceiro").text = itemData.endereco || "";
+                $item("#imgParceiro").src = itemData.image;
             });
 
         })

@@ -1,6 +1,8 @@
 import wixData from 'wix-data';
 import { local } from 'wix-storage';
 
+console.log("VERSAO_PARCEIRO_marca_18h20");
+
 let parceiroAtual;
 let resgateAtual;
 
@@ -11,6 +13,24 @@ $w.onReady(function () {
     $w("#txtErroPin").collapse();
     $w("#txtErroCodigo").collapse();
     $w("#txtConfirmacao").collapse();
+
+    try {
+        console.log("TESTE txtTotalFamilias:", $w("#txtTotalFamilias"), "texto atual:", $w("#txtTotalFamilias").text);
+    } catch (err) {
+        console.error("TESTE txtTotalFamilias FALHOU:", err);
+    }
+
+    try {
+        console.log("TESTE txtTotalValor:", $w("#txtTotalValor"), "texto atual:", $w("#txtTotalValor").text);
+    } catch (err) {
+        console.error("TESTE txtTotalValor FALHOU:", err);
+    }
+
+    try {
+        console.log("TESTE repeaterHistorico:", $w("#repeaterHistorico"));
+    } catch (err) {
+        console.error("TESTE repeaterHistorico FALHOU:", err);
+    }
 
     conectarEventos();
 
@@ -66,6 +86,8 @@ function entrarComPin(pin) {
             $w("#txtErroPin").collapse();
             $w("#boxLogin").collapse();
             $w("#boxCheckin").expand();
+
+            carregarHistorico();
 
         })
         .catch((err) => {
@@ -162,23 +184,81 @@ function confirmarResgate() {
                 return;
             }
 
-            return wixData.insert("ResgatesParceiros", {
-                resgate: resgateAtual._id,
-                parceiro: parceiroAtual._id,
-                usado: true,
-                valorConsumido: valorConsumido,
-                dataUso: new Date()
-            })
-            .then(() => {
-                $w("#txtConfirmacao").text = "✅ Resgate confirmado!";
-                $w("#txtConfirmacao").expand();
-            });
+            // Mesma pegadinha da coleção "Resgates": o insert() aqui
+            // não grava os campos extras de forma confiável — cria
+            // vazio e preenche com update() na sequência.
+            return wixData.insert("ResgatesParceiros", {})
+                .then((item) => wixData.update("ResgatesParceiros", {
+                    _id: item._id,
+                    resgate: resgateAtual._id,
+                    parceiro: parceiroAtual._id,
+                    usado: true,
+                    valorConsumido: valorConsumido,
+                    dataUso: new Date()
+                }))
+                .then(() => {
+                    $w("#txtConfirmacao").text = "✅ Resgate confirmado!";
+                    $w("#txtConfirmacao").expand();
+                    carregarHistorico();
+                });
 
         })
         .catch((err) => {
             console.error(err);
             $w("#txtConfirmacao").text = "Erro ao confirmar. Tenta de novo.";
             $w("#txtConfirmacao").expand();
+        });
+
+}
+
+//==================================================
+// HISTÓRICO DE VALIDAÇÕES
+//==================================================
+
+function carregarHistorico() {
+
+    console.log("Carregando histórico pro parceiro:", parceiroAtual._id);
+
+    wixData.query("ResgatesParceiros")
+        .eq("parceiro", parceiroAtual._id)
+        .include("resgate")
+        .descending("dataUso")
+        .find()
+        .then((resultado) => {
+
+            console.log("Histórico encontrado:", resultado.items);
+
+            const itens = resultado.items;
+
+            const totalValor = itens.reduce(
+                (soma, item) => soma + (item.valorConsumido || 0),
+                0
+            );
+
+            $w("#txtTotalFamilias").text = String(itens.length);
+            $w("#txtTotalValor").text = "R$" + totalValor.toFixed(2).replace(".", ",");
+
+            $w("#repeaterHistorico").data = itens;
+
+            $w("#repeaterHistorico").onItemReady(($item, itemData) => {
+
+                $item("#txtNomeFamiliaHistorico").text =
+                    (itemData.resgate && itemData.resgate.nomeFamilia) || "";
+
+                $item("#txtDataHistorico").text = itemData.dataUso
+                    ? new Date(itemData.dataUso).toLocaleDateString("pt-BR")
+                    : "";
+
+                $item("#txtValorHistorico").text =
+                    "R$" + (itemData.valorConsumido || 0).toFixed(2).replace(".", ",");
+
+            });
+
+        })
+        .catch((err) => {
+
+            console.error("Erro ao carregar histórico:", err);
+
         });
 
 }
