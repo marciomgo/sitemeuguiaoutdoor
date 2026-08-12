@@ -3,7 +3,7 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso, pularParaFinal } from 'public/motorMissao';
 
 let cronometro;
 let inicioDesafio = 0;
@@ -85,12 +85,31 @@ $w("#btnMapa").onClick(() => {
 });
 
         //=========================================
+        // PULAR PONTOS (DESENVOLVIMENTO)
+        //=========================================
+
+        try {
+
+            $w("#btnPular").onClick(() => {
+
+                pularParaFinal();
+
+            });
+
+        } catch (err) {
+
+            console.log("Botão Pular não encontrado.");
+
+        }
+
+        //=========================================
         // RESET (DESENVOLVIMENTO)
         //=========================================
 
         $w("#btnReset").onClick(() => {
 
-            local.removeItem(`missao_${missao.slug}`);
+            resetarProgresso();
+
             local.removeItem("configMissao");
 
             clearInterval(cronometro);
@@ -101,7 +120,8 @@ $w("#btnMapa").onClick(() => {
 
                 desafioConcluido = true;
 
-            
+            $w("#boxModoDesafio").collapse();
+
             console.log("Progresso apagado.");
 
             wixLocation.to(wixLocation.url);

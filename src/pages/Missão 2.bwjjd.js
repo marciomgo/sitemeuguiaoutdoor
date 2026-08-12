@@ -3,7 +3,7 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso } from 'public/motorMissao';
 
 let cronometro;
 let inicioDesafio = 0;
@@ -104,7 +104,8 @@ $w("#btnMapa").onClick(() => {
 
         $w("#btnReset").onClick(() => {
 
-            local.removeItem(`missao_${missao.slug}`);
+            resetarProgresso();
+
             local.removeItem("configMissao");
 
             clearInterval(cronometro);
@@ -115,7 +116,8 @@ $w("#btnMapa").onClick(() => {
 
                 desafioConcluido = true;
 
-            
+            $w("#boxModoDesafio").collapse();
+
             console.log("Progresso apagado.");
 
             wixLocation.to(wixLocation.url);

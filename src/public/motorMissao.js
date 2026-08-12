@@ -1,6 +1,22 @@
 import wixWindow from 'wix-window';
+import wixLocation from 'wix-location';
+import wixData from 'wix-data';
 import { local } from 'wix-storage';
-import { htmlPainelConteudo } from 'public/conteudoPanelHtml';
+
+// (marca de versão pra forçar invalidação de cache do CDN)
+
+// Ícones customizados (Gerenciador de Mídia do Wix) usados nos
+// títulos dos popups, no lugar dos emojis. Exportados porque
+// ConteudoResumo.c0xpf.js (popup aninhado da tela final) também usa.
+export const ICONE_MOCHILA = "https://static.wixstatic.com/media/f02643_e7b087c7ae184d4c856489e67074e238~mv2.png";
+export const ICONE_DIARIO = "https://static.wixstatic.com/media/f02643_595d63c2751a4c97b90a29789170e76f~mv2.png";
+const ICONE_REGRAS = "https://static.wixstatic.com/media/f02643_16f6066157b9427fadf0fbcd4261097e~mv2.png";
+
+export function tituloComIcone(url, texto) {
+
+    return `<img src="${url}" style="height:80px;vertical-align:middle;margin-right:8px;">${texto}`;
+
+}
 
 let $wPage;
 let missao;
@@ -34,46 +50,11 @@ export function iniciarMotor($w, dadosMissao) {
 
     conectarBotoes();
 
-    iniciarPainelConteudo();
-
 }
 
-//==================================================
-// PAINEL FIXO DE CONTEÚDO
-//==================================================
+function mostrarStatus(mensagem) {
 
-function iniciarPainelConteudo() {
-
-    try {
-
-        $wPage("#painelConteudo").src =
-            `data:text/html;charset=utf-8,${encodeURIComponent(htmlPainelConteudo)}`;
-
-        $wPage("#painelConteudo").onMessage((event) => {
-
-            const dados = event.data;
-
-            switch (dados.acao) {
-
-                case "fechar":
-
-                    $wPage("#painelConteudo").postMessage({});
-
-                    break;
-
-                // "enviar", "dica" e "salvarDiario" ainda não têm
-                // tratamento nesta fase (ponto/enigma e diário
-                // continuam passando pelo popup "Conteudo").
-
-            }
-
-        });
-
-    } catch (err) {
-
-        console.warn("#painelConteudo não existe na página.", err);
-
-    }
+    $wPage("#txtResultado").text = mensagem;
 
 }
 
@@ -143,6 +124,24 @@ function conectarBotoes() {
 
     }
 
+    //=========================================
+    // COMO FUNCIONA
+    //=========================================
+
+    try {
+
+        $wPage("#btnComoFunciona").onClick(() => {
+
+            abrirComoFunciona();
+
+        });
+
+    } catch (err) {
+
+        console.log("Botão Como Funciona não encontrado.");
+
+    }
+
 }
 
 //==================================================
@@ -162,8 +161,7 @@ async function verificarPonto(ponto) {
 
     try {
 
-        $wPage("#txtResultado").text =
-            "🛰️ Confirmando sua localização pelo GPS...";
+        mostrarStatus("🛰️ Localizando...");
 
         const location =
             await wixWindow.getCurrentGeolocation();
@@ -193,22 +191,15 @@ async function verificarPonto(ponto) {
 
         if (distancia <= raio) {
 
-            $wPage("#txtResultado").text =
-                "✅ Local encontrado!";
+            mostrarStatus("✅ Local encontrado!");
 
             mostrarConteudo(ponto);
 
         } else {
 
-            $wPage("#txtResultado").text =
-
-                `❌ Ainda não...
-
-Distância: ${Math.round(distancia)} m
-
-Precisão GPS: ${Math.round(accuracy)} m
-
-Raio aceito: ${raio} m`;
+            mostrarStatus(
+                `❌ Ainda não... (${Math.round(distancia)} m)`
+            );
 
         }
 
@@ -216,8 +207,7 @@ Raio aceito: ${raio} m`;
 
         console.error(err);
 
-        $wPage("#txtResultado").text =
-            err.message;
+        mostrarStatus("⚠️ " + err.message);
 
     }
 
@@ -227,7 +217,7 @@ Raio aceito: ${raio} m`;
 // ABRIR LIGHTBOX
 //==================================================
 
-function mostrarConteudo(ponto) 
+function mostrarConteudo(ponto)
 
 {
 
@@ -237,7 +227,19 @@ function mostrarConteudo(ponto)
 
 if(ultimoPonto){
 
-    mostrarPopupFinal();
+    // Só faz sentido abrir o popup de Chegada (com pergunta,
+    // mochila e diário) se houver uma pergunta final de verdade —
+    // ela é o gatilho pra comemoração. Sem pergunta, vai direto.
+    if(missao.perguntaFinal){
+
+        mostrarPopupFinal();
+
+    } else {
+
+        concluirPonto(missao.totalPontos);
+        mostrarComemoracao();
+
+    }
 
     return;
 
@@ -291,7 +293,7 @@ if(ultimoPonto){
 
 
 //==================================================
-// MOSTRAR POPUP FINAL 
+// MOSTRAR POPUP FINAL
 //==================================================
 
 
@@ -374,27 +376,123 @@ mensagemCompleta += missao.mensagemFinal;
     "true"
 );
 
-wixWindow.openLightbox(
+    gerarESalvarCodigoResgate().finally(() => {
 
-    "Conteudo",
+        abrirPopupComemoracao(mensagemCompleta, resultadoDesafio);
 
-    {
+    });
 
-        modo:"comemoracao",
+}
 
-        titulo:"🏆 Parabéns!",
+//==================================================
+// CÓDIGO DE RESGATE (tesouros dos parceiros)
+//==================================================
 
-        mensagem: mensagemCompleta,
+function gerarCodigoResgate() {
 
-        tipo: missao.tipoFinal,
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem 0/O/1/I
 
-        valor: missao.valorFinal,
+    let codigo = "";
 
-        desafio: resultadoDesafio
+    for (let i = 0; i < 4; i++) {
+        codigo += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    return "MGO-" + codigo;
+
+}
+
+function gerarESalvarCodigoResgate() {
+
+    const chaveCodigo = `codigoResgate_${missao.slug}`;
+
+    // Já foi gerado antes pra essa missão — não gera outro.
+    if (local.getItem(chaveCodigo)) {
+
+        return Promise.resolve();
 
     }
 
-);
+    const resgateId = local.getItem("resgateId");
+
+    // Sem resgate cadastrado (ex: não passou pelo cadastro com nome),
+    // segue sem código/tesouro — não trava a comemoração.
+    if (!resgateId) {
+
+        return Promise.resolve();
+
+    }
+
+    const codigo = gerarCodigoResgate();
+
+    console.log("Salvando código de resgate. resgateId:", resgateId, "codigo:", codigo);
+
+    // Reenvia nomeFamilia/missao junto — o update() aqui não faz um
+    // merge parcial de verdade, ele "perde" os campos que não vierem
+    // nessa chamada (foi assim que nome/missão sumiam mesmo depois
+    // de terem sido salvos certinho no cadastro).
+    return wixData.update("Resgates", {
+
+        _id: resgateId,
+        nomeFamilia: local.getItem("nomeFamilia"),
+        missao: missao.id,
+        dataCadastro: new Date(local.getItem("dataCadastro")),
+        codigo: codigo,
+        dataConclusao: new Date()
+
+    })
+
+    .then((item) => {
+
+        console.log("Código de resgate salvo com sucesso:", item);
+
+        local.setItem(chaveCodigo, codigo);
+
+    })
+
+    .catch((err) => {
+
+        console.error("Erro ao salvar código de resgate:", err);
+
+    });
+
+}
+
+function abrirPopupComemoracao(mensagemCompleta, resultadoDesafio) {
+
+    wixWindow.openLightbox(
+
+        "Conteudo",
+
+        {
+
+            modo:"comemoracao",
+
+            titulo:"🏆 Parabéns!",
+
+            mensagem: mensagemCompleta,
+
+            tipo: missao.tipoFinal,
+
+            valor: missao.valorFinal,
+
+            desafio: resultadoDesafio
+
+        }
+
+    )
+
+    .then(() => {
+
+        const codigo = local.getItem(`codigoResgate_${missao.slug}`);
+
+        if (codigo) {
+
+            wixLocation.to("/resgates/" + codigo);
+
+        }
+
+    });
 
 }
 
@@ -491,11 +589,13 @@ function adicionarNaMochila(ponto, resposta) {
 
 export function abrirMochila() {
 
-    $wPage("#painelConteudo").postMessage({
+    wixWindow.openLightbox("Conteudo", {
 
         modo: "mochila",
 
-        titulo: "🎒 Mochila",
+        titulo: tituloComIcone(ICONE_MOCHILA, "Mochila"),
+
+        mensagem: "Guarda as respostas de cada ponto",
 
         mochila: progresso.mochila
 
@@ -507,13 +607,15 @@ export function abrirMochila() {
 // ABRIR DIÁRIO
 //==================================================
 
-function abrirDiario() {
+export function abrirDiario() {
 
     wixWindow.openLightbox("Conteudo", {
 
         modo: "diario",
 
-        titulo: "📔 Diário",
+        titulo: tituloComIcone(ICONE_DIARIO, "Diário"),
+
+        mensagem: "Suas anotações da aventura",
 
         diario: progresso.diario
 
@@ -530,6 +632,33 @@ function abrirDiario() {
             salvarProgresso();
 
         }
+
+    });
+
+}
+
+//==================================================
+// COMO FUNCIONA
+//==================================================
+// Regras/instruções — mesmo texto da tela de boas-vindas
+// (mantenha os dois em sincronia se um dos dois mudar).
+
+function abrirComoFunciona() {
+
+    wixWindow.openLightbox("Conteudo", {
+
+        modo: "regras",
+
+        titulo: tituloComIcone(ICONE_REGRAS, "Como funciona"),
+
+        mensagem:
+            "Passo a passo de como jogar<br><br>" +
+            "Sejam bem vindos!<br><br>" +
+            "Regras:<br>" +
+            "• Siga a sequência numérica<br>" +
+            "• Ative o Ponto quando chegar ao local<br>" +
+            "• Repita até a chegada<br><br>" +
+            "Boa diversão!"
 
     });
 
@@ -569,6 +698,55 @@ function salvarProgresso() {
 
 }
 
+// Usado por ConteudoResumo.c0xpf.js (popup aninhado da tela final)
+// pra salvar o diário editado ali.
+export function salvarTextoDiario(texto) {
+
+    progresso.diario = texto;
+
+    salvarProgresso();
+
+}
+
+//==================================================
+// RESET (DESENVOLVIMENTO)
+//==================================================
+// Zera o progresso em memória na hora, sem depender de
+// recarregar a página (útil pra testar rápido no Editor —
+// navegar pra mesma URL costuma não recarregar de verdade).
+
+// Marca todos os pontos como concluídos, exceto o último — só pra
+// agilizar teste, pra não precisar passar pelos pontos um por um.
+export function pularParaFinal() {
+
+    missao.pontos.forEach(ponto => {
+
+        if (ponto.ordem !== missao.totalPontos) {
+
+            concluirPonto(ponto.codigo);
+
+        }
+
+    });
+
+}
+
+export function resetarProgresso() {
+
+    local.removeItem(chaveStorage());
+
+    progresso = {
+        concluidos: [],
+        mochila: [],
+        diario: ""
+    };
+
+    atualizarBotoes();
+
+    $wPage("#txtResultado").text = "";
+
+}
+
 function concluirPonto(codigo) {
 
     console.log("Concluídos:", progresso.concluidos.length);
@@ -597,13 +775,11 @@ function concluirPonto(codigo) {
 
     if (progresso.concluidos.length === missao.totalPontos) {
 
-        $wPage("#txtResultado").text =
-            "🏆 Parabéns! Vocês concluíram esta missão!";
+        mostrarStatus("🏆 Missão concluída!");
 
     } else {
 
-        $wPage("#txtResultado").text =
-            "✅ Ponto concluído! Próxima etapa liberada.";
+        mostrarStatus("✅ Ponto concluído!");
 
     }
 

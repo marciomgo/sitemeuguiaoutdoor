@@ -1,5 +1,6 @@
 import wixWindow from 'wix-window';
 import wixLocation from 'wix-location';
+import wixData from 'wix-data';
 import { local } from 'wix-storage';
 
 import {
@@ -118,6 +119,17 @@ async function confirmarGPS() {
 
 function iniciarAventura() {
 
+    const nomeFamilia = ($w("#nomeFamilia").value || "").trim();
+
+    if (!nomeFamilia) {
+
+        $w("#txtGPS").text =
+            "✏️ Escreva o nome da família antes de começar.";
+
+        return;
+
+    }
+
     const configMissao = {
 
         desafio: $w("#switchDesafio").checked,
@@ -141,8 +153,57 @@ function iniciarAventura() {
 
     local.removeItem("missaoFinalizada");
 
+    // Um novo cadastro precisa de um código novo — sem isso, um
+    // código antigo (de um resgate anterior nesse navegador) ficaria
+    // "preso" e a atualização do código do resgate atual seria pulada.
+    local.removeItem(`codigoResgate_${missao.slug}`);
+
+    local.setItem("nomeFamilia", nomeFamilia);
+
+    const dataCadastro = new Date();
+
+    local.setItem("dataCadastro", dataCadastro.toISOString());
+
     console.log(configMissao);
 
-    wixLocation.to("/" + missao.paginaMissao);
+    $w("#btnIniciar").disable();
+
+    // O insert() nessa coleção não está gravando os campos extras
+    // (só cria a linha vazia, mesmo passando os dados) — então cria
+    // vazio e preenche na sequência com update(), que sempre funciona.
+    wixData.insert("Resgates", {})
+
+    .then((item) => {
+
+        return wixData.update("Resgates", {
+
+            _id: item._id,
+            nomeFamilia: nomeFamilia,
+            missao: missao._id,
+            dataCadastro: dataCadastro
+
+        });
+
+    })
+
+    .then((item) => {
+
+        console.log("Resgate criado com sucesso:", item);
+
+        local.setItem("resgateId", item._id);
+
+        wixLocation.to("/" + missao.paginaMissao);
+
+    })
+
+    .catch((err) => {
+
+        console.error("Erro ao criar resgate:", err);
+
+        // Mesmo se o cadastro do resgate falhar, não trava a família
+        // de jogar — só não vai ter tesouro/código no final.
+        wixLocation.to("/" + missao.paginaMissao);
+
+    });
 
 }

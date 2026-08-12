@@ -1,5 +1,7 @@
 import wixWindow from 'wix-window';
 import { respostaCorreta } from 'public/normalizador';
+import { htmlPainelConteudo } from 'public/conteudoPanelHtml';
+import { tituloComIcone, ICONE_MOCHILA, ICONE_DIARIO, salvarTextoDiario } from 'public/motorMissao';
 
 let conteudo;
 let dicaAtual = 1;
@@ -14,7 +16,14 @@ $w.onReady(function () {
         return;
     }
 
-    enviarParaHTML();
+    $w("#htmlConteudo").src =
+        `data:text/html;charset=utf-8,${encodeURIComponent(htmlPainelConteudo)}`;
+
+    // Pequeno atraso pra garantir que o iframe já carregou
+    // e está ouvindo mensagens antes do primeiro envio.
+    setTimeout(() => {
+        enviarParaHTML();
+    }, 150);
 
 
     $w("#htmlConteudo").onMessage((event) => {
@@ -54,11 +63,44 @@ $w.onReady(function () {
 
         case "mochila":
 
-            console.log("Abrir Mochila");
+            // Popup separado (não o mesmo "Conteudo") porque o Wix
+            // não empilha um lightbox dentro dele mesmo.
+            wixWindow.openLightbox("ConteudoResumo", {
+
+                modo: "mochila",
+                titulo: tituloComIcone(ICONE_MOCHILA, "Mochila"),
+                mensagem: "Guarda as respostas de cada ponto",
+                mochila: conteudo.mochila
+
+            });
 
             break;
 
-            
+        case "diario":
+
+            wixWindow.openLightbox("ConteudoResumo", {
+
+                modo: "diario",
+                titulo: tituloComIcone(ICONE_DIARIO, "Diário"),
+                diario: conteudo.diario
+
+            })
+
+            .then((resultado) => {
+
+                if (!resultado) return;
+
+                if (resultado.acao === "salvarDiario") {
+
+                    salvarTextoDiario(resultado.texto);
+
+                    conteudo.diario = resultado.texto;
+
+                }
+
+            });
+
+            break;
 
         }
 
