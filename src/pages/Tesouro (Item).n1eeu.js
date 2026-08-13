@@ -69,7 +69,7 @@ function carregarParceiros(missaoId) {
 function mostrarPrazoFinal(dataConclusao) {
 
     const prazo = new Date(dataConclusao);
-    prazo.setDate(prazo.getDate() + 7);
+    prazo.setDate(prazo.getDate() + 14);
 
     $w("#txtCronometro").text = prazo.toLocaleDateString("pt-BR", {
         day: "2-digit",

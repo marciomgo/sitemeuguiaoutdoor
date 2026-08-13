@@ -136,7 +136,7 @@ function mostrarResultado(resgate) {
     $w("#txtNomeFamilia").text = resgate.nomeFamilia || "";
 
     const prazo = new Date(resgate.dataConclusao);
-    prazo.setDate(prazo.getDate() + 7);
+    prazo.setDate(prazo.getDate() + 14);
 
     const hoje = new Date();
 
