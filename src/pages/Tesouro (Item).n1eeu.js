@@ -43,7 +43,7 @@ function carregarParceiros(missaoId) {
 
             $w("#repeaterParceiros").onItemReady(($item, itemData) => {
                 $item("#txtNomeParceiro").text = itemData.nome || "";
-                $item("#txtValorParceiro").text = "R$" + itemData.valor;
+                $item("#txtValorParceiro").text = itemData.valor ? "R$" + itemData.valor : "";
                 $item("#txtDescricaoParceiro").text = itemData.descricao || "";
                 $item("#txtEnderecoParceiro").text = itemData.endereco || "";
 
