@@ -2,7 +2,7 @@ import wixData from 'wix-data';
 
 // Código PIX único, com valor sugerido de R$14,90 já pré-preenchido
 // (a pessoa pode alterar no app do banco antes de confirmar).
-const CODIGO_PIX = "00020126920014BR.GOV.BCB.PIX0136561c6f5a-ada8-488e-b053-fa88735aa22e0230Pode alterar o valor se quiser520400005303986540514.905802BR5923Marcio de Avila Palermo6009SAO PAULO62140510jIW8O5sRJ763047E47";
+const CODIGO_PIX = "00020126840014BR.GOV.BCB.PIX0136561c6f5a-ada8-488e-b053-fa88735aa22e0222Valor sugerido R$14,905204000053039865802BR5923Marcio de Avila Palermo6009SAO PAULO62140510GjEUg98dMD6304E376";
 
 $w.onReady(function () {
 
