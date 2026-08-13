@@ -1,13 +1,8 @@
 import wixData from 'wix-data';
 
-// Códigos PIX "copia e cola" — 3 valores fixos + 1 livre (chave sem
-// valor embutido, a pessoa digita quanto quiser no banco dela).
-const OPCOES_PIX = [
-    { label: "R$5",  codigo: "00020101021126360014br.gov.bcb.pix0114+555199999301252040000530398654045.005802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251KZSFN9KSC90KK0G6KWYNAK8N63046075" },
-    { label: "R$10", codigo: "00020101021126360014br.gov.bcb.pix0114+5551999993012520400005303986540510.005802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251KZSFR1NJC7SCJXAYV85293206304FE0F" },
-    { label: "R$20", codigo: "00020101021126360014br.gov.bcb.pix0114+5551999993012520400005303986540520.005802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251KZSFSHH8MPYT7PZZDWVMXJ6K6304ED47" },
-    { label: "Outro valor", codigo: "00020101021126360014br.gov.bcb.pix0114+55519999930125204000053039865802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251KZSFTAA59NQQ83AFXP5VY51J63045708" }
-];
+// Código PIX único, com valor sugerido de R$14,90 já pré-preenchido
+// (a pessoa pode alterar no app do banco antes de confirmar).
+const CODIGO_PIX = "00020126920014BR.GOV.BCB.PIX0136561c6f5a-ada8-488e-b053-fa88735aa22e0230Pode alterar o valor se quiser520400005303986540514.905802BR5923Marcio de Avila Palermo6009SAO PAULO62140510jIW8O5sRJ763047E47";
 
 $w.onReady(function () {
 
@@ -90,25 +85,17 @@ function mostrarPrazoFinal(dataConclusao) {
 
 function carregarPix() {
 
-    $w("#repeaterPix").data = OPCOES_PIX.map((item, indice) => ({ _id: String(indice), ...item }));
+    $w("#btnCopiarPix").onClick(() => {
 
-    $w("#repeaterPix").onItemReady(($item, itemData) => {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(CODIGO_PIX);
+        }
 
-        $item("#txtValorPix").text = itemData.label;
+        $w("#btnCopiarPix").label = "Copiado!";
 
-        $item("#btnCopiarPix").onClick(() => {
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(itemData.codigo);
-            }
-
-            $item("#btnCopiarPix").label = "Copiado!";
-
-            setTimeout(() => {
-                $item("#btnCopiarPix").label = "Copiar código PIX";
-            }, 2000);
-
-        });
+        setTimeout(() => {
+            $w("#btnCopiarPix").label = "Copiar código PIX";
+        }, 2000);
 
     });
 
