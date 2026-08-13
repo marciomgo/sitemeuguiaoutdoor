@@ -9,8 +9,6 @@ const OPCOES_PIX = [
     { label: "Outro valor", codigo: "00020101021126360014br.gov.bcb.pix0114+55519999930125204000053039865802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251KZSFTAA59NQQ83AFXP5VY51J63045708" }
 ];
 
-let cronometroInterval;
-
 $w.onReady(function () {
 
     $w("#dynamicDataset").onReady(() => {
@@ -23,7 +21,7 @@ $w.onReady(function () {
         $w("#txtNomeFamilia").text = resgate.nomeFamilia || "";
 
         carregarParceiros(resgate.missao);
-        iniciarCronometro(resgate.dataConclusao);
+        mostrarPrazoFinal(resgate.dataConclusao);
         carregarPix();
 
     });
@@ -70,39 +68,19 @@ function carregarParceiros(missaoId) {
 }
 
 //==================================================
-// CRONÔMETRO (7 DIAS DE VALIDADE)
+// PRAZO FINAL DE VALIDADE (7 DIAS)
 //==================================================
 
-function iniciarCronometro(dataConclusao) {
+function mostrarPrazoFinal(dataConclusao) {
 
     const prazo = new Date(dataConclusao);
     prazo.setDate(prazo.getDate() + 7);
 
-    atualizarCronometro(prazo);
-
-    cronometroInterval = setInterval(() => {
-        atualizarCronometro(prazo);
-    }, 1000);
-
-}
-
-function atualizarCronometro(prazo) {
-
-    const restante = prazo - new Date();
-
-    if (restante <= 0) {
-        $w("#txtCronometro").text = "Prazo encerrado";
-        clearInterval(cronometroInterval);
-        return;
-    }
-
-    const dias = Math.floor(restante / 86400000);
-    const horas = Math.floor((restante / 3600000) % 24);
-    const minutos = Math.floor((restante / 60000) % 60);
-    const segundos = Math.floor((restante / 1000) % 60);
-
-    $w("#txtCronometro").text =
-        `${dias}d ${String(horas).padStart(2,"0")}:${String(minutos).padStart(2,"0")}:${String(segundos).padStart(2,"0")}`;
+    $w("#txtCronometro").text = prazo.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
 
 }
 
