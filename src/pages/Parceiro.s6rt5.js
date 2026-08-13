@@ -1,8 +1,6 @@
 import wixData from 'wix-data';
 import { local } from 'wix-storage';
 
-console.log("VERSAO_PARCEIRO_marca_18h20");
-
 let parceiroAtual;
 let resgateAtual;
 
@@ -15,21 +13,9 @@ $w.onReady(function () {
     $w("#txtConfirmacao").collapse();
 
     try {
-        console.log("TESTE txtTotalFamilias:", $w("#txtTotalFamilias"), "texto atual:", $w("#txtTotalFamilias").text);
+        $w("#txtJaConfirmado").collapse();
     } catch (err) {
-        console.error("TESTE txtTotalFamilias FALHOU:", err);
-    }
-
-    try {
-        console.log("TESTE txtTotalValor:", $w("#txtTotalValor"), "texto atual:", $w("#txtTotalValor").text);
-    } catch (err) {
-        console.error("TESTE txtTotalValor FALHOU:", err);
-    }
-
-    try {
-        console.log("TESTE repeaterHistorico:", $w("#repeaterHistorico"));
-    } catch (err) {
-        console.error("TESTE repeaterHistorico FALHOU:", err);
+        console.error("txtJaConfirmado não encontrado:", err);
     }
 
     conectarEventos();
@@ -134,6 +120,7 @@ function buscarCodigo() {
 
             resgateAtual = resgate;
             mostrarResultado(resgate);
+            verificarJaConfirmado(resgate);
 
         })
         .catch((err) => {
@@ -163,6 +150,40 @@ function mostrarResultado(resgate) {
 
 }
 
+// Avisa cedo (assim que busca o código) se esse parceiro já confirmou
+// esse mesmo resgate antes — não bloqueia, só sinaliza. A decisão de
+// confirmar de novo mesmo assim fica com o parceiro.
+function verificarJaConfirmado(resgate) {
+
+    try {
+        $w("#txtJaConfirmado").collapse();
+    } catch (err) {
+        console.error("txtJaConfirmado não encontrado:", err);
+    }
+
+    wixData.query("ResgatesParceiros")
+        .eq("resgate", resgate._id)
+        .eq("parceiro", parceiroAtual._id)
+        .limit(1)
+        .find()
+        .then((resultado) => {
+
+            if (resultado.items.length > 0) {
+                try {
+                    $w("#txtJaConfirmado").text = "🔴 Você já confirmou esse código antes.";
+                    $w("#txtJaConfirmado").expand();
+                } catch (err) {
+                    console.error("txtJaConfirmado não encontrado:", err);
+                }
+            }
+
+        })
+        .catch((err) => {
+            console.error("Erro ao verificar confirmação anterior:", err);
+        });
+
+}
+
 //==================================================
 // CONFIRMAR RESGATE
 //==================================================
@@ -171,37 +192,26 @@ function confirmarResgate() {
 
     const valorConsumido = Number($w("#inputValorConsumido").value) || 0;
 
-    wixData.query("ResgatesParceiros")
-        .eq("resgate", resgateAtual._id)
-        .eq("parceiro", parceiroAtual._id)
-        .limit(1)
-        .find()
-        .then((resultado) => {
+    // O aviso de "já confirmado antes" já aparece assim que o código é
+    // buscado (verificarJaConfirmado) — aqui não bloqueia mais, a
+    // decisão de confirmar de novo mesmo assim é do parceiro.
 
-            if (resultado.items.length > 0) {
-                $w("#txtConfirmacao").text = "⚠️ Esse código já foi confirmado aqui antes.";
-                $w("#txtConfirmacao").expand();
-                return;
-            }
-
-            // Mesma pegadinha da coleção "Resgates": o insert() aqui
-            // não grava os campos extras de forma confiável — cria
-            // vazio e preenche com update() na sequência.
-            return wixData.insert("ResgatesParceiros", {})
-                .then((item) => wixData.update("ResgatesParceiros", {
-                    _id: item._id,
-                    resgate: resgateAtual._id,
-                    parceiro: parceiroAtual._id,
-                    usado: true,
-                    valorConsumido: valorConsumido,
-                    dataUso: new Date()
-                }))
-                .then(() => {
-                    $w("#txtConfirmacao").text = "✅ Resgate confirmado!";
-                    $w("#txtConfirmacao").expand();
-                    carregarHistorico();
-                });
-
+    // Mesma pegadinha da coleção "Resgates": o insert() aqui não
+    // grava os campos extras de forma confiável — cria vazio e
+    // preenche com update() na sequência.
+    wixData.insert("ResgatesParceiros", {})
+        .then((item) => wixData.update("ResgatesParceiros", {
+            _id: item._id,
+            resgate: resgateAtual._id,
+            parceiro: parceiroAtual._id,
+            usado: true,
+            valorConsumido: valorConsumido,
+            dataUso: new Date()
+        }))
+        .then(() => {
+            $w("#txtConfirmacao").text = "✅ Resgate confirmado!";
+            $w("#txtConfirmacao").expand();
+            carregarHistorico();
         })
         .catch((err) => {
             console.error(err);
@@ -246,7 +256,7 @@ function carregarHistorico() {
                     (itemData.resgate && itemData.resgate.nomeFamilia) || "";
 
                 $item("#txtDataHistorico").text = itemData.dataUso
-                    ? new Date(itemData.dataUso).toLocaleDateString("pt-BR")
+                    ? new Date(itemData.dataUso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
                     : "";
 
                 $item("#txtValorHistorico").text =
