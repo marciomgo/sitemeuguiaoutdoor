@@ -53,6 +53,14 @@ function carregarParceiros(missaoId) {
                 $item("#txtValorParceiro").text = "R$" + itemData.valor;
                 $item("#txtDescricaoParceiro").text = itemData.descricao || "";
                 $item("#txtEnderecoParceiro").text = itemData.endereco || "";
+
+                if (itemData.linkMaps) {
+                    $item("#txtLinkMaps").html =
+                        `<a href="${itemData.linkMaps}" target="_blank">📍 Ver no mapa</a>`;
+                } else {
+                    $item("#txtLinkMaps").text = "";
+                }
+
                 $item("#imgParceiro").src = itemData.image;
             });
 
