@@ -67,6 +67,8 @@ function conectarEventos() {
 
 async function confirmarGPS() {
 
+    $w("#txtGPS").text = "🛰️ Buscando localização...";
+
     try {
 
         const posicao =
