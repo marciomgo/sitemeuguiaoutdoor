@@ -53,7 +53,13 @@ function carregarParceiros(missaoId) {
                 $item("#txtValorParceiro").text = "R$" + itemData.valor;
                 $item("#txtDescricaoParceiro").text = itemData.descricao || "";
                 $item("#txtEnderecoParceiro").text = itemData.endereco || "";
-                $item("#imgParceiro").src = itemData.image;
+
+                try {
+                    console.log("Tentando setar imgParceiro:", $item("#imgParceiro"), "com imagem:", itemData.image);
+                    $item("#imgParceiro").src = itemData.image;
+                } catch (err) {
+                    console.error("Erro ao setar imgParceiro:", err);
+                }
             });
 
         })
