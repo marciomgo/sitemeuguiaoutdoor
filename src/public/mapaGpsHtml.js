@@ -66,7 +66,7 @@ function desenharMascara(coordenadas){
 
     camadaMascara = L.polygon([anelExterno, buraco], {
         stroke: false,
-        fillColor: '#ffffff',
+        fillColor: '#000000',
         fillOpacity: 0.93
     }).addTo(mapa);
 
