@@ -51,22 +51,32 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
 }).addTo(mapa);
 
-// Perímetro desenhado à mão pelo Márcio no Google My Maps (contorno
-// certo da missão, sem incluir a quadra vizinha que não fazia parte).
-const PERIMETRO_PARQUE = {
-    "type": "Polygon",
-    "coordinates": [[[-51.2202079,-30.0342732],[-51.2181694,-30.0345054],[-51.2178583,-30.0347191],[-51.2176223,-30.0346355],[-51.2175257,-30.0344218],[-51.2173648,-30.0343011],[-51.2170429,-30.034171],[-51.2165816,-30.034041],[-51.2162597,-30.0339203],[-51.2159486,-30.0337995],[-51.2155623,-30.0336138],[-51.2154658,-30.0335302],[-51.2102837,-30.0362237],[-51.2170214,-30.0401896],[-51.2191574,-30.03753],[-51.2196295,-30.0369077],[-51.2199567,-30.0363674],[-51.220056,-30.0362083],[-51.2200506,-30.0361456],[-51.2202324,-30.0358047],[-51.2206079,-30.0352567],[-51.2208708,-30.0348712],[-51.2208225,-30.0346065],[-51.2206723,-30.0343975],[-51.2205006,-30.0342629],[-51.2202079,-30.0342732]]]
-};
+// Perímetro do parque — não fica fixo aqui, vem de fora (campo
+// "perimetro" da coleção "Parques" no CMS) via postMessage.
+let camadaPerimetro = null;
 
-L.geoJSON(PERIMETRO_PARQUE, {
-    style: {
-        color: '#2b6ef2',
-        weight: 3,
-        dashArray: '6 6',
-        fillColor: '#2b6ef2',
-        fillOpacity: 0.08
+function desenharPerimetro(coordenadas){
+
+    if(!coordenadas || !coordenadas.length) return;
+
+    if(camadaPerimetro){
+        mapa.removeLayer(camadaPerimetro);
     }
-}).addTo(mapa);
+
+    camadaPerimetro = L.geoJSON({
+        type: "Polygon",
+        coordinates: [coordenadas]
+    }, {
+        style: {
+            color: '#2b6ef2',
+            weight: 3,
+            dashArray: '6 6',
+            fillColor: '#2b6ef2',
+            fillOpacity: 0.08
+        }
+    }).addTo(mapa);
+
+}
 
 let marcadoresPontos = {};
 let marcadorEu = null;
@@ -139,6 +149,10 @@ window.onmessage = function(event){
 
     if(dados.acao === 'pontos'){
         desenharPontos(dados.pontos || []);
+    }
+
+    if(dados.acao === 'perimetro'){
+        desenharPerimetro(dados.coordenadas || []);
     }
 
     if(dados.acao === 'minhaLocalizacao'){

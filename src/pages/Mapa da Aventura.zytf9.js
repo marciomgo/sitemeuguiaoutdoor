@@ -1,4 +1,5 @@
 import wixWindow from 'wix-window';
+import wixData from 'wix-data';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
 
 // Página de teste do mapa GPS (Leaflet) — pontos fixos, só pra
@@ -36,6 +37,8 @@ $w.onReady(function () {
                 pontos: PONTOS_TESTE
             });
 
+            carregarPerimetro();
+
             atualizarLocalizacao();
             intervaloLocalizacao = setInterval(atualizarLocalizacao, 5000);
 
@@ -48,6 +51,37 @@ $w.onReady(function () {
     });
 
 });
+
+// Pega o perímetro do parque no CMS (coleção "Parques", campo
+// "perimetro" com a lista de coordenadas em JSON) — teste busca o
+// primeiro parque cadastrado, direto (sem passar por missão ainda).
+function carregarPerimetro() {
+
+    wixData.query("Parques")
+        .limit(1)
+        .find()
+        .then((resultado) => {
+
+            if (resultado.items.length === 0) {
+                console.log("Nenhum parque cadastrado ainda.");
+                return;
+            }
+
+            const parque = resultado.items[0];
+
+            const coordenadas = JSON.parse(parque.perimetro || "[]");
+
+            $w("#htmlMapaGps").postMessage({
+                acao: "perimetro",
+                coordenadas: coordenadas
+            });
+
+        })
+        .catch((err) => {
+            console.error("Erro ao carregar perímetro:", err);
+        });
+
+}
 
 function atualizarLocalizacao() {
 
