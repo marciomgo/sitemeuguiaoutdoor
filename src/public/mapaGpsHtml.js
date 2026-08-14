@@ -28,6 +28,16 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 .icone-ponto-img{
     object-fit:contain;
 }
+.icone-bonus{
+    background:#f0b429;
+    color:#fff;
+    width:30px;height:30px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:bold;font-size:16px;
+    border:2px solid #fff;
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
 .leaflet-control-attribution{
     font-size:8px;
     padding:0 3px;
@@ -103,8 +113,41 @@ function desenharPerimetro(coordenadas){
 }
 
 let marcadoresPontos = {};
+let marcadoresBonus = {};
 let marcadorEu = null;
 let primeiraLocalizacao = true;
+
+function iconeBonus(){
+    return L.divIcon({
+        className: '',
+        html: '<div class="icone-bonus">?</div>',
+        iconSize: [30,30],
+        iconAnchor: [15,15]
+    });
+}
+
+function desenharPontosBonus(pontosBonus){
+
+    Object.values(marcadoresBonus).forEach(m => mapa.removeLayer(m));
+    marcadoresBonus = {};
+
+    pontosBonus.forEach(ponto => {
+
+        if(!ponto.latitude || !ponto.longitude) return;
+
+        const marcador = L.marker([ponto.latitude, ponto.longitude], {
+            icon: iconeBonus()
+        }).addTo(mapa);
+
+        marcador.on('click', () => {
+            parent.postMessage({ acao: 'pontoBonusClicado', id: ponto.id }, '*');
+        });
+
+        marcadoresBonus[ponto.id] = marcador;
+
+    });
+
+}
 
 // Ícones customizados (imagens do Gerenciador de Mídia do Wix).
 const ICONES_NUMERADOS = {
@@ -226,6 +269,10 @@ window.onmessage = function(event){
 
     if(dados.acao === 'largada'){
         desenharLargada(dados.latitude, dados.longitude);
+    }
+
+    if(dados.acao === 'pontosBonus'){
+        desenharPontosBonus(dados.pontos || []);
     }
 
     if(dados.acao === 'minhaLocalizacao'){
