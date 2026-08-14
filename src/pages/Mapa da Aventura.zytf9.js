@@ -4,10 +4,16 @@ import { htmlMapaGps } from 'public/mapaGpsHtml';
 // Página de teste do mapa GPS (Leaflet) — pontos fixos, só pra
 // validar o mapa funcionando antes de conectar na missão de verdade.
 
+// Coordenadas reais dos pontos da missão (do Google My Maps).
 const PONTOS_TESTE = [
-    { codigo: 1, latitude: -30.0346, longitude: -51.2177, concluido: false },
-    { codigo: 2, latitude: -30.0360, longitude: -51.2190, concluido: true },
-    { codigo: 3, latitude: -30.0330, longitude: -51.2160, concluido: false }
+    { codigo: 1, latitude: -30.0378222, longitude: -51.2163404, concluido: true },
+    { codigo: 2, latitude: -30.0369352, longitude: -51.2163776, concluido: true },
+    { codigo: 3, latitude: -30.0353764, longitude: -51.2180724, concluido: false },
+    { codigo: 4, latitude: -30.0350734, longitude: -51.2195838, concluido: false },
+    { codigo: 5, latitude: -30.0351699, longitude: -51.215422, concluido: false },
+    { codigo: 6, latitude: -30.034983, longitude: -51.21381, concluido: false },
+    { codigo: 7, latitude: -30.0368684, longitude: -51.2141901, concluido: false },
+    { codigo: 8, latitude: -30.0381922, longitude: -51.2149293, concluido: false }
 ];
 
 let intervaloLocalizacao;
