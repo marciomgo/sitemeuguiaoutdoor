@@ -281,13 +281,19 @@ async function carregarMissao(slug) {
 
     };
 
+    // Campos "codigo" e "tipo" são do tipo Tags no CMS (só existe
+    // Tags, não Dropdown, pra travar numa lista pré-definida) —
+    // vêm como array (ex: ["pra_rir"]). Usa só o primeiro valor.
+    const primeiroValor = (campo) =>
+        Array.isArray(campo) ? campo[0] : campo;
+
     resultadoBonus.items.forEach(item => {
 
         missao.pontosBonus.push({
 
             id: item._id,
 
-            codigo: item.codigo,
+            codigo: primeiroValor(item.codigo),
 
             latitude: item.latitude,
 
@@ -295,7 +301,7 @@ async function carregarMissao(slug) {
 
             conteudo: {
 
-                tipo: item.tipo,
+                tipo: primeiroValor(item.tipo),
 
                 titulo: item.titulo,
 
