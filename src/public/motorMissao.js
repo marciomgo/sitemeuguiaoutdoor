@@ -1155,6 +1155,8 @@ function atualizarBotoes() {
         // nessa fileira numerada de botões.
         if (ponto.ordem === missao.totalPontos) return;
 
+        try {
+
         const botao = $wPage(`#btnPonto${ponto.codigo}`);
 
         if (progresso.concluidos.includes(ponto.codigo)) {
@@ -1174,6 +1176,12 @@ function atualizarBotoes() {
             botao.label = `🔒${ponto.codigo}`;
 
             botao.disable();
+
+        }
+
+        } catch (err) {
+
+            console.warn(`#btnPonto${ponto.codigo} não existe na página.`);
 
         }
 
