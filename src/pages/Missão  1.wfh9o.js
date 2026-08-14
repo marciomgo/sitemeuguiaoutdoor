@@ -329,10 +329,17 @@ function atualizarLocalizacaoMapa() {
 
 function carregarPerimetroMapa(parqueId) {
 
-    if (!parqueId) return;
+    console.log("carregarPerimetroMapa recebeu parqueId:", parqueId);
+
+    if (!parqueId) {
+        console.log("Sem parqueId — missao.parquemissao veio vazio.");
+        return;
+    }
 
     wixData.get("Parques", parqueId)
         .then((parque) => {
+
+            console.log("Parque encontrado:", parque);
 
             const coordenadas = JSON.parse(parque.perimetro || "[]");
 
