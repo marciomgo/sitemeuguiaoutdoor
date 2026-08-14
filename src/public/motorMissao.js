@@ -12,6 +12,11 @@ export const ICONE_MOCHILA = "https://static.wixstatic.com/media/f02643_e7b087c7
 export const ICONE_DIARIO = "https://static.wixstatic.com/media/f02643_595d63c2751a4c97b90a29789170e76f~mv2.png";
 const ICONE_REGRAS = "https://static.wixstatic.com/media/f02643_16f6066157b9427fadf0fbcd4261097e~mv2.png";
 
+// Mesmo ícone de chegada usado no mapa GPS (mapaGpsHtml.js) — o
+// botão de chegada na tela agora é uma imagem, não mais um botão
+// numerado com rótulo.
+const ICONE_CHEGADA = "https://static.wixstatic.com/media/f02643_744242f786c449fe9a7c6133d6b91464~mv2.png";
+
 export function tituloComIcone(url, texto) {
 
     return `<img src="${url}" style="height:80px;vertical-align:middle;margin-right:8px;">${texto}`;
@@ -102,6 +107,11 @@ function conectarBotoes() {
 
     missao.pontos.forEach(ponto => {
 
+        // O ponto de chegada tem elemento próprio (#imgChegada,
+        // uma imagem — mesmo ícone usado no mapa), não entra na
+        // fileira numerada de botões.
+        if (ponto.ordem === missao.totalPontos) return;
+
         const idBotao = `#btnPonto${ponto.codigo}`;
 
         try {
@@ -123,6 +133,8 @@ function conectarBotoes() {
         }
 
     });
+
+    conectarImagemChegada();
 
     //=========================================
     // MOCHILA
@@ -175,6 +187,38 @@ function conectarBotoes() {
     } catch (err) {
 
         console.log("Botão Como Funciona não encontrado.");
+
+    }
+
+}
+
+//==================================================
+// IMAGEM DE CHEGADA
+//==================================================
+
+function conectarImagemChegada() {
+
+    const pontoChegada = missao.pontos.find(
+        p => p.ordem === missao.totalPontos
+    );
+
+    if (!pontoChegada) return;
+
+    try {
+
+        const imagem = $wPage("#imgChegada");
+
+        imagem.src = ICONE_CHEGADA;
+
+        imagem.onClick(() => {
+            verificarPonto(pontoChegada);
+        });
+
+        console.log("✓ #imgChegada conectado");
+
+    } catch (err) {
+
+        console.log("Imagem de chegada (#imgChegada) não encontrada.");
 
     }
 
@@ -1061,6 +1105,10 @@ function atualizarBotoes() {
     const ultimoConcluido = progresso.concluidos.length;
 
     missao.pontos.forEach(ponto => {
+
+        // Chegada tem elemento próprio (#imgChegada) — não entra
+        // nessa fileira numerada de botões.
+        if (ponto.ordem === missao.totalPontos) return;
 
         const botao = $wPage(`#btnPonto${ponto.codigo}`);
 
