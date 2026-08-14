@@ -16,8 +16,8 @@ export const htmlMapaGps = `<!DOCTYPE html>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-html,body{margin:0;padding:0;height:100%;}
-#map{width:100%;height:100%;}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+#map{width:100%;height:100%;border-radius:16px;}
 .icone-eu{
     background:#2b6ef2;
     width:18px;height:18px;
