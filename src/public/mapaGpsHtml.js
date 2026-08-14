@@ -36,7 +36,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 
 <script>
 
-let mapa = L.map('map', { zoomControl: true }).setView([-30.0346, -51.2177], 15);
+let mapa = L.map('map', { zoomControl: false }).setView([-30.0346, -51.2177], 15);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
