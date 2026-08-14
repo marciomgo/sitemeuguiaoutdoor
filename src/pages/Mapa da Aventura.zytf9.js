@@ -54,10 +54,16 @@ function carregarPontos() {
                 return;
             }
 
-            const missaoId = resultadoMissao.items[0]._id;
+            const missao = resultadoMissao.items[0];
+
+            $w("#htmlMapaGps").postMessage({
+                acao: "largada",
+                latitude: missao.latitudeInicio,
+                longitude: missao.longitudeInicio
+            });
 
             return wixData.query("Pontos")
-                .eq("missao", missaoId)
+                .eq("missao", missao._id)
                 .eq("ativo", true)
                 .ascending("ordem")
                 .find();

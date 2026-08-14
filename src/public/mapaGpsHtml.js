@@ -119,6 +119,28 @@ const ICONES_NUMERADOS = {
     15: "https://static.wixstatic.com/media/f02643_ed5489163f5f4182b136c62a8f93eb33~mv2.png"
 };
 const ICONE_CHEGADA = "https://static.wixstatic.com/media/f02643_744242f786c449fe9a7c6133d6b91464~mv2.png";
+const ICONE_LARGADA = "https://static.wixstatic.com/media/f02643_83d5d7c16a834a8e9a7a4205276fc8cf~mv2.png";
+
+let marcadorLargada = null;
+
+function desenharLargada(latitude, longitude){
+
+    if(!latitude || !longitude) return;
+
+    if(marcadorLargada){
+        mapa.removeLayer(marcadorLargada);
+    }
+
+    marcadorLargada = L.marker([latitude, longitude], {
+        icon: L.icon({
+            iconUrl: ICONE_LARGADA,
+            iconSize: [40,40],
+            iconAnchor: [20,40],
+            className: 'icone-ponto-img'
+        })
+    }).addTo(mapa);
+
+}
 
 function iconePonto(codigo, ehChegada){
     const url = ehChegada ? ICONE_CHEGADA : (ICONES_NUMERADOS[codigo] || ICONES_NUMERADOS[1]);
@@ -194,6 +216,10 @@ window.onmessage = function(event){
 
     if(dados.acao === 'perimetro'){
         desenharPerimetro(dados.coordenadas || []);
+    }
+
+    if(dados.acao === 'largada'){
+        desenharLargada(dados.latitude, dados.longitude);
     }
 
     if(dados.acao === 'minhaLocalizacao'){
