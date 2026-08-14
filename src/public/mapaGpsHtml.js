@@ -112,24 +112,20 @@ function atualizarMinhaLocalizacao(lat, lng){
 
 }
 
-if(navigator.geolocation){
-    navigator.geolocation.watchPosition(
-        (posicao) => {
-            atualizarMinhaLocalizacao(posicao.coords.latitude, posicao.coords.longitude);
-        },
-        (erro) => {
-            console.log('Erro de geolocalização:', erro);
-        },
-        { enableHighAccuracy: true, maximumAge: 5000 }
-    );
-}
-
+// A geolocalização não é pega aqui dentro do iframe (costuma ser
+// bloqueada por política de segurança) — vem de fora, via postMessage,
+// usando a mesma wixWindow.getCurrentGeolocation() que a página já usa
+// pra conferir os pontos.
 window.onmessage = function(event){
 
     const dados = event.data || {};
 
     if(dados.acao === 'pontos'){
         desenharPontos(dados.pontos || []);
+    }
+
+    if(dados.acao === 'minhaLocalizacao'){
+        atualizarMinhaLocalizacao(dados.lat, dados.lng);
     }
 
 };
