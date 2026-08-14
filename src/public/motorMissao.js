@@ -18,11 +18,38 @@ export function tituloComIcone(url, texto) {
 
 }
 
-// Ícones genéricos do botão dos pontos bônus — cinza (ainda não
-// achado) e colorido com check (já achado). Reaproveitados em
-// todos os pontos bônus, independente do tipo (piada/enigma/etc).
-const ICONE_BONUS_BLOQUEADO = "https://static.wixstatic.com/media/f02643_SUBSTITUIR_BLOQUEADO.png";
-const ICONE_BONUS_ENCONTRADO = "https://static.wixstatic.com/media/f02643_SUBSTITUIR_ENCONTRADO.png";
+// Ícones do botão dos pontos bônus — um par (cinza/travado +
+// colorido/achado) por tipo. O campo "tipo" no CMS "PontosBonus"
+// precisa vir com um destes valores exatos: pra_rir, travessuras,
+// desafio, coracao, parceiro.
+const ICONES_BONUS = {
+
+    pra_rir: {
+        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PRARIR_BLOQUEADO.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PRARIR_ENCONTRADO.png"
+    },
+
+    travessuras: {
+        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_TRAVESSURAS_BLOQUEADO.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_TRAVESSURAS_ENCONTRADO.png"
+    },
+
+    desafio: {
+        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_DESAFIO_BLOQUEADO.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_DESAFIO_ENCONTRADO.png"
+    },
+
+    coracao: {
+        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_CORACAO_BLOQUEADO.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_CORACAO_ENCONTRADO.png"
+    },
+
+    parceiro: {
+        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PARCEIRO_BLOQUEADO.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PARCEIRO_ENCONTRADO.png"
+    }
+
+};
 
 let $wPage;
 let missao;
@@ -320,7 +347,9 @@ function atualizarImagemBonus(imagem, ponto) {
 
     const achado = progresso.bonusConcluidos.includes(ponto.id);
 
-    imagem.src = achado ? ICONE_BONUS_ENCONTRADO : ICONE_BONUS_BLOQUEADO;
+    const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.pra_rir;
+
+    imagem.src = achado ? icones.encontrado : icones.bloqueado;
 
 }
 
