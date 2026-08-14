@@ -54,6 +54,25 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // Perímetro do parque — não fica fixo aqui, vem de fora (campo
 // "perimetro" da coleção "Parques" no CMS) via postMessage.
 let camadaPerimetro = null;
+let camadaMascara = null;
+
+// Retângulo enorme (cobre o mapa inteiro) com um "buraco" no formato
+// do parque — o resultado visual é tudo fora do perímetro ficando
+// coberto de branco, só o parque aparecendo por baixo.
+function desenharMascara(coordenadas){
+
+    const anelExterno = [[-85,-180],[-85,180],[85,180],[85,-180]];
+    const buraco = coordenadas.map(c => [c[1], c[0]]);
+
+    camadaMascara = L.polygon([anelExterno, buraco], {
+        stroke: false,
+        fillColor: '#ffffff',
+        fillOpacity: 0.93
+    }).addTo(mapa);
+
+    camadaMascara.bringToBack();
+
+}
 
 function desenharPerimetro(coordenadas){
 
@@ -61,6 +80,10 @@ function desenharPerimetro(coordenadas){
 
     if(camadaPerimetro){
         mapa.removeLayer(camadaPerimetro);
+    }
+
+    if(camadaMascara){
+        mapa.removeLayer(camadaMascara);
     }
 
     camadaPerimetro = L.geoJSON({
@@ -71,10 +94,14 @@ function desenharPerimetro(coordenadas){
             color: '#2b6ef2',
             weight: 3,
             dashArray: '6 6',
-            fillColor: '#2b6ef2',
-            fillOpacity: 0.08
+            fillColor: 'transparent'
         }
     }).addTo(mapa);
+
+    desenharMascara(coordenadas);
+
+    Object.values(marcadoresPontos).forEach(m => m.bringToFront());
+    if(marcadorEu) marcadorEu.bringToFront();
 
 }
 
