@@ -91,9 +91,8 @@ function desenharPerimetro(coordenadas){
         coordinates: [coordenadas]
     }, {
         style: {
-            color: '#2b6ef2',
+            color: '#000000',
             weight: 3,
-            dashArray: '6 6',
             fillColor: 'transparent'
         }
     }).addTo(mapa);
