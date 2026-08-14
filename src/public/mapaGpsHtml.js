@@ -18,17 +18,6 @@ export const htmlMapaGps = `<!DOCTYPE html>
 <style>
 html,body{margin:0;padding:0;height:100%;}
 #map{width:100%;height:100%;}
-.icone-ponto{
-    background:#e8622c;
-    color:#fff;
-    border-radius:50%;
-    width:32px;height:32px;
-    display:flex;align-items:center;justify-content:center;
-    font-weight:bold;font-size:14px;
-    border:2px solid #fff;
-    box-shadow:0 1px 4px rgba(0,0,0,0.4);
-}
-.icone-ponto.concluido{ background:#3fa34d; }
 .icone-eu{
     background:#2b6ef2;
     width:18px;height:18px;
@@ -108,12 +97,32 @@ let marcadoresPontos = {};
 let marcadorEu = null;
 let primeiraLocalizacao = true;
 
-function iconePonto(codigo, concluido){
-    return L.divIcon({
-        className: '',
-        html: '<div class="icone-ponto' + (concluido ? ' concluido' : '') + '">' + codigo + '</div>',
-        iconSize: [32,32],
-        iconAnchor: [16,16]
+// Ícones customizados (imagens do Gerenciador de Mídia do Wix).
+const ICONES_NUMERADOS = {
+    1: "https://static.wixstatic.com/media/f02643_48f7c1d977754b23977fd2e7f58c6c27~mv2.png",
+    2: "https://static.wixstatic.com/media/f02643_f14858e9c66d43feae48eff43148759e~mv2.png",
+    3: "https://static.wixstatic.com/media/f02643_cba7ab04f17845d98a60cbdb48466302~mv2.png",
+    4: "https://static.wixstatic.com/media/f02643_ea984cd4c0fc44aead08ba7a5af6b383~mv2.png",
+    5: "https://static.wixstatic.com/media/f02643_6a69d7baa0794d37848b3948fed51e44~mv2.png",
+    6: "https://static.wixstatic.com/media/f02643_801dffdc2e554552a5c134e097d91ea6~mv2.png",
+    7: "https://static.wixstatic.com/media/f02643_cd0ee07d3fcd40fb9a33810c88f2d851~mv2.png",
+    8: "https://static.wixstatic.com/media/f02643_91b88885a5c44c8c833417bc1190b7b5~mv2.png",
+    9: "https://static.wixstatic.com/media/f02643_1b89172049664af79ec14bce19a83033~mv2.png",
+    10: "https://static.wixstatic.com/media/f02643_033f68da0d1044bcbd9a97da09181820~mv2.png",
+    11: "https://static.wixstatic.com/media/f02643_193c340555f24225b4d92d767d84255a~mv2.png",
+    12: "https://static.wixstatic.com/media/f02643_1ff212affeb84c9584f484f04ba0535e~mv2.png",
+    13: "https://static.wixstatic.com/media/f02643_741fb6aae44744de8ed6e009fb318faf~mv2.png",
+    14: "https://static.wixstatic.com/media/f02643_b1b9ad3701be4696815636ec5dc6cedc~mv2.png",
+    15: "https://static.wixstatic.com/media/f02643_ed5489163f5f4182b136c62a8f93eb33~mv2.png"
+};
+const ICONE_CHEGADA = "https://static.wixstatic.com/media/f02643_744242f786c449fe9a7c6133d6b91464~mv2.png";
+
+function iconePonto(codigo, ehChegada){
+    const url = ehChegada ? ICONE_CHEGADA : (ICONES_NUMERADOS[codigo] || ICONES_NUMERADOS[1]);
+    return L.icon({
+        iconUrl: url,
+        iconSize: [40,40],
+        iconAnchor: [20,40]
     });
 }
 
@@ -124,12 +133,14 @@ function desenharPontos(pontos){
 
     const bounds = [];
 
+    const maiorCodigo = Math.max(...pontos.map(p => p.codigo));
+
     pontos.forEach(ponto => {
 
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconePonto(ponto.codigo, ponto.concluido)
+            icon: iconePonto(ponto.codigo, ponto.codigo === maiorCodigo)
         }).addTo(mapa);
 
         marcador.on('click', () => {
