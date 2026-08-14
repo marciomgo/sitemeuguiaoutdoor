@@ -20,11 +20,11 @@ export function tituloComIcone(url, texto) {
 
 // Ícones do botão dos pontos bônus — um par (cinza/travado +
 // colorido/achado) por tipo. O campo "tipo" no CMS "PontosBonus"
-// precisa vir com um destes valores exatos: pra_rir, travessuras,
+// precisa vir com um destes valores exatos: prarir, travessuras,
 // desafio, coracao, parceiro.
 const ICONES_BONUS = {
 
-    pra_rir: {
+    prarir: {
         bloqueado: "https://static.wixstatic.com/media/f02643_382e5debe5a74ede931d535c55a2bc94~mv2.png",
         encontrado: "https://static.wixstatic.com/media/f02643_456383dfca3040c2ad2901c2e0b6f080~mv2.png"
     },
@@ -347,7 +347,7 @@ function atualizarImagemBonus(imagem, ponto) {
 
     const achado = progresso.bonusConcluidos.includes(ponto.id);
 
-    const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.pra_rir;
+    const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.prarir;
 
     imagem.src = achado ? icones.encontrado : icones.bloqueado;
 
