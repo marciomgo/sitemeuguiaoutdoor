@@ -214,6 +214,37 @@ async function verificarPonto(ponto) {
 }
 
 //==================================================
+// MAPA GPS
+//==================================================
+
+// Dados que o mapa (Leaflet, dentro do HTML embutido) precisa pra
+// desenhar os marcadores — coordenadas + se já foi concluído.
+export function obterPontosParaMapa() {
+
+    return missao.pontos.map(ponto => ({
+
+        codigo: ponto.codigo,
+        latitude: ponto.latitude,
+        longitude: ponto.longitude,
+        concluido: progresso.concluidos.includes(ponto.codigo)
+
+    }));
+
+}
+
+// Clique num marcador do mapa GPS dispara a mesma verificação de
+// GPS/conteúdo que os botões numerados já usam.
+export function verificarPontoPorCodigo(codigo) {
+
+    const ponto = missao.pontos.find(p => p.codigo === codigo);
+
+    if (ponto) {
+        verificarPonto(ponto);
+    }
+
+}
+
+//==================================================
 // ABRIR LIGHTBOX
 //==================================================
 
