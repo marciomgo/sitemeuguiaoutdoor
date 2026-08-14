@@ -25,28 +25,28 @@ export function tituloComIcone(url, texto) {
 const ICONES_BONUS = {
 
     pra_rir: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PRARIR_BLOQUEADO.png",
-        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PRARIR_ENCONTRADO.png"
+        bloqueado: "https://static.wixstatic.com/media/f02643_382e5debe5a74ede931d535c55a2bc94~mv2.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_456383dfca3040c2ad2901c2e0b6f080~mv2.png"
     },
 
     travessuras: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_TRAVESSURAS_BLOQUEADO.png",
-        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_TRAVESSURAS_ENCONTRADO.png"
+        bloqueado: "https://static.wixstatic.com/media/f02643_19b5c5cea70942d981b18b89a9818b46~mv2.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_64580c372f554928b3660c41dc5d371d~mv2.png"
     },
 
     desafio: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_DESAFIO_BLOQUEADO.png",
-        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_DESAFIO_ENCONTRADO.png"
+        bloqueado: "https://static.wixstatic.com/media/f02643_23c3dc5ce72b4f549a0cc46f4a0af21e~mv2.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_69f4f7425c5b460cb4eba9cff5651da4~mv2.png"
     },
 
     coracao: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_CORACAO_BLOQUEADO.png",
-        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_CORACAO_ENCONTRADO.png"
+        bloqueado: "https://static.wixstatic.com/media/f02643_a07741afe9e1487d869ded4fc876aa0e~mv2.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_f0d39890f41c478d89d59f290aed4b0f~mv2.png"
     },
 
     parceiro: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PARCEIRO_BLOQUEADO.png",
-        encontrado: "https://static.wixstatic.com/media/f02643_SUBSTITUIR_PARCEIRO_ENCONTRADO.png"
+        bloqueado: "https://static.wixstatic.com/media/f02643_e7563194c8204108881b51d60dab95c2~mv2.png",
+        encontrado: "https://static.wixstatic.com/media/f02643_1493775b224e498583f42448e9278266~mv2.png"
     }
 
 };
