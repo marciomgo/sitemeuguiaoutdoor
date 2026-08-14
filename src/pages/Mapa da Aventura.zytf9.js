@@ -2,20 +2,9 @@ import wixWindow from 'wix-window';
 import wixData from 'wix-data';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
 
-// Página de teste do mapa GPS (Leaflet) — pontos fixos, só pra
-// validar o mapa funcionando antes de conectar na missão de verdade.
-
-// Coordenadas reais dos pontos da missão (do Google My Maps).
-const PONTOS_TESTE = [
-    { codigo: 1, latitude: -30.0378222, longitude: -51.2163404, concluido: true },
-    { codigo: 2, latitude: -30.0369352, longitude: -51.2163776, concluido: true },
-    { codigo: 3, latitude: -30.0353764, longitude: -51.2180724, concluido: false },
-    { codigo: 4, latitude: -30.0350734, longitude: -51.2195838, concluido: false },
-    { codigo: 5, latitude: -30.0351699, longitude: -51.215422, concluido: false },
-    { codigo: 6, latitude: -30.034983, longitude: -51.21381, concluido: false },
-    { codigo: 7, latitude: -30.0368684, longitude: -51.2141901, concluido: false },
-    { codigo: 8, latitude: -30.0381922, longitude: -51.2149293, concluido: false }
-];
+// Página de teste do mapa GPS (Leaflet) — busca os pontos e o
+// perímetro reais do CMS, pra validar o mapa antes de conectar na
+// tela da missão de verdade.
 
 let intervaloLocalizacao;
 
@@ -32,11 +21,7 @@ $w.onReady(function () {
 
         if (dados.acao === "mapaPronto") {
 
-            $w("#htmlMapaGps").postMessage({
-                acao: "pontos",
-                pontos: PONTOS_TESTE
-            });
-
+            carregarPontos();
             carregarPerimetro();
 
             atualizarLocalizacao();
@@ -54,6 +39,55 @@ $w.onReady(function () {
 
 // Pega o perímetro do parque no CMS (coleção "Parques", campo
 // "perimetro" com a lista de coordenadas em JSON) — teste busca o
+// Pega os pontos reais da missão "missao-1" no CMS.
+function carregarPontos() {
+
+    wixData.query("Missoes")
+        .eq("slug", "missao-1")
+        .eq("ativo", true)
+        .limit(1)
+        .find()
+        .then((resultadoMissao) => {
+
+            if (resultadoMissao.items.length === 0) {
+                console.log("Missão missao-1 não encontrada.");
+                return;
+            }
+
+            const missaoId = resultadoMissao.items[0]._id;
+
+            return wixData.query("Pontos")
+                .eq("missao", missaoId)
+                .eq("ativo", true)
+                .ascending("ordem")
+                .find();
+
+        })
+        .then((resultadoPontos) => {
+
+            if (!resultadoPontos) return;
+
+            const pontos = resultadoPontos.items.map(item => ({
+                codigo: Number(item.codigo),
+                latitude: item.latitude,
+                longitude: item.longitude,
+                concluido: false
+            }));
+
+            console.log("Pontos carregados do CMS:", pontos);
+
+            $w("#htmlMapaGps").postMessage({
+                acao: "pontos",
+                pontos: pontos
+            });
+
+        })
+        .catch((err) => {
+            console.error("Erro ao carregar pontos:", err);
+        });
+
+}
+
 // primeiro parque cadastrado, direto (sem passar por missão ainda).
 function carregarPerimetro() {
 
