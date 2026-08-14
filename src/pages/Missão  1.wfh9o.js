@@ -3,13 +3,11 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId } from 'public/motorMissao';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
-import { calcularDistancia, raioPermitido } from 'public/gps';
 
 let cronometro;
 let intervaloLocalizacaoMapa;
-let pontosBonus = [];
 let mapaGpsVisivel = false;
 let inicioDesafio = 0;
 let tempoLimite = 0;
@@ -107,7 +105,10 @@ $w("#htmlMapaGps").onMessage((event) => {
 
         carregarPerimetroMapa(missao.parquemissao);
 
-        carregarPontosBonus(missao.id);
+        $w("#htmlMapaGps").postMessage({
+            acao: "pontosBonus",
+            pontos: obterPontosBonusParaMapa()
+        });
 
     } else if (dadosMapa.acao === "pontoClicado") {
 
@@ -115,7 +116,7 @@ $w("#htmlMapaGps").onMessage((event) => {
 
     } else if (dadosMapa.acao === "pontoBonusClicado") {
 
-        verificarPontoBonus(dadosMapa.id);
+        verificarPontoBonusPorId(dadosMapa.id);
 
     }
 
@@ -226,6 +227,13 @@ async function carregarMissao(slug) {
         .ascending("ordem")
         .find();
 
+    // Busca pontos bônus (opcionais, fora da sequência)
+
+    const resultadoBonus = await wixData.query("PontosBonus")
+        .eq("missao", registroMissao._id)
+        .eq("ativo", true)
+        .find();
+
     // Monta objeto
 
     const missao = {
@@ -267,10 +275,47 @@ async function carregarMissao(slug) {
         parquemissao: registroMissao.parquemissao,
 
 
-        pontos: []
+        pontos: [],
 
-        
+        pontosBonus: []
+
     };
+
+    resultadoBonus.items.forEach(item => {
+
+        missao.pontosBonus.push({
+
+            id: item._id,
+
+            latitude: item.latitude,
+
+            longitude: item.longitude,
+
+            conteudo: {
+
+                tipo: item.tipo,
+
+                titulo: item.titulo,
+
+                mensagem: item.mensagem,
+
+                valor: item.valor,
+
+                pergunta1: item.pergunta1,
+
+                pergunta2: item.pergunta2,
+
+                pergunta3: item.pergunta3,
+
+                respostasAceitas: item.respostasAceitas,
+
+                resposta: item.resposta
+
+            }
+
+        });
+
+    });
 
     resultadoPontos.items.forEach(item => {
 
@@ -352,77 +397,6 @@ function carregarPerimetroMapa(parqueId) {
         })
         .catch((err) => {
             console.error("Erro ao carregar perímetro do mapa:", err);
-        });
-
-}
-
-//==================================================
-// PONTOS BÔNUS
-//==================================================
-
-function carregarPontosBonus(missaoId) {
-
-    wixData.query("PontosBonus")
-        .eq("missao", missaoId)
-        .eq("ativo", true)
-        .find()
-        .then((resultado) => {
-
-            pontosBonus = resultado.items;
-
-            $w("#htmlMapaGps").postMessage({
-                acao: "pontosBonus",
-                pontos: pontosBonus.map(p => ({
-                    id: p._id,
-                    latitude: p.latitude,
-                    longitude: p.longitude
-                }))
-            });
-
-        })
-        .catch((err) => {
-            console.error("Erro ao carregar pontos bônus:", err);
-        });
-
-}
-
-function verificarPontoBonus(id) {
-
-    const ponto = pontosBonus.find(p => p._id === id);
-
-    if (!ponto) return;
-
-    wixWindow.getCurrentGeolocation()
-        .then((posicao) => {
-
-            const distancia = calcularDistancia(
-                posicao.coords.latitude,
-                posicao.coords.longitude,
-                ponto.latitude,
-                ponto.longitude
-            );
-
-            const raio = raioPermitido(posicao.coords.accuracy);
-
-            if (distancia <= raio) {
-
-                wixWindow.openLightbox("Conteudo", {
-                    modo: "bonus",
-                    titulo: "🎁 Ponto bônus!",
-                    mensagem: ponto.conteudo
-                });
-
-            } else {
-
-                $w("#txtResultado").text =
-                    `❌ Ainda não chegou lá... (${Math.round(distancia)} m)`;
-
-            }
-
-        })
-        .catch((err) => {
-            console.error(err);
-            $w("#txtResultado").text = "⚠️ " + err.message;
         });
 
 }

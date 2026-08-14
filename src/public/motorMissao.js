@@ -18,11 +18,19 @@ export function tituloComIcone(url, texto) {
 
 }
 
+// Ícones genéricos do botão dos pontos bônus — cinza (ainda não
+// achado) e colorido com check (já achado). Reaproveitados em
+// todos os pontos bônus, independente do tipo (piada/enigma/etc).
+const ICONE_BONUS_BLOQUEADO = "https://static.wixstatic.com/media/f02643_SUBSTITUIR_BLOQUEADO.png";
+const ICONE_BONUS_ENCONTRADO = "https://static.wixstatic.com/media/f02643_SUBSTITUIR_ENCONTRADO.png";
+
 let $wPage;
 let missao;
 let progresso = {
 
     concluidos: [],
+
+    bonusConcluidos: [],
 
     mochila: [],
 
@@ -49,6 +57,7 @@ export function iniciarMotor($w, dadosMissao) {
     console.log("=================================");
 
     conectarBotoes();
+    conectarBotoesBonus();
 
 }
 
@@ -241,6 +250,201 @@ export function verificarPontoPorCodigo(codigo) {
     if (ponto) {
         verificarPonto(ponto);
     }
+
+}
+
+//==================================================
+// PONTOS BÔNUS
+//==================================================
+// Mesma lógica dos pontos normais (checa GPS, abre o mesmo popup
+// "Conteudo" com pergunta/dica/resposta se houver), só que num
+// botão-imagem à parte (repeater), não na sequência numerada, e o
+// progresso fica separado (bonusConcluidos) pra alimentar uma
+// futura tela de recompensas.
+
+// Dados que o mapa GPS precisa pra desenhar os marcadores bônus —
+// aqui fica só a posição, sem distinção de achado/não achado (o
+// marcador no mapa é sempre a mesma imagem única).
+export function obterPontosBonusParaMapa() {
+
+    return (missao.pontosBonus || []).map(ponto => ({
+        id: ponto.id,
+        latitude: ponto.latitude,
+        longitude: ponto.longitude
+    }));
+
+}
+
+// Clique num marcador do mapa GPS dispara a mesma verificação que
+// o botão-imagem do repeater usa.
+export function verificarPontoBonusPorId(id) {
+
+    const ponto = (missao.pontosBonus || []).find(p => p.id === id);
+
+    if (ponto) {
+        verificarPontoBonus(ponto);
+    }
+
+}
+
+function conectarBotoesBonus() {
+
+    try {
+
+        const repeater = $wPage("#repeaterBonus");
+
+        repeater.data = (missao.pontosBonus || []).map(ponto => ({ _id: ponto.id }));
+
+        repeater.onItemReady(($item, itemData) => {
+
+            const ponto = missao.pontosBonus.find(p => p.id === itemData._id);
+
+            atualizarImagemBonus($item, ponto);
+
+            $item("#imgBonus").onClick(() => {
+                verificarPontoBonus(ponto);
+            });
+
+        });
+
+    } catch (err) {
+
+        console.log("Repeater de pontos bônus não encontrado.");
+
+    }
+
+}
+
+function atualizarImagemBonus($item, ponto) {
+
+    const achado = progresso.bonusConcluidos.includes(ponto.id);
+
+    $item("#imgBonus").src = achado ? ICONE_BONUS_ENCONTRADO : ICONE_BONUS_BLOQUEADO;
+
+}
+
+function atualizarBotoesBonus() {
+
+    try {
+
+        const repeater = $wPage("#repeaterBonus");
+
+        (missao.pontosBonus || []).forEach(ponto => {
+
+            repeater.forItems([ponto.id], ($item) => {
+                atualizarImagemBonus($item, ponto);
+            });
+
+        });
+
+    } catch (err) {
+
+        console.log("Repeater de pontos bônus não encontrado.");
+
+    }
+
+}
+
+async function verificarPontoBonus(ponto) {
+
+    // Já achado — abre direto o conteúdo de novo, sem precisar
+    // repetir a checagem de GPS.
+    if (progresso.bonusConcluidos.includes(ponto.id)) {
+
+        mostrarConteudoBonus(ponto);
+
+        return;
+
+    }
+
+    try {
+
+        mostrarStatus("🛰️ Localizando...");
+
+        const location =
+            await wixWindow.getCurrentGeolocation();
+
+        const distancia =
+            calcularDistancia(
+
+                location.coords.latitude,
+                location.coords.longitude,
+
+                ponto.latitude,
+                ponto.longitude
+
+            );
+
+        const raio =
+            raioPermitido(location.coords.accuracy);
+
+        if (distancia <= raio) {
+
+            mostrarStatus("✅ Local encontrado!");
+
+            mostrarConteudoBonus(ponto);
+
+        } else {
+
+            mostrarStatus(
+                `❌ Ainda não... (${Math.round(distancia)} m)`
+            );
+
+        }
+
+    } catch (err) {
+
+        console.error(err);
+
+        mostrarStatus("⚠️ " + err.message);
+
+    }
+
+}
+
+function mostrarConteudoBonus(ponto) {
+
+    // Sem pergunta1 (piada/fato/desafio sem resposta): o popup só
+    // mostra a mensagem e um botão de fechar — considera achado ao
+    // simplesmente ter visto. Com pergunta1: só conta como achado
+    // quando responder certo (igual aos pontos normais).
+    const temPergunta = !!ponto.conteudo.pergunta1;
+
+    wixWindow.openLightbox("Conteudo", ponto.conteudo)
+
+        .then((resultado) => {
+
+            if (temPergunta) {
+
+                if (resultado && resultado.acao === "concluido") {
+                    concluirPontoBonus(ponto);
+                }
+
+            } else {
+
+                concluirPontoBonus(ponto);
+
+            }
+
+        })
+
+        .catch((err) => {
+            console.error(err);
+        });
+
+}
+
+function concluirPontoBonus(ponto) {
+
+    if (!progresso.bonusConcluidos.includes(ponto.id)) {
+
+        progresso.bonusConcluidos.push(ponto.id);
+
+        salvarProgresso();
+
+    }
+
+    atualizarBotoesBonus();
 
 }
 
@@ -768,11 +972,13 @@ export function resetarProgresso() {
 
     progresso = {
         concluidos: [],
+        bonusConcluidos: [],
         mochila: [],
         diario: ""
     };
 
     atualizarBotoes();
+    atualizarBotoesBonus();
 
     $wPage("#txtResultado").text = "";
 
