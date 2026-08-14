@@ -28,6 +28,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 .icone-ponto-img{
     object-fit:contain;
 }
+.icone-ponto-cinza{
+    filter: grayscale(100%) opacity(0.55);
+}
 .icone-bonus{
     background:#f0b429;
     color:#fff;
@@ -201,15 +204,21 @@ function desenharLargada(latitude, longitude){
 
 }
 
-function iconePonto(codigo, ehChegada){
+function iconePonto(codigo, ehChegada, concluido){
     const url = ehChegada ? ICONE_CHEGADA : (ICONES_NUMERADOS[codigo] || ICONES_NUMERADOS[1]);
+    const classe = 'icone-ponto-img' + (concluido ? '' : ' icone-ponto-cinza');
     return L.icon({
         iconUrl: url,
         iconSize: [40,40],
         iconAnchor: [20,40],
-        className: 'icone-ponto-img'
+        className: classe
     });
 }
+
+// Só ajusta o zoom/centro no primeiro desenho — depois disso os
+// pontos são redesenhados de novo a cada conclusão (só pra trocar
+// cinza -> colorido), sem precisar dar zoom-out toda vez.
+let primeiroDesenhoPontos = true;
 
 function desenharPontos(pontos){
 
@@ -225,7 +234,7 @@ function desenharPontos(pontos){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconePonto(ponto.codigo, ponto.codigo === maiorCodigo)
+            icon: iconePonto(ponto.codigo, ponto.codigo === maiorCodigo, ponto.concluido)
         }).addTo(mapa);
 
         marcador.on('click', () => {
@@ -237,8 +246,9 @@ function desenharPontos(pontos){
 
     });
 
-    if(bounds.length){
+    if(bounds.length && primeiroDesenhoPontos){
         mapa.fitBounds(bounds, { padding: [40,40] });
+        primeiroDesenhoPontos = false;
     }
 
 }

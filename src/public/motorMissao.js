@@ -1057,6 +1057,7 @@ export function resetarProgresso() {
 
     atualizarBotoes();
     atualizarBotoesBonus();
+    atualizarMapaPontos();
 
     $wPage("#txtResultado").text = "";
 
@@ -1077,6 +1078,7 @@ function concluirPonto(codigo) {
     }
 
     atualizarBotoes();
+    atualizarMapaPontos();
 
     console.log(
         progresso.concluidos.length,
@@ -1095,6 +1097,27 @@ function concluirPonto(codigo) {
     } else {
 
         mostrarStatus("✅ Ponto concluído!");
+
+    }
+
+}
+
+// Reenvia os pontos pro mapa GPS depois de concluir um — assim o
+// marcador troca de cinza (não achado) pra colorido na hora, sem
+// precisar reabrir o mapa. Silencioso se o mapa ainda não existe
+// na página (#htmlMapaGps).
+function atualizarMapaPontos() {
+
+    try {
+
+        $wPage("#htmlMapaGps").postMessage({
+            acao: "pontos",
+            pontos: obterPontosParaMapa()
+        });
+
+    } catch (err) {
+
+        // Mapa não existe nessa página — ignora.
 
     }
 
