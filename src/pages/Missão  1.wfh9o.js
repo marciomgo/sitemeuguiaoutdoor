@@ -3,9 +3,12 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor, resetarProgresso, pularParaFinal } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo } from 'public/motorMissao';
+import { htmlMapaGps } from 'public/mapaGpsHtml';
 
 let cronometro;
+let intervaloLocalizacaoMapa;
+let mapaGpsVisivel = false;
 let inicioDesafio = 0;
 let tempoLimite = 0;
 let desafioConcluido = true;
@@ -78,9 +81,56 @@ console.log("Missão carregada:");
 //=========================================
 
 
+$w("#htmlMapaGps").collapse();
+
+$w("#htmlMapaGps").src =
+    `data:text/html;charset=utf-8,${encodeURIComponent(htmlMapaGps)}`;
+
+$w("#htmlMapaGps").onMessage((event) => {
+
+    const dadosMapa = event.data;
+
+    if (dadosMapa.acao === "mapaPronto") {
+
+        $w("#htmlMapaGps").postMessage({
+            acao: "pontos",
+            pontos: obterPontosParaMapa()
+        });
+
+        $w("#htmlMapaGps").postMessage({
+            acao: "largada",
+            latitude: missao.latitudeInicio,
+            longitude: missao.longitudeInicio
+        });
+
+        carregarPerimetroMapa(missao.parquemissao);
+
+    } else if (dadosMapa.acao === "pontoClicado") {
+
+        verificarPontoPorCodigo(dadosMapa.codigo);
+
+    }
+
+});
+
 $w("#btnMapa").onClick(() => {
 
-    wixWindow.openLightbox("MapaGoogle");
+    if (mapaGpsVisivel) {
+
+        $w("#htmlMapaGps").collapse();
+        $w("#imgmapa").expand();
+        clearInterval(intervaloLocalizacaoMapa);
+        mapaGpsVisivel = false;
+
+    } else {
+
+        $w("#imgmapa").collapse();
+        $w("#htmlMapaGps").expand();
+        atualizarLocalizacaoMapa();
+        intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
+        mapaGpsVisivel = true;
+
+    }
 
 });
 
@@ -202,6 +252,12 @@ async function carregarMissao(slug) {
 
         respostaFinal: registroMissao.respostaFinal,
 
+        latitudeInicio: registroMissao.latitudeInicio,
+
+        longitudeInicio: registroMissao.longitudeInicio,
+
+        parquemissao: registroMissao.parquemissao,
+
 
         pontos: []
 
@@ -246,6 +302,49 @@ async function carregarMissao(slug) {
     });
 
     return missao;
+
+}
+
+//==================================================
+// MAPA GPS
+//==================================================
+
+function atualizarLocalizacaoMapa() {
+
+    wixWindow.getCurrentGeolocation()
+        .then((posicao) => {
+
+            $w("#htmlMapaGps").postMessage({
+                acao: "minhaLocalizacao",
+                lat: posicao.coords.latitude,
+                lng: posicao.coords.longitude
+            });
+
+        })
+        .catch((err) => {
+            console.error("Erro ao buscar localização pro mapa:", err);
+        });
+
+}
+
+function carregarPerimetroMapa(parqueId) {
+
+    if (!parqueId) return;
+
+    wixData.get("Parques", parqueId)
+        .then((parque) => {
+
+            const coordenadas = JSON.parse(parque.perimetro || "[]");
+
+            $w("#htmlMapaGps").postMessage({
+                acao: "perimetro",
+                coordenadas: coordenadas
+            });
+
+        })
+        .catch((err) => {
+            console.error("Erro ao carregar perímetro do mapa:", err);
+        });
 
 }
 
