@@ -291,15 +291,23 @@ export function verificarPontoPorCodigo(codigo) {
 // (bonusConcluidos) pra alimentar uma futura tela de recompensas.
 
 // Dados que o mapa GPS precisa pra desenhar os marcadores bônus —
-// aqui fica só a posição, sem distinção de achado/não achado (o
-// marcador no mapa é sempre a mesma imagem única).
+// aqui fica a posição + o ícone "encontrado" do tipo (o marcador no
+// mapa não muda de cinza/colorido como o botão da tela — mostra
+// sempre a versão colorida, só pra indicar o tipo do bônus).
 export function obterPontosBonusParaMapa() {
 
-    return (missao.pontosBonus || []).map(ponto => ({
-        id: ponto.id,
-        latitude: ponto.latitude,
-        longitude: ponto.longitude
-    }));
+    return (missao.pontosBonus || []).map(ponto => {
+
+        const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.prarir;
+
+        return {
+            id: ponto.id,
+            latitude: ponto.latitude,
+            longitude: ponto.longitude,
+            icone: icones.encontrado
+        };
+
+    });
 
 }
 

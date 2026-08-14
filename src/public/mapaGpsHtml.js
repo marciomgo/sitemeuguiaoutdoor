@@ -117,7 +117,17 @@ let marcadoresBonus = {};
 let marcadorEu = null;
 let primeiraLocalizacao = true;
 
-function iconeBonus(){
+function iconeBonus(url){
+
+    if(url){
+        return L.icon({
+            iconUrl: url,
+            iconSize: [40,40],
+            iconAnchor: [20,40],
+            className: 'icone-ponto-img'
+        });
+    }
+
     return L.divIcon({
         className: '',
         html: '<div class="icone-bonus">?</div>',
@@ -136,7 +146,7 @@ function desenharPontosBonus(pontosBonus){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconeBonus()
+            icon: iconeBonus(ponto.icone)
         }).addTo(mapa);
 
         marcador.on('click', () => {
