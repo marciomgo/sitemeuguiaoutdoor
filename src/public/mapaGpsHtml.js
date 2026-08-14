@@ -28,6 +28,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 .icone-ponto-img{
     object-fit:contain;
 }
+.leaflet-control-attribution{
+    font-size:8px;
+    padding:0 3px;
+    opacity:0.35;
+    background:transparent;
+}
 </style>
 </head>
 <body>
