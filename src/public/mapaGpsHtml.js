@@ -25,6 +25,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     border:3px solid #fff;
     box-shadow:0 0 0 2px #2b6ef2, 0 1px 4px rgba(0,0,0,0.5);
 }
+.icone-ponto-img{
+    object-fit:contain;
+}
 </style>
 </head>
 <body>
@@ -122,7 +125,8 @@ function iconePonto(codigo, ehChegada){
     return L.icon({
         iconUrl: url,
         iconSize: [40,40],
-        iconAnchor: [20,40]
+        iconAnchor: [20,40],
+        className: 'icone-ponto-img'
     });
 }
 
