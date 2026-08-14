@@ -287,6 +287,8 @@ async function carregarMissao(slug) {
 
             id: item._id,
 
+            codigo: item.codigo,
+
             latitude: item.latitude,
 
             longitude: item.longitude,

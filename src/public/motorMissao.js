@@ -258,9 +258,10 @@ export function verificarPontoPorCodigo(codigo) {
 //==================================================
 // Mesma lógica dos pontos normais (checa GPS, abre o mesmo popup
 // "Conteudo" com pergunta/dica/resposta se houver), só que num
-// botão-imagem à parte (repeater), não na sequência numerada, e o
-// progresso fica separado (bonusConcluidos) pra alimentar uma
-// futura tela de recompensas.
+// elemento à parte por ponto — #imgBonus{codigo}, do mesmo jeito
+// que os pontos numerados usam #btnPonto{codigo}, posicionado à
+// mão em cada tela de missão. O progresso fica separado
+// (bonusConcluidos) pra alimentar uma futura tela de recompensas.
 
 // Dados que o mapa GPS precisa pra desenhar os marcadores bônus —
 // aqui fica só a posição, sem distinção de achado/não achado (o
@@ -276,7 +277,7 @@ export function obterPontosBonusParaMapa() {
 }
 
 // Clique num marcador do mapa GPS dispara a mesma verificação que
-// o botão-imagem do repeater usa.
+// a imagem #imgBonus{codigo} usa.
 export function verificarPontoBonusPorId(id) {
 
     const ponto = (missao.pontosBonus || []).find(p => p.id === id);
@@ -289,59 +290,55 @@ export function verificarPontoBonusPorId(id) {
 
 function conectarBotoesBonus() {
 
-    try {
+    (missao.pontosBonus || []).forEach(ponto => {
 
-        const repeater = $wPage("#repeaterBonus");
+        const idImagem = `#imgBonus${ponto.codigo}`;
 
-        repeater.data = (missao.pontosBonus || []).map(ponto => ({ _id: ponto.id }));
+        try {
 
-        repeater.onItemReady(($item, itemData) => {
+            const imagem = $wPage(idImagem);
 
-            const ponto = missao.pontosBonus.find(p => p.id === itemData._id);
+            atualizarImagemBonus(imagem, ponto);
 
-            atualizarImagemBonus($item, ponto);
-
-            $item("#imgBonus").onClick(() => {
+            imagem.onClick(() => {
                 verificarPontoBonus(ponto);
             });
 
-        });
+            console.log("✓", idImagem, "conectado");
 
-    } catch (err) {
+        } catch (err) {
 
-        console.log("Repeater de pontos bônus não encontrado.");
+            console.warn(idImagem + " não existe na página.");
 
-    }
+        }
+
+    });
 
 }
 
-function atualizarImagemBonus($item, ponto) {
+function atualizarImagemBonus(imagem, ponto) {
 
     const achado = progresso.bonusConcluidos.includes(ponto.id);
 
-    $item("#imgBonus").src = achado ? ICONE_BONUS_ENCONTRADO : ICONE_BONUS_BLOQUEADO;
+    imagem.src = achado ? ICONE_BONUS_ENCONTRADO : ICONE_BONUS_BLOQUEADO;
 
 }
 
 function atualizarBotoesBonus() {
 
-    try {
+    (missao.pontosBonus || []).forEach(ponto => {
 
-        const repeater = $wPage("#repeaterBonus");
+        try {
 
-        (missao.pontosBonus || []).forEach(ponto => {
+            atualizarImagemBonus($wPage(`#imgBonus${ponto.codigo}`), ponto);
 
-            repeater.forItems([ponto.id], ($item) => {
-                atualizarImagemBonus($item, ponto);
-            });
+        } catch (err) {
 
-        });
+            // Elemento não existe nessa página — ignora.
 
-    } catch (err) {
+        }
 
-        console.log("Repeater de pontos bônus não encontrado.");
-
-    }
+    });
 
 }
 
