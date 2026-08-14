@@ -118,7 +118,6 @@ function desenharPerimetro(coordenadas){
 let marcadoresPontos = {};
 let marcadoresBonus = {};
 let marcadorEu = null;
-let primeiraLocalizacao = true;
 
 function iconeBonus(url, achado){
 
@@ -186,6 +185,11 @@ const ICONE_LARGADA = "https://static.wixstatic.com/media/f02643_83d5d7c16a834a8
 
 let marcadorLargada = null;
 
+// Abre o mapa centralizado na largada (não na localização crua da
+// família) — dá uma visão útil do parque/trilha, em vez de zoom
+// fechado em cima de onde a pessoa está antes mesmo de começar.
+let primeiroDesenhoLargada = true;
+
 function desenharLargada(latitude, longitude){
 
     if(!latitude || !longitude) return;
@@ -202,6 +206,11 @@ function desenharLargada(latitude, longitude){
             className: 'icone-ponto-img'
         })
     }).addTo(mapa);
+
+    if(primeiroDesenhoLargada){
+        mapa.setView([latitude, longitude], 16);
+        primeiroDesenhoLargada = false;
+    }
 
 }
 
@@ -254,6 +263,9 @@ function desenharPontos(pontos){
 
 }
 
+// Só marca onde a família está — não move mais o mapa pra cima da
+// localização dela (isso ficava fechado demais e sem contexto do
+// parque; quem decide o enquadramento inicial agora é a largada).
 function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
@@ -263,11 +275,6 @@ function atualizarMinhaLocalizacao(lat, lng){
         }).addTo(mapa);
     } else {
         marcadorEu.setLatLng([lat,lng]);
-    }
-
-    if(primeiraLocalizacao){
-        primeiraLocalizacao = false;
-        mapa.setView([lat,lng], 17);
     }
 
 }

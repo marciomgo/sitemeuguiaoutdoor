@@ -239,6 +239,23 @@ async function verificarPonto(ponto) {
 
     }
 
+    // Ordem obrigatória — vale tanto pro clique no botão numerado
+    // quanto pro clique no marcador do mapa (só os pontos bônus
+    // ficam de fora dessa regra, podem ser achados a qualquer hora).
+    const proximaOrdem = progresso.concluidos.length + 1;
+
+    if (ponto.ordem !== proximaOrdem) {
+
+        const pontoAtual = missao.pontos.find(p => p.ordem === proximaOrdem);
+
+        mostrarStatus(
+            `🔒 Siga a ordem! Vá primeiro pro ponto ${pontoAtual ? pontoAtual.codigo : proximaOrdem}.`
+        );
+
+        return;
+
+    }
+
     try {
 
         mostrarStatus("🛰️ Localizando...");
