@@ -119,7 +119,7 @@ function desenharPerimetro(coordenadas){
     if(marcadorEu) marcadorEu.bringToFront();
 
     if(primeiroDesenhoPerimetro){
-        mapa.fitBounds(camadaPerimetro.getBounds(), { padding: [10,10] });
+        mapa.fitBounds(camadaPerimetro.getBounds(), { padding: [30,30], maxZoom: 17 });
         primeiroDesenhoPerimetro = false;
     }
 
