@@ -335,23 +335,43 @@ export function verificarPontoPorCodigo(codigo) {
 // (bonusConcluidos) pra alimentar uma futura tela de recompensas.
 
 // Dados que o mapa GPS precisa pra desenhar os marcadores bônus —
-// aqui fica a posição + o ícone "encontrado" do tipo (o marcador no
-// mapa não muda de cinza/colorido como o botão da tela — mostra
-// sempre a versão colorida, só pra indicar o tipo do bônus).
+// posição + ícone do tipo, já colorido ou cinza (filtro CSS,
+// aplicado do lado do mapa) conforme já foi achado ou não.
 export function obterPontosBonusParaMapa() {
 
     return (missao.pontosBonus || []).map(ponto => {
 
         const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.prarir;
+        const achado = progresso.bonusConcluidos.includes(ponto.id);
 
         return {
             id: ponto.id,
             latitude: ponto.latitude,
             longitude: ponto.longitude,
-            icone: icones.encontrado
+            icone: icones.encontrado,
+            achado: achado
         };
 
     });
+
+}
+
+// Reenvia os pontos bônus pro mapa depois de achar um — mesmo
+// princípio do atualizarMapaPontos() dos pontos normais.
+function atualizarMapaPontosBonus() {
+
+    try {
+
+        $wPage("#htmlMapaGps").postMessage({
+            acao: "pontosBonus",
+            pontos: obterPontosBonusParaMapa()
+        });
+
+    } catch (err) {
+
+        // Mapa não existe nessa página — ignora.
+
+    }
 
 }
 
@@ -523,6 +543,7 @@ function concluirPontoBonus(ponto) {
     }
 
     atualizarBotoesBonus();
+    atualizarMapaPontosBonus();
 
 }
 
@@ -1058,6 +1079,7 @@ export function resetarProgresso() {
     atualizarBotoes();
     atualizarBotoesBonus();
     atualizarMapaPontos();
+    atualizarMapaPontosBonus();
 
     $wPage("#txtResultado").text = "";
 

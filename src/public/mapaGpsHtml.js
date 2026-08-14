@@ -29,7 +29,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     object-fit:contain;
 }
 .icone-ponto-cinza{
-    filter: grayscale(100%) opacity(0.55);
+    filter: grayscale(100%) brightness(70%) opacity(0.9);
 }
 .icone-bonus{
     background:#f0b429;
@@ -120,14 +120,15 @@ let marcadoresBonus = {};
 let marcadorEu = null;
 let primeiraLocalizacao = true;
 
-function iconeBonus(url){
+function iconeBonus(url, achado){
 
     if(url){
+        const classe = 'icone-ponto-img' + (achado ? '' : ' icone-ponto-cinza');
         return L.icon({
             iconUrl: url,
             iconSize: [40,40],
             iconAnchor: [20,40],
-            className: 'icone-ponto-img'
+            className: classe
         });
     }
 
@@ -149,7 +150,7 @@ function desenharPontosBonus(pontosBonus){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconeBonus(ponto.icone)
+            icon: iconeBonus(ponto.icone, ponto.achado)
         }).addTo(mapa);
 
         marcador.on('click', () => {
