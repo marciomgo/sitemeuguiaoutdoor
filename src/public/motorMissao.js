@@ -249,7 +249,7 @@ async function verificarPonto(ponto) {
         const pontoAtual = missao.pontos.find(p => p.ordem === proximaOrdem);
 
         mostrarStatus(
-            `🔒 Siga a ordem! Vá primeiro pro ponto ${pontoAtual ? pontoAtual.codigo : proximaOrdem}.`
+            `Vá primeiro pro ponto ${pontoAtual ? pontoAtual.codigo : proximaOrdem}`
         );
 
         return;

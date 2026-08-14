@@ -67,6 +67,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 let camadaPerimetro = null;
 let camadaMascara = null;
 
+// Assim que o perímetro chega, esse vira o enquadramento inicial do
+// mapa (parque inteiro, centralizado) — some a visão provisória da
+// largada que aparece por um instante antes disso carregar.
+let primeiroDesenhoPerimetro = true;
+
 // Retângulo enorme (cobre o mapa inteiro) com um "buraco" no formato
 // do parque — o resultado visual é tudo fora do perímetro ficando
 // coberto de branco, só o parque aparecendo por baixo.
@@ -112,6 +117,11 @@ function desenharPerimetro(coordenadas){
 
     Object.values(marcadoresPontos).forEach(m => m.bringToFront());
     if(marcadorEu) marcadorEu.bringToFront();
+
+    if(primeiroDesenhoPerimetro){
+        mapa.fitBounds(camadaPerimetro.getBounds(), { padding: [10,10] });
+        primeiroDesenhoPerimetro = false;
+    }
 
 }
 
