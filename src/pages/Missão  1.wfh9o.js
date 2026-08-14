@@ -8,7 +8,6 @@ import { htmlMapaGps } from 'public/mapaGpsHtml';
 
 let cronometro;
 let intervaloLocalizacaoMapa;
-let mapaGpsVisivel = false;
 let inicioDesafio = 0;
 let tempoLimite = 0;
 let desafioConcluido = true;
@@ -81,7 +80,7 @@ console.log("Missão carregada:");
 //=========================================
 
 
-$w("#htmlMapaGps").collapse();
+$w("#htmlMapaGps").expand();
 
 $w("#htmlMapaGps").src =
     `data:text/html;charset=utf-8,${encodeURIComponent(htmlMapaGps)}`;
@@ -122,26 +121,11 @@ $w("#htmlMapaGps").onMessage((event) => {
 
 });
 
-$w("#btnMapa").onClick(() => {
-
-    if (mapaGpsVisivel) {
-
-        $w("#htmlMapaGps").collapse();
-        $w("#imgmapa").expand();
-        clearInterval(intervaloLocalizacaoMapa);
-        mapaGpsVisivel = false;
-
-    } else {
-
-        $w("#imgmapa").collapse();
-        $w("#htmlMapaGps").expand();
-        atualizarLocalizacaoMapa();
-        intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
-        mapaGpsVisivel = true;
-
-    }
-
-});
+// Mapa GPS fica sempre visível na tela principal agora — o mapa
+// imagem (#imgmapa) saiu daqui, virou um botão à parte que usa o
+// próprio recurso de zoom/lightbox do Wix, sem precisar de código.
+atualizarLocalizacaoMapa();
+intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 
         //=========================================
         // PULAR PONTOS (DESENVOLVIMENTO)
