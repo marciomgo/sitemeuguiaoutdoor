@@ -85,7 +85,7 @@ $w.onReady(function () {
 
                 modo: "mochila",
                 titulo: tituloComIcone(ICONE_MOCHILA, "Mochila"),
-                mensagem: "Guarda automaticamente as respostas e pistas dos pontos",
+                mensagem: "",
                 mochila: conteudo.mochila
 
             });
