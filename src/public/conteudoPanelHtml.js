@@ -101,7 +101,8 @@ html,body{
 .linha-resposta{
     display:flex;
     gap:4px;
-    align-items:stretch;
+    align-items:center;
+    justify-content:center;
 }
 .linha-resposta input{
     flex:1;
@@ -168,10 +169,6 @@ textarea{
     display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;
 }
 
-#linhaBotoesResposta{
-    margin-top:-4px;
-}
-
 .card{
     display:none;
     background:#f0f0f0;
@@ -215,11 +212,6 @@ textarea{
     <div class="linha-resposta" id="linhaResposta">
         <input id="resposta" type="text" placeholder="Digite sua resposta">
         <button id="btnEnviar" onclick="enviarResposta()">Enviar</button>
-    </div>
-
-        <!-- BOTÕES DA RESPOSTA (logo abaixo do campo) -->
-    <div class="botoes" id="linhaBotoesResposta">
-        <button id="btnDica" onclick="pedirDica()">💡 Quero uma dica</button>
     </div>
 
       <!-- DIÁRIO (EDIÇÃO) -->
@@ -297,8 +289,9 @@ display:none;
         <button id="btnRecusar" onclick="recusarDesafio()">❌ Não vai rolar</button>
     </div>
 
-        <!-- FECHAR (sempre por último) -->
+        <!-- DICA + FECHAR (sempre por último) -->
     <div class="botoes" id="linhaBotoesFechar">
+        <button id="btnDica" onclick="pedirDica()">💡 Quero uma dica</button>
         <button id="btnFechar" onclick="fecharPopup()">Fechar</button>
     </div>
 
@@ -552,13 +545,10 @@ const usarMaquina =
 
 // Esconde tudo enquanto o Minieu fala
 
-const linhaBotoesResposta = document.getElementById("linhaBotoesResposta");
-
 pergunta.style.display = "none";
 resposta.style.display = "none";
 btnEnviar.style.display = "none";
 btnDica.style.display = "none";
-linhaBotoesResposta.style.display = "none";
 
 function mostrarPergunta(){
 
@@ -592,7 +582,6 @@ else{
 }
 
     resposta.style.display = "block";
-    linhaBotoesResposta.style.display = "flex";
 
     btnEnviar.style.display = "inline-block";
 
