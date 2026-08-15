@@ -66,7 +66,7 @@ html,body{
 }
 
   #pergunta{
-    margin:0;
+    margin:-4px 0 0 0;
     text-align:center;
     font-size:15px;
     line-height:1.0;
@@ -98,7 +98,7 @@ html,body{
 }
 
 button{
-    padding:12px 18px;
+    padding:10px 18px;
     font-size:14px;
     font-family:inherit;
     border:1px solid #d0d0d0;
@@ -150,6 +150,10 @@ textarea{
 }
 .botoes{
     display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;
+}
+
+#linhaBotoesResposta{
+    margin-top:-4px;
 }
 
 .card{
