@@ -257,6 +257,10 @@ async function carregarMissao(slug) {
 
         mensagemChegada: registroMissao.mensagemChegada,
 
+        tipoChegada: primeiroValor(registroMissao.tipoChegada),
+
+        valorChegada: registroMissao.valorChegada,
+
         perguntaFinal: registroMissao.perguntaFinal,
 
         respostasAceitasFinal: registroMissao.respostasAceitasFinal,

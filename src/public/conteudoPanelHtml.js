@@ -244,12 +244,6 @@ display:none;
 </button>
     </div>
 
-        <!-- BOTÕES QUE ABREM/FECHAM MOCHILA E DIÁRIO (TELA FINAL) -->
-    <div class="botoes" id="linhaBotoesToggle">
-        <button id="btnMochila" class="botao-icone" onclick="abrirMochila()"><img src="https://static.wixstatic.com/media/f02643_8dd642666c8348759d819e56a3dd690d~mv2.png"></button>
-        <button id="btnDiario" class="botao-icone" onclick="abrirDiario()"><img src="https://static.wixstatic.com/media/f02643_bbf34cfe4884495ab30441f1e89c67f1~mv2.png"></button>
-    </div>
-
   <!-- =========================================
      MOCHILA (POPUP FINAL)
 ========================================= -->
@@ -290,10 +284,16 @@ display:none;
         <button id="btnRecusar" onclick="recusarDesafio()">❌ Não vai rolar</button>
     </div>
 
-        <!-- DICA + FECHAR (sempre por último) -->
+        <!-- DICA + FECHAR -->
     <div class="botoes" id="linhaBotoesFechar">
         <button id="btnDica" onclick="pedirDica()">💡 Quero uma dica</button>
         <button id="btnFechar" onclick="fecharPopup()">Fechar</button>
+    </div>
+
+        <!-- MOCHILA/DIÁRIO (tela final, por último) -->
+    <div class="botoes" id="linhaBotoesToggle">
+        <button id="btnMochila" class="botao-icone" onclick="abrirMochila()"><img src="https://static.wixstatic.com/media/f02643_8dd642666c8348759d819e56a3dd690d~mv2.png"></button>
+        <button id="btnDiario" class="botao-icone" onclick="abrirDiario()"><img src="https://static.wixstatic.com/media/f02643_bbf34cfe4884495ab30441f1e89c67f1~mv2.png"></button>
     </div>
 
 </div>

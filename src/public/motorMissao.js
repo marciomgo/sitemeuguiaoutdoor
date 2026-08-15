@@ -735,6 +735,10 @@ function mostrarPopupFinal(){
 
     mensagem: missao.mensagemChegada,
 
+    tipo: missao.tipoChegada,
+
+    valor: missao.valorChegada,
+
     pergunta1: missao.perguntaFinal,
 
     respostasAceitas: missao.respostasAceitasFinal,
