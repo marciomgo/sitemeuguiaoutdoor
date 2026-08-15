@@ -225,10 +225,9 @@ function desenharLargada(latitude, longitude){
             iconSize: [40,40],
             iconAnchor: [20,40],
             className: 'icone-ponto-img'
-        })
+        }),
+        zIndexOffset: 900
     }).addTo(mapa);
-
-    marcadorLargada.bringToFront();
 
     if(primeiroDesenhoLargada){
         mapa.setView([latitude, longitude], 16);
@@ -282,14 +281,6 @@ function desenharPontos(pontos){
     if(bounds.length && primeiroDesenhoPontos){
         mapa.fitBounds(bounds, { padding: [40,40] });
         primeiroDesenhoPontos = false;
-    }
-
-    // A largada precisa continuar por cima da chegada (e dos outros
-    // pontos) mesmo depois de redesenhar tudo de novo a cada
-    // conclusão — sem isso, o marcador mais recente (chegada) acaba
-    // ficando em cima.
-    if(marcadorLargada){
-        marcadorLargada.bringToFront();
     }
 
 }
