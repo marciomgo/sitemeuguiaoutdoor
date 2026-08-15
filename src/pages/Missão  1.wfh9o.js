@@ -185,6 +185,13 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 // CARREGAR MISSÃO
 //==================================================
 
+// Alguns campos de categoria/tipo podem ter sido criados como Tags
+// no CMS (só existe Tags, não Dropdown, pra travar numa lista
+// pré-definida) — aí vêm como array (ex: ["imagem"]) em vez de
+// texto puro. Usa só o primeiro valor, funciona nos dois casos.
+const primeiroValor = (campo) =>
+    Array.isArray(campo) ? campo[0] : campo;
+
 async function carregarMissao(slug) {
 
     // Busca missão
@@ -244,7 +251,7 @@ async function carregarMissao(slug) {
 
         tempoDesafio: registroMissao.tempoDesafio,
 
-        tipoFinal: registroMissao.tipoFinal,
+        tipoFinal: primeiroValor(registroMissao.tipoFinal),
 
         valorFinal: registroMissao.valorFinal,
 
@@ -268,12 +275,6 @@ async function carregarMissao(slug) {
         pontosBonus: []
 
     };
-
-    // Campos "codigo" e "tipo" são do tipo Tags no CMS (só existe
-    // Tags, não Dropdown, pra travar numa lista pré-definida) —
-    // vêm como array (ex: ["pra_rir"]). Usa só o primeiro valor.
-    const primeiroValor = (campo) =>
-        Array.isArray(campo) ? campo[0] : campo;
 
     resultadoBonus.items.forEach(item => {
 
