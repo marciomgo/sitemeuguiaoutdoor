@@ -100,15 +100,15 @@ html,body{
 
 .linha-resposta{
     display:flex;
-    gap:8px;
-    align-items:center;
+    gap:4px;
+    align-items:stretch;
 }
 .linha-resposta input{
     flex:1;
     width:auto;
 }
 .linha-resposta button{
-    padding:6px 14px;
+    padding:10px 14px;
     white-space:nowrap;
 }
 
@@ -483,12 +483,8 @@ window.onmessage=function(event){
         conteudo.innerHTML='<audio controls autoplay><source src="'+c.valor+'"></audio>';
     }
 
-    // Vazio (sem mídia) não deve ocupar espaço no layout. Quando
-    // tem imagem, cola ela na mensagem logo abaixo — sem imagem, a
-    // mensagem segue o espaçamento padrão (mesma métrica do resto).
-    const temMidia = !!conteudo.innerHTML;
-    conteudo.style.display = temMidia ? "block" : "none";
-    conteudo.style.marginBottom = temMidia ? "-8px" : "0";
+    // Vazio (sem mídia) não deve ocupar espaço no layout.
+    conteudo.style.display = conteudo.innerHTML ? "block" : "none";
 
         //==================================================
     // ELEMENTOS DA TELA
