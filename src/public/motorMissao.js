@@ -64,6 +64,8 @@ let progresso = {
 
     bonusConcluidos: [],
 
+    bonusRecusados: [],
+
     mochila: [],
 
     diario: ""
@@ -460,11 +462,16 @@ function atualizarBotoesBonus() {
 
 }
 
+// Tipos de bônus que são desafio físico pra família topar ou não
+// (em vez de só ler/responder) — mostram Aceitamos!/Não rolou no
+// popup, no lugar do Fechar único.
+const TIPOS_DESAFIO_BONUS = ["travessuras", "coracao"];
+
 async function verificarPontoBonus(ponto) {
 
-    // Já achado — abre direto o conteúdo de novo, sem precisar
-    // repetir a checagem de GPS.
-    if (progresso.bonusConcluidos.includes(ponto.id)) {
+    // Já resolvido (achado ou recusado) — abre direto o conteúdo de
+    // novo, sem precisar repetir a checagem de GPS.
+    if (progresso.bonusConcluidos.includes(ponto.id) || progresso.bonusRecusados.includes(ponto.id)) {
 
         mostrarConteudoBonus(ponto);
 
@@ -519,17 +526,42 @@ async function verificarPontoBonus(ponto) {
 
 function mostrarConteudoBonus(ponto) {
 
-    // Sem pergunta1 (piada/fato/desafio sem resposta): o popup só
-    // mostra a mensagem e um botão de fechar — considera achado ao
-    // simplesmente ter visto. Com pergunta1: só conta como achado
-    // quando responder certo (igual aos pontos normais).
+    // Já resolvido antes (achado ou recusado) — só mostra o
+    // conteúdo de novo, sem repetir a decisão.
+    if (progresso.bonusConcluidos.includes(ponto.id) || progresso.bonusRecusados.includes(ponto.id)) {
+
+        wixWindow.openLightbox("Conteudo", ponto.conteudo).catch((err) => console.error(err));
+
+        return;
+
+    }
+
+    const ehDesafio = TIPOS_DESAFIO_BONUS.includes(ponto.conteudo.tipo);
+
+    // Sem pergunta1 (piada/fato sem resposta) e sem ser desafio: o
+    // popup só mostra a mensagem e um botão de fechar — considera
+    // achado ao simplesmente ter visto. Com pergunta1: só conta
+    // como achado quando responder certo (igual aos pontos normais).
+    // Desafio (travessuras/coração): só conta com "Aceitamos!".
     const temPergunta = !!ponto.conteudo.pergunta1;
 
-    wixWindow.openLightbox("Conteudo", ponto.conteudo)
+    const conteudoParaAbrir = ehDesafio
+        ? { ...ponto.conteudo, aceitarRecusar: true }
+        : ponto.conteudo;
+
+    wixWindow.openLightbox("Conteudo", conteudoParaAbrir)
 
         .then((resultado) => {
 
-            if (temPergunta) {
+            if (ehDesafio) {
+
+                if (resultado && resultado.acao === "aceitar") {
+                    concluirPontoBonus(ponto);
+                } else if (resultado && resultado.acao === "recusar") {
+                    recusarPontoBonus(ponto);
+                }
+
+            } else if (temPergunta) {
 
                 if (resultado && resultado.acao === "concluido") {
                     concluirPontoBonus(ponto);
@@ -546,6 +578,21 @@ function mostrarConteudoBonus(ponto) {
         .catch((err) => {
             console.error(err);
         });
+
+}
+
+function recusarPontoBonus(ponto) {
+
+    if (!progresso.bonusRecusados.includes(ponto.id)) {
+
+        progresso.bonusRecusados.push(ponto.id);
+
+        salvarProgresso();
+
+    }
+
+    atualizarBotoesBonus();
+    atualizarMapaPontosBonus();
 
 }
 
@@ -1089,6 +1136,7 @@ export function resetarProgresso() {
     progresso = {
         concluidos: [],
         bonusConcluidos: [],
+        bonusRecusados: [],
         mochila: [],
         diario: ""
     };

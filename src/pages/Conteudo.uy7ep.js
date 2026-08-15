@@ -40,6 +40,22 @@ $w.onReady(function () {
 
             break;
 
+        case "aceitar":
+
+            wixWindow.lightbox.close({
+                acao: "aceitar"
+            });
+
+            break;
+
+        case "recusar":
+
+            wixWindow.lightbox.close({
+                acao: "recusar"
+            });
+
+            break;
+
         case "enviar":
 
             validarResposta(dados.resposta);

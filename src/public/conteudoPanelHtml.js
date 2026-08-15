@@ -266,6 +266,12 @@ display:none;
 
 </div>
 
+        <!-- ACEITAR/RECUSAR (desafios de ponto bônus — travessuras/coração) -->
+    <div class="botoes" id="linhaBotoesDesafio">
+        <button id="btnAceitar" onclick="aceitarDesafio()">✅ Aceitamos!</button>
+        <button id="btnRecusar" onclick="recusarDesafio()">❌ Não rolou</button>
+    </div>
+
         <!-- FECHAR (sempre por último) -->
     <div class="botoes" id="linhaBotoesFechar">
         <button id="btnFechar" onclick="fecharPopup()">Fechar</button>
@@ -284,6 +290,8 @@ function enviar(acao,obj={}){
 }
 
 function fecharPopup(){ enviar("fechar"); }
+function aceitarDesafio(){ enviar("aceitar"); }
+function recusarDesafio(){ enviar("recusar"); }
 function enviarResposta(){
     enviar("enviar",{
         resposta:document.getElementById("resposta").value
@@ -486,6 +494,14 @@ window.onmessage=function(event){
 
     const linhaBotoesToggle = document.getElementById("linhaBotoesToggle");
     linhaBotoesToggle.style.display = (c.modo==="final") ? "flex" : "none";
+
+    // Desafio de ponto bônus (travessuras/coração) — troca o botão
+    // "Fechar" único por "Aceitamos!"/"Não rolou", pra registrar se
+    // a família topou o desafio, não só se abriu o popup.
+    const linhaBotoesDesafio = document.getElementById("linhaBotoesDesafio");
+    const linhaBotoesFechar = document.getElementById("linhaBotoesFechar");
+    linhaBotoesDesafio.style.display = c.aceitarRecusar ? "flex" : "none";
+    linhaBotoesFechar.style.display = c.aceitarRecusar ? "none" : "flex";
 
 //=========================================
 // TEXTO PRINCIPAL
