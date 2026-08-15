@@ -2,15 +2,12 @@
 // RAIO ADAPTATIVO
 //==================================================
 
+// TESTE: raio bem largo (20km) pra facilitar testar de longe, sem
+// precisar estar fisicamente no parque. Lembrar de voltar pro valor
+// realista (200-500m) antes de lançar pra famílias de verdade.
 export function raioPermitido(accuracy){
 
-    if (accuracy <= 8) return 200;
-
-    if (accuracy <= 15) return 300;
-
-    if (accuracy <= 25) return 400;
-
-    return 500;
+    return 20000;
 
 }
 
