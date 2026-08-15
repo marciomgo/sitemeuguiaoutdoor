@@ -75,6 +75,7 @@ html,body{
 
 
 #conteudo img,#conteudo video,#conteudo iframe{
+    display:block;
     width:100%;
     max-width:100%;
     max-height:176px;
