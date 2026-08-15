@@ -595,13 +595,21 @@ function mostrarConteudoBonus(ponto) {
 
 function recusarPontoBonus(ponto) {
 
+    // Aceitar e recusar são mutuamente exclusivos — trocar de ideia
+    // tem que tirar do outro estado também, senão a imagem colorida
+    // (achado) nunca mais volta pra cinza.
+    const indiceConcluido = progresso.bonusConcluidos.indexOf(ponto.id);
+    if (indiceConcluido !== -1) {
+        progresso.bonusConcluidos.splice(indiceConcluido, 1);
+    }
+
     if (!progresso.bonusRecusados.includes(ponto.id)) {
 
         progresso.bonusRecusados.push(ponto.id);
 
-        salvarProgresso();
-
     }
+
+    salvarProgresso();
 
     atualizarBotoesBonus();
     atualizarMapaPontosBonus();
@@ -610,13 +618,18 @@ function recusarPontoBonus(ponto) {
 
 function concluirPontoBonus(ponto) {
 
+    const indiceRecusado = progresso.bonusRecusados.indexOf(ponto.id);
+    if (indiceRecusado !== -1) {
+        progresso.bonusRecusados.splice(indiceRecusado, 1);
+    }
+
     if (!progresso.bonusConcluidos.includes(ponto.id)) {
 
         progresso.bonusConcluidos.push(ponto.id);
 
-        salvarProgresso();
-
     }
+
+    salvarProgresso();
 
     atualizarBotoesBonus();
     atualizarMapaPontosBonus();
