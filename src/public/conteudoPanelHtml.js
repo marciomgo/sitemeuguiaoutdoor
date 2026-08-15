@@ -92,7 +92,8 @@ html,body{
 #btnDiario,
 #btnSalvarDiario,
 #resposta,
-#diario{
+#diario,
+#linhaBotoesDesafio{
 
     display:none;
 
