@@ -78,7 +78,7 @@ html,body{
     width:100%;
     max-width:100%;
     max-height:176px;
-    object-fit:contain;
+    object-fit:cover;
     border:none;
     border-radius:8px;
 }
