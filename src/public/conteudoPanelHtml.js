@@ -62,14 +62,14 @@ html,body{
     text-align:center;
     font-size:15px;
     font-weight:bold;
-    line-height:0.85;
+    line-height:1.0;
 }
 
   #pergunta{
     margin:0;
     text-align:center;
     font-size:15px;
-    line-height:0.85;
+    line-height:1.0;
 }
 
 
