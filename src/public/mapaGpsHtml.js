@@ -117,6 +117,7 @@ function desenharPerimetro(coordenadas){
 
     Object.values(marcadoresPontos).forEach(m => m.bringToFront());
     if(marcadorEu) marcadorEu.bringToFront();
+    if(marcadorLargada) marcadorLargada.bringToFront();
 
     if(primeiroDesenhoPerimetro){
         mapa.fitBounds(camadaPerimetro.getBounds(), { padding: [30,30], maxZoom: 17 });
@@ -217,6 +218,8 @@ function desenharLargada(latitude, longitude){
         })
     }).addTo(mapa);
 
+    marcadorLargada.bringToFront();
+
     if(primeiroDesenhoLargada){
         mapa.setView([latitude, longitude], 16);
         primeiroDesenhoLargada = false;
@@ -269,6 +272,14 @@ function desenharPontos(pontos){
     if(bounds.length && primeiroDesenhoPontos){
         mapa.fitBounds(bounds, { padding: [40,40] });
         primeiroDesenhoPontos = false;
+    }
+
+    // A largada precisa continuar por cima da chegada (e dos outros
+    // pontos) mesmo depois de redesenhar tudo de novo a cada
+    // conclusão — sem isso, o marcador mais recente (chegada) acaba
+    // ficando em cima.
+    if(marcadorLargada){
+        marcadorLargada.bringToFront();
     }
 
 }
