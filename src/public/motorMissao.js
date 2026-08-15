@@ -785,14 +785,26 @@ const resultadoDesafio =
 
     local.getItem("resultadoDesafio") !== "false";
 
+    // Placar final — sempre recalculado na hora (não fica salvo em
+    // lugar nenhum), porque os pontos bônus podem ser marcados e
+    // desmarcados (aceitar/recusar) até o último minuto.
+    const totalBonus = (missao.pontosBonus || []).length;
+    const bonusAchados = progresso.bonusConcluidos.length;
+
     let mensagemCompleta =
     resultadoDesafio
 
-    ? "🏁 Modo Desafio concluído com sucesso!\n\n"
+    ? "🏁 Modo Desafio: concluído com sucesso!\n"
 
-    : "⏱️ O tempo do Modo Desafio terminou, mas vocês concluíram a aventura!\n\n";
+    : "⏱️ Modo Desafio: tempo esgotado, mas vocês terminaram!\n";
 
-mensagemCompleta += missao.mensagemFinal;
+    mensagemCompleta += `✅ Pontos oficiais: ${progresso.concluidos.length}/${missao.totalPontos}\n`;
+
+    if (totalBonus > 0) {
+        mensagemCompleta += `🎁 Pontos bônus: ${bonusAchados}/${totalBonus}\n`;
+    }
+
+    mensagemCompleta += "\n" + missao.mensagemFinal;
 
     local.setItem(
     "missaoFinalizada",
