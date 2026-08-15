@@ -66,7 +66,7 @@ html,body{
 }
 
   #pergunta{
-    margin:-4px 0 0 0;
+    margin:-8px 0 0 0;
     text-align:center;
     font-size:15px;
     line-height:1.0;
@@ -98,8 +98,12 @@ html,body{
 
 }
 
+#resposta{
+    margin-top:-6px;
+}
+
 button{
-    padding:10px 18px;
+    padding:6px 18px;
     font-size:14px;
     font-family:inherit;
     border:1px solid #d0d0d0;
