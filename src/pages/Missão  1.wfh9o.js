@@ -234,7 +234,11 @@ async function carregarMissao(slug) {
 
         capa: registroMissao.capa,
 
-        totalPontos: registroMissao.totalPontos,
+        // Calculado a partir de quantos pontos ativos existem de
+        // verdade, em vez de confiar no campo manual "totalPontos"
+        // do CMS -- que precisava ser atualizado à mão toda vez que
+        // um ponto fosse criado/removido, e desalinhava fácil.
+        totalPontos: resultadoPontos.items.length,
 
         mensagemFinal: registroMissao.mensagemFinal,
 
