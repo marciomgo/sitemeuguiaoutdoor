@@ -1094,10 +1094,11 @@ function abrirComoFunciona() {
         mensagem:
             "Passo a passo de como jogar<br><br>" +
             "Sejam bem vindos!<br><br>" +
-            "Regras:<br>" +
-            "• Siga a sequência numérica<br>" +
-            "• Ative o Ponto quando chegar ao local<br>" +
-            "• Repita até a chegada<br><br>" +
+            "1º Encontre os pontos na ordem numérica<br><br>" +
+            "2º Confirme que chegou clicando no ponto<br><br>" +
+            "3º Complete a missão do ponto<br><br>" +
+            "4º Repita até o fim<br><br>" +
+            "Pelo caminho, fiquem de olho nos pontos bônus — são opcionais, não seguem a ordem numérica e podem ser encontrados a qualquer momento.<br><br>" +
             "Boa diversão!"
 
     });
