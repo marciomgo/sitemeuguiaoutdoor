@@ -279,19 +279,25 @@ async function carregarMissao(slug) {
 
             codigo: primeiroValor(item.codigo),
 
+            // Categoria do bônus (prarir/travessuras/desafio/coracao/
+            // parceiro) — fica fora de "conteudo" pra não colidir com
+            // tipo/valor de mídia (imagem/vídeo), que usam esses
+            // mesmos nomes de campo no popup, igual aos pontos normais.
+            tipoBonus: primeiroValor(item.tipo),
+
             latitude: item.latitude,
 
             longitude: item.longitude,
 
             conteudo: {
 
-                tipo: primeiroValor(item.tipo),
-
                 titulo: item.titulo,
 
                 mensagem: item.mensagem,
 
-                valor: item.valor,
+                tipo: primeiroValor(item.tipoMidia),
+
+                valor: item.valorMidia,
 
                 pergunta1: item.pergunta1,
 

@@ -360,7 +360,7 @@ export function obterPontosBonusParaMapa() {
 
     return (missao.pontosBonus || []).map(ponto => {
 
-        const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.prarir;
+        const icones = ICONES_BONUS[ponto.tipoBonus] || ICONES_BONUS.prarir;
         const achado = progresso.bonusConcluidos.includes(ponto.id);
 
         return {
@@ -438,7 +438,7 @@ function atualizarImagemBonus(imagem, ponto) {
 
     const achado = progresso.bonusConcluidos.includes(ponto.id);
 
-    const icones = ICONES_BONUS[ponto.conteudo.tipo] || ICONES_BONUS.prarir;
+    const icones = ICONES_BONUS[ponto.tipoBonus] || ICONES_BONUS.prarir;
 
     imagem.src = achado ? icones.encontrado : icones.bloqueado;
 
@@ -526,7 +526,7 @@ async function verificarPontoBonus(ponto) {
 
 function mostrarConteudoBonus(ponto) {
 
-    const ehDesafio = TIPOS_DESAFIO_BONUS.includes(ponto.conteudo.tipo);
+    const ehDesafio = TIPOS_DESAFIO_BONUS.includes(ponto.tipoBonus);
 
     // Desafio (travessuras/coração): sempre mostra Aceitamos!/Não
     // vai rolar de novo, mesmo já tendo decidido antes — a família
