@@ -187,11 +187,12 @@ textarea{
 <div id="container">
         <!-- TÍTULO -->
     <h2 id="titulo"></h2>
-        <!-- MENSAGEM -->
-    <p id="mensagem"></p>
 
         <!-- CONTEÚDO (Imagem, Vídeo, Áudio...) -->
     <div id="conteudo"></div>
+
+        <!-- MENSAGEM -->
+    <p id="mensagem"></p>
 
         <!-- PERGUNTA -->
     <p id="pergunta"></p>
