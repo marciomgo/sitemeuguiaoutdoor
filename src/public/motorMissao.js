@@ -786,6 +786,13 @@ break;
 
 function mostrarComemoracao(){
 
+    // "resultadoDesafio" só diz se o tempo acabou (fica "false"), mas
+    // nunca é setado se o Modo Desafio nem foi ativado — por isso
+    // precisa checar também se ele foi ligado de verdade (mesma
+    // fonte que a página usa pra mostrar/esconder o cronômetro).
+    const configMissao = JSON.parse(local.getItem("configMissao") || "{}");
+    const modoDesafioAtivo = !!configMissao.desafio;
+
 const resultadoDesafio =
 
     local.getItem("resultadoDesafio") !== "false";
@@ -796,12 +803,15 @@ const resultadoDesafio =
     const totalBonus = (missao.pontosBonus || []).length;
     const bonusAchados = progresso.bonusConcluidos.length;
 
-    let mensagemCompleta =
-    resultadoDesafio
+    let mensagemCompleta = "";
 
-    ? "🏁 Modo Desafio: concluído com sucesso!\n"
+    if (modoDesafioAtivo) {
 
-    : "⏱️ Modo Desafio: tempo esgotado, mas vocês terminaram!\n";
+        mensagemCompleta += resultadoDesafio
+            ? "🏁 Modo Desafio: concluído com sucesso!\n"
+            : "⏱️ Modo Desafio: tempo esgotado, mas vocês terminaram!\n";
+
+    }
 
     mensagemCompleta += `✅ Pontos oficiais: ${progresso.concluidos.length}/${missao.totalPontos}\n`;
 
