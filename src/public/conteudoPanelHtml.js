@@ -269,7 +269,7 @@ display:none;
         <!-- ACEITAR/RECUSAR (desafios de ponto bônus — travessuras/coração) -->
     <div class="botoes" id="linhaBotoesDesafio">
         <button id="btnAceitar" onclick="aceitarDesafio()">✅ Aceitamos!</button>
-        <button id="btnRecusar" onclick="recusarDesafio()">❌ Não rolou</button>
+        <button id="btnRecusar" onclick="recusarDesafio()">❌ Não vai rolar</button>
     </div>
 
         <!-- FECHAR (sempre por último) -->

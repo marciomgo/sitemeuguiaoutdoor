@@ -526,34 +526,16 @@ async function verificarPontoBonus(ponto) {
 
 function mostrarConteudoBonus(ponto) {
 
-    // Já resolvido antes (achado ou recusado) — só mostra o
-    // conteúdo de novo, sem repetir a decisão.
-    if (progresso.bonusConcluidos.includes(ponto.id) || progresso.bonusRecusados.includes(ponto.id)) {
-
-        wixWindow.openLightbox("Conteudo", ponto.conteudo).catch((err) => console.error(err));
-
-        return;
-
-    }
-
     const ehDesafio = TIPOS_DESAFIO_BONUS.includes(ponto.conteudo.tipo);
 
-    // Sem pergunta1 (piada/fato sem resposta) e sem ser desafio: o
-    // popup só mostra a mensagem e um botão de fechar — considera
-    // achado ao simplesmente ter visto. Com pergunta1: só conta
-    // como achado quando responder certo (igual aos pontos normais).
-    // Desafio (travessuras/coração): só conta com "Aceitamos!".
-    const temPergunta = !!ponto.conteudo.pergunta1;
+    // Desafio (travessuras/coração): sempre mostra Aceitamos!/Não
+    // vai rolar de novo, mesmo já tendo decidido antes — a família
+    // pode trocar de ideia na hora.
+    if (ehDesafio) {
 
-    const conteudoParaAbrir = ehDesafio
-        ? { ...ponto.conteudo, aceitarRecusar: true }
-        : ponto.conteudo;
+        wixWindow.openLightbox("Conteudo", { ...ponto.conteudo, aceitarRecusar: true })
 
-    wixWindow.openLightbox("Conteudo", conteudoParaAbrir)
-
-        .then((resultado) => {
-
-            if (ehDesafio) {
+            .then((resultado) => {
 
                 if (resultado && resultado.acao === "aceitar") {
                     concluirPontoBonus(ponto);
@@ -561,7 +543,37 @@ function mostrarConteudoBonus(ponto) {
                     recusarPontoBonus(ponto);
                 }
 
-            } else if (temPergunta) {
+            })
+
+            .catch((err) => {
+                console.error(err);
+            });
+
+        return;
+
+    }
+
+    // Já achado antes (piada/fato/enigma) — só mostra o conteúdo de
+    // novo, sem repetir a decisão.
+    if (progresso.bonusConcluidos.includes(ponto.id)) {
+
+        wixWindow.openLightbox("Conteudo", ponto.conteudo).catch((err) => console.error(err));
+
+        return;
+
+    }
+
+    // Sem pergunta1 (piada/fato sem resposta): o popup só mostra a
+    // mensagem e um botão de fechar — considera achado ao
+    // simplesmente ter visto. Com pergunta1: só conta como achado
+    // quando responder certo (igual aos pontos normais).
+    const temPergunta = !!ponto.conteudo.pergunta1;
+
+    wixWindow.openLightbox("Conteudo", ponto.conteudo)
+
+        .then((resultado) => {
+
+            if (temPergunta) {
 
                 if (resultado && resultado.acao === "concluido") {
                     concluirPontoBonus(ponto);
