@@ -29,7 +29,10 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     object-fit:contain;
 }
 .icone-ponto-cinza{
-    filter: grayscale(100%) brightness(70%) opacity(0.9);
+    filter: grayscale(100%) brightness(70%);
+}
+.icone-ponto-cinza-leve{
+    filter: grayscale(100%);
 }
 .icone-bonus{
     background:#f0b429;
@@ -130,10 +133,17 @@ let marcadoresPontos = {};
 let marcadoresBonus = {};
 let marcadorEu = null;
 
-function iconeBonus(url, achado){
+// Tipos cujo desenho original já é mais escuro — usam um filtro
+// mais leve (sem escurecer ainda mais) quando ainda não achado.
+const TIPOS_FILTRO_LEVE = ['travessuras'];
+
+function iconeBonus(url, achado, tipo){
 
     if(url){
-        const classe = 'icone-ponto-img' + (achado ? '' : ' icone-ponto-cinza');
+        let classe = 'icone-ponto-img';
+        if(!achado){
+            classe += TIPOS_FILTRO_LEVE.includes(tipo) ? ' icone-ponto-cinza-leve' : ' icone-ponto-cinza';
+        }
         return L.icon({
             iconUrl: url,
             iconSize: [40,40],
@@ -160,7 +170,7 @@ function desenharPontosBonus(pontosBonus){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconeBonus(ponto.icone, ponto.achado)
+            icon: iconeBonus(ponto.icone, ponto.achado, ponto.tipo)
         }).addTo(mapa);
 
         marcador.on('click', () => {

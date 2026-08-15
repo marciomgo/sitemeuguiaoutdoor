@@ -368,7 +368,8 @@ export function obterPontosBonusParaMapa() {
             latitude: ponto.latitude,
             longitude: ponto.longitude,
             icone: icones.encontrado,
-            achado: achado
+            achado: achado,
+            tipo: ponto.tipoBonus
         };
 
     });
