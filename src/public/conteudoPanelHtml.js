@@ -495,6 +495,11 @@ window.onmessage=function(event){
 
     const btnDiario=document.getElementById("btnDiario");
     btnDiario.style.display = c.modo==="final" ? "inline-block" : "none";
+
+    // Na comemoração, o "Fechar" vira "Ver Recompensas" — fechar
+    // esse popup já manda pra página de tesouro (motorMissao.js).
+    const btnFechar=document.getElementById("btnFechar");
+    btnFechar.innerHTML = c.modo==="comemoracao" ? "🎁 Ver Recompensas" : "Fechar";
     const msgSistema=document.getElementById("mensagemSistema");
     const diario=document.getElementById("diario");
     const btnSalvarDiario=document.getElementById("btnSalvarDiario");
