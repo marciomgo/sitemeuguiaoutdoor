@@ -189,8 +189,12 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 // no CMS (só existe Tags, não Dropdown, pra travar numa lista
 // pré-definida) — aí vêm como array (ex: ["imagem"]) em vez de
 // texto puro. Usa só o primeiro valor, funciona nos dois casos.
-const primeiroValor = (campo) =>
-    Array.isArray(campo) ? campo[0] : campo;
+// Também tira espaço sobrando (ex: "imagem " digitado sem querer),
+// que quebra a comparação exata lá no popup.
+const primeiroValor = (campo) => {
+    const valor = Array.isArray(campo) ? campo[0] : campo;
+    return typeof valor === "string" ? valor.trim() : valor;
+};
 
 async function carregarMissao(slug) {
 
