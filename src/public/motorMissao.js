@@ -1035,7 +1035,7 @@ export function abrirMochila() {
 
         titulo: tituloComIcone(ICONE_MOCHILA, "Mochila"),
 
-        mensagem: "Guarda as respostas de cada ponto",
+        mensagem: "Guarda automaticamente as respostas e pistas dos pontos",
 
         mochila: progresso.mochila
 
