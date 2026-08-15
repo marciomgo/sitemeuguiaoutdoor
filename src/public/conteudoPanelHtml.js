@@ -791,8 +791,6 @@ else{
 
 if(c.modo==="comemoracao"){
 
-    conteudo.innerHTML = "";
-
     pergunta.style.display = "none";
 
     resposta.style.display = "none";
