@@ -148,10 +148,11 @@ textarea{
 #mensagemSistema{
     background:#f4f4f4;
     color:#222;
-    padding:12px;
+    padding:6px 12px;
     font-size:14px;
     border-radius:8px;
     border:1px solid #ddd;
+    text-align:center;
 }
 .botoes{
     display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;

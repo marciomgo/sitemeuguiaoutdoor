@@ -224,7 +224,7 @@ function validarResposta(resposta) {
     } else {
 
         conteudo.mensagemSistema =
-            "❌ Resposta incorreta.<br><br>Tentem novamente.";
+            "❌ Errado, tentem de novo!";
 
         enviarParaHTML();
 
