@@ -66,7 +66,7 @@ html,body{
 }
 
   #pergunta{
-    margin:-8px 0 0 0;
+    margin:0;
     text-align:center;
     font-size:15px;
     line-height:1.0;
@@ -98,8 +98,18 @@ html,body{
 
 }
 
-#resposta{
-    margin-top:-6px;
+.linha-resposta{
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+.linha-resposta input{
+    flex:1;
+    width:auto;
+}
+.linha-resposta button{
+    padding:6px 14px;
+    white-space:nowrap;
 }
 
 button{
@@ -148,7 +158,7 @@ textarea{
 #mensagemSistema{
     background:#f4f4f4;
     color:#222;
-    padding:6px 12px;
+    padding:4px 10px;
     font-size:14px;
     border-radius:8px;
     border:1px solid #ddd;
@@ -198,12 +208,17 @@ textarea{
         <!-- PERGUNTA -->
     <p id="pergunta"></p>
 
-        <!-- RESPOSTA -->
-    <input id="resposta" type="text" placeholder="Digite sua resposta">
+        <!-- MENSAGEM DO SISTEMA (certo/errado) -->
+    <div id="mensagemSistema"></div>
+
+        <!-- RESPOSTA + ENVIAR (lado a lado) -->
+    <div class="linha-resposta" id="linhaResposta">
+        <input id="resposta" type="text" placeholder="Digite sua resposta">
+        <button id="btnEnviar" onclick="enviarResposta()">Enviar</button>
+    </div>
 
         <!-- BOTÕES DA RESPOSTA (logo abaixo do campo) -->
     <div class="botoes" id="linhaBotoesResposta">
-        <button id="btnEnviar" onclick="enviarResposta()">Enviar</button>
         <button id="btnDica" onclick="pedirDica()">💡 Quero uma dica</button>
     </div>
 
@@ -235,9 +250,6 @@ display:none;
 
 </button>
     </div>
-
-        <!-- MENSAGEM DO SISTEMA -->
-    <div id="mensagemSistema"></div>
 
         <!-- BOTÕES QUE ABREM/FECHAM MOCHILA E DIÁRIO (TELA FINAL) -->
     <div class="botoes" id="linhaBotoesToggle">
@@ -471,8 +483,12 @@ window.onmessage=function(event){
         conteudo.innerHTML='<audio controls autoplay><source src="'+c.valor+'"></audio>';
     }
 
-    // Vazio (sem mídia) não deve ocupar espaço no layout.
-    conteudo.style.display = conteudo.innerHTML ? "block" : "none";
+    // Vazio (sem mídia) não deve ocupar espaço no layout. Quando
+    // tem imagem, cola ela na mensagem logo abaixo — sem imagem, a
+    // mensagem segue o espaçamento padrão (mesma métrica do resto).
+    const temMidia = !!conteudo.innerHTML;
+    conteudo.style.display = temMidia ? "block" : "none";
+    conteudo.style.marginBottom = temMidia ? "-8px" : "0";
 
         //==================================================
     // ELEMENTOS DA TELA
