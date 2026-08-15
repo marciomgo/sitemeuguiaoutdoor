@@ -910,7 +910,8 @@ function abrirPopupComemoracao(mensagemCompleta, resultadoDesafio) {
 
             titulo:"🏆 Parabéns!",
 
-            mensagem: mensagemCompleta,
+            // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir
+            mensagem: mensagemCompleta + `\n\n[DEBUG tipo="${missao.tipoFinal}" valor="${missao.valorFinal}"]`,
 
             tipo: missao.tipoFinal,
 
