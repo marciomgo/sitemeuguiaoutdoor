@@ -132,6 +132,14 @@ function iniciarAventura() {
 
     }
 
+    // Opcional — não trava o cadastro se ficar em branco.
+    let composicaoFamilia = "";
+    try {
+        composicaoFamilia = ($w("#composicaoFamilia").value || "").trim();
+    } catch (err) {
+        console.log("#composicaoFamilia não encontrado na página.");
+    }
+
     const configMissao = {
 
         desafio: $w("#switchDesafio").checked,
@@ -181,6 +189,7 @@ function iniciarAventura() {
 
             _id: item._id,
             nomeFamilia: nomeFamilia,
+            composicaoFamilia: composicaoFamilia,
             missao: missao._id,
             dataCadastro: dataCadastro
 
