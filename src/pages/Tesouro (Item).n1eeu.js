@@ -81,24 +81,7 @@ function mostrarPrazoFinal(dataConclusao) {
 // Duas perguntas, só de marcação (nada de digitar): nota de 1-5 e
 // se topariam fazer outra missão. Um botão Enviar confirma as duas.
 
-let respostaPesquisaSelecionada = null;
-
 function conectarPesquisa(resgateId) {
-
-    // Jogaria outra missão? Sim/Não.
-    try {
-
-        $w("#btnPesquisaSim").onClick(() => {
-            respostaPesquisaSelecionada = true;
-        });
-
-        $w("#btnPesquisaNao").onClick(() => {
-            respostaPesquisaSelecionada = false;
-        });
-
-    } catch (err) {
-        console.log("Botões Sim/Não não encontrados na página.");
-    }
 
     try {
 
@@ -111,6 +94,18 @@ function conectarPesquisa(resgateId) {
                 notaSelecionada = $w("#avaliacao").value || null;
             } catch (err) {
                 console.log("#avaliacao não encontrado na página.");
+            }
+
+            // Radio Buttons nativo do Wix — .value vem "" se a
+            // família não marcou nenhuma opção.
+            let respostaPesquisaSelecionada = null;
+            try {
+                const valor = $w("#grupoJogariaNovamente").value;
+                if (valor) {
+                    respostaPesquisaSelecionada = (valor === "Sim");
+                }
+            } catch (err) {
+                console.log("#grupoJogariaNovamente não encontrado na página.");
             }
 
             if (notaSelecionada === null && respostaPesquisaSelecionada === null) {
