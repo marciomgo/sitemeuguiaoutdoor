@@ -13,6 +13,7 @@ $w.onReady(function () {
 
         carregarParceiros(resgate.missao);
         mostrarPrazoFinal(resgate.dataConclusao);
+        conectarPesquisa(resgate._id);
 
     });
 
@@ -70,6 +71,71 @@ function mostrarPrazoFinal(dataConclusao) {
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
+    });
+
+}
+
+//==================================================
+// PESQUISA RÁPIDA (antes do PIX)
+//==================================================
+// Uma pergunta só: clica em Sim/Não pra marcar a escolha, e o botão
+// Enviar confirma e salva.
+
+let respostaPesquisaSelecionada = null;
+
+function conectarPesquisa(resgateId) {
+
+    try {
+
+        $w("#btnPesquisaSim").onClick(() => {
+            respostaPesquisaSelecionada = true;
+            $w("#btnPesquisaSim").label = "✅ Sim";
+            $w("#btnPesquisaNao").label = "Não";
+        });
+
+        $w("#btnPesquisaNao").onClick(() => {
+            respostaPesquisaSelecionada = false;
+            $w("#btnPesquisaNao").label = "✅ Não";
+            $w("#btnPesquisaSim").label = "Sim";
+        });
+
+        $w("#btnPesquisaEnviar").onClick(() => {
+
+            if (respostaPesquisaSelecionada === null) {
+                return;
+            }
+
+            responderPesquisa(resgateId, respostaPesquisaSelecionada);
+
+        });
+
+    } catch (err) {
+        console.log("Botões da pesquisa não encontrados na página.");
+    }
+
+}
+
+function responderPesquisa(resgateId, jogariaOutraMissao) {
+
+    wixData.insert("PesquisasSatisfacao", {
+        resgate: resgateId,
+        jogariaOutraMissao: jogariaOutraMissao,
+        data: new Date()
+    })
+    .then(() => {
+
+        try {
+            $w("#boxPesquisa").collapse();
+        } catch (err) {}
+
+        try {
+            $w("#txtPesquisaObrigado").text = "Obrigado pela resposta! 🙏";
+            $w("#txtPesquisaObrigado").expand();
+        } catch (err) {}
+
+    })
+    .catch((err) => {
+        console.error("Erro ao salvar pesquisa:", err);
     });
 
 }
