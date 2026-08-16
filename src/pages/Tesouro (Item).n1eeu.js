@@ -85,17 +85,40 @@ function mostrarPrazoFinal(dataConclusao) {
 
 function carregarPix() {
 
+    // Deixa o código visível na tela também — se o "copiar" falhar
+    // silenciosamente (acontece em navegadores de app tipo
+    // Instagram/WhatsApp), a família ainda consegue selecionar e
+    // copiar o código manualmente.
+    try {
+        $w("#txtCodigoPix").text = CODIGO_PIX;
+    } catch (err) {
+        console.log("#txtCodigoPix não encontrado na página.");
+    }
+
     $w("#btnCopiarPix").onClick(() => {
 
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(CODIGO_PIX);
-        }
+        const temClipboard = navigator.clipboard && navigator.clipboard.writeText;
 
-        $w("#btnCopiarPix").label = "Copiado!";
+        const promessa = temClipboard
+            ? navigator.clipboard.writeText(CODIGO_PIX)
+            : Promise.reject(new Error("Clipboard indisponível"));
 
-        setTimeout(() => {
-            $w("#btnCopiarPix").label = "Copiar código PIX";
-        }, 2000);
+        promessa
+
+            .then(() => {
+                $w("#btnCopiarPix").label = "Copiado!";
+            })
+
+            .catch((err) => {
+                console.error("Erro ao copiar PIX:", err);
+                $w("#btnCopiarPix").label = "Selecione o código acima";
+            })
+
+            .finally(() => {
+                setTimeout(() => {
+                    $w("#btnCopiarPix").label = "Copiar código PIX";
+                }, 2500);
+            });
 
     });
 
