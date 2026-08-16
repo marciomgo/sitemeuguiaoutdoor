@@ -1,8 +1,12 @@
 import wixData from 'wix-data';
 
-// Código PIX único, com valor sugerido de R$14,90 já pré-preenchido
-// (a pessoa pode alterar no app do banco antes de confirmar).
+// Código PIX "copia e cola" (valor aberto — o valor sugerido
+// aparece só como texto na tela, não trava no código).
 const CODIGO_PIX = "00020126840014BR.GOV.BCB.PIX0136561c6f5a-ada8-488e-b053-fa88735aa22e0222Valor sugerido R$14,905204000053039865802BR5923Marcio de Avila Palermo6009SAO PAULO62140510GjEUg98dMD6304E376";
+
+// Segundo caminho: a chave PIX (celular) visível na tela, pra quem
+// preferir digitar/colar ela direto em vez do código copia e cola.
+const CHAVE_PIX = "SUBSTITUIR_NUMERO_CELULAR";
 
 $w.onReady(function () {
 
@@ -83,43 +87,75 @@ function mostrarPrazoFinal(dataConclusao) {
 // PIX
 //==================================================
 
+// Tenta copiar via navigator.clipboard (pode falhar silenciosamente
+// em navegadores de app tipo Instagram/WhatsApp) — sempre chama
+// aoSucesso ou aoFalhar, nunca finge que deu certo sem ter dado.
+function copiarTexto(texto, aoSucesso, aoFalhar) {
+
+    const temClipboard = navigator.clipboard && navigator.clipboard.writeText;
+
+    const promessa = temClipboard
+        ? navigator.clipboard.writeText(texto)
+        : Promise.reject(new Error("Clipboard indisponível"));
+
+    promessa
+        .then(aoSucesso)
+        .catch((err) => {
+            console.error("Erro ao copiar:", err);
+            if (aoFalhar) aoFalhar(err);
+        });
+
+}
+
 function carregarPix() {
 
-    // Deixa o código visível na tela também — se o "copiar" falhar
-    // silenciosamente (acontece em navegadores de app tipo
-    // Instagram/WhatsApp), a família ainda consegue selecionar e
-    // copiar o código manualmente.
-    try {
-        $w("#txtCodigoPix").text = CODIGO_PIX;
-    } catch (err) {
-        console.log("#txtCodigoPix não encontrado na página.");
-    }
-
+    // Caminho 1: botão do código "copia e cola" completo.
     $w("#btnCopiarPix").onClick(() => {
 
-        const temClipboard = navigator.clipboard && navigator.clipboard.writeText;
+        copiarTexto(CODIGO_PIX,
 
-        const promessa = temClipboard
-            ? navigator.clipboard.writeText(CODIGO_PIX)
-            : Promise.reject(new Error("Clipboard indisponível"));
-
-        promessa
-
-            .then(() => {
+            () => {
                 $w("#btnCopiarPix").label = "Copiado!";
-            })
-
-            .catch((err) => {
-                console.error("Erro ao copiar PIX:", err);
-                $w("#btnCopiarPix").label = "Selecione o código acima";
-            })
-
-            .finally(() => {
                 setTimeout(() => {
                     $w("#btnCopiarPix").label = "Copiar código PIX";
                 }, 2500);
-            });
+            },
+
+            () => {
+                $w("#btnCopiarPix").label = "Erro — use a chave abaixo";
+                setTimeout(() => {
+                    $w("#btnCopiarPix").label = "Copiar código PIX";
+                }, 2500);
+            }
+
+        );
 
     });
+
+    // Caminho 2: botão com a chave PIX (celular) visível no rótulo.
+    try {
+
+        $w("#btnChavePix").label = CHAVE_PIX;
+
+        $w("#btnChavePix").onClick(() => {
+
+            copiarTexto(CHAVE_PIX,
+
+                () => {
+                    $w("#btnChavePix").label = "Copiado!";
+                    setTimeout(() => {
+                        $w("#btnChavePix").label = CHAVE_PIX;
+                    }, 1500);
+                },
+
+                () => {}
+
+            );
+
+        });
+
+    } catch (err) {
+        console.log("#btnChavePix não encontrado na página.");
+    }
 
 }
