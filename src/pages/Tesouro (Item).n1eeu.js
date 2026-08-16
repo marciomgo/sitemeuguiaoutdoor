@@ -81,37 +81,9 @@ function mostrarPrazoFinal(dataConclusao) {
 // Duas perguntas, só de marcação (nada de digitar): nota de 1-5 e
 // se topariam fazer outra missão. Um botão Enviar confirma as duas.
 
-const BOTOES_NOTA = ["#btnNota1", "#btnNota2", "#btnNota3", "#btnNota4", "#btnNota5"];
-
-let notaSelecionada = null;
 let respostaPesquisaSelecionada = null;
 
 function conectarPesquisa(resgateId) {
-
-    // Nota de 1 a 5 — clicar marca essa e desmarca as outras.
-    try {
-
-        BOTOES_NOTA.forEach((idBotao, indice) => {
-
-            const nota = indice + 1;
-
-            $w(idBotao).onClick(() => {
-
-                notaSelecionada = nota;
-
-                BOTOES_NOTA.forEach((outroId, outroIndice) => {
-                    $w(outroId).label = (outroIndice + 1 === nota)
-                        ? `⭐${nota}`
-                        : String(outroIndice + 1);
-                });
-
-            });
-
-        });
-
-    } catch (err) {
-        console.log("Botões de nota não encontrados na página.");
-    }
 
     // Jogaria outra missão? Sim/Não.
     try {
@@ -135,6 +107,15 @@ function conectarPesquisa(resgateId) {
     try {
 
         $w("#btnPesquisaEnviar").onClick(() => {
+
+            // Ratings Input nativo do Wix — .value vem null se a
+            // família não tocou em nenhuma estrela.
+            let notaSelecionada = null;
+            try {
+                notaSelecionada = $w("#avaliacao").value || null;
+            } catch (err) {
+                console.log("#avaliacao não encontrado na página.");
+            }
 
             if (notaSelecionada === null && respostaPesquisaSelecionada === null) {
                 return;
