@@ -2,11 +2,11 @@ import wixData from 'wix-data';
 
 // Código PIX "copia e cola" (valor aberto — o valor sugerido
 // aparece só como texto na tela, não trava no código).
-const CODIGO_PIX = "00020126840014BR.GOV.BCB.PIX0136561c6f5a-ada8-488e-b053-fa88735aa22e0222Valor sugerido R$14,905204000053039865802BR5923Marcio de Avila Palermo6009SAO PAULO62140510GjEUg98dMD6304E376";
+const CODIGO_PIX = "00020101021126360014br.gov.bcb.pix0114+55519999930125204000053039865802BR5923MARCIO DE AVILA PALERMO6009SAO PAULO622905251M05AAE8KNYBXWGYRDV39AEKQ6304085D";
 
 // Segundo caminho: a chave PIX (celular) visível na tela, pra quem
 // preferir digitar/colar ela direto em vez do código copia e cola.
-const CHAVE_PIX = "SUBSTITUIR_NUMERO_CELULAR";
+const CHAVE_PIX = "51999993012";
 
 $w.onReady(function () {
 
