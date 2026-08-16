@@ -2,10 +2,10 @@
 // RAIO ADAPTATIVO
 //==================================================
 
-// TESTE DE CAMPO: 40m fixo.
+// TESTE: 10km fixo (facilita testar de longe, sem estar no parque).
 export function raioPermitido(accuracy){
 
-    return 40;
+    return 10000;
 
 }
 

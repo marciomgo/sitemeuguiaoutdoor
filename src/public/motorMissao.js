@@ -951,11 +951,10 @@ function abrirPopupComemoracao(mensagemCompleta, resultadoDesafio) {
 // RAIO ADAPTATIVO
 //==================================================
 
-// TESTE DE CAMPO: 40m fixo (era 200000/300000/4000000/5000000 antes
-// -- zeros a mais, deixava o raio praticamente sem limite).
+// TESTE: 10km fixo (facilita testar de longe, sem estar no parque).
 function raioPermitido(accuracy) {
 
-    return 40;
+    return 10000;
 
 }
 
