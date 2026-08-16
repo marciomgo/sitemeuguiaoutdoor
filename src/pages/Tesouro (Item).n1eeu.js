@@ -87,9 +87,12 @@ function mostrarPrazoFinal(dataConclusao) {
 // PIX
 //==================================================
 
-// Tenta copiar via navigator.clipboard (pode falhar silenciosamente
-// em navegadores de app tipo Instagram/WhatsApp) — sempre chama
-// aoSucesso ou aoFalhar, nunca finge que deu certo sem ter dado.
+// Tenta copiar via navigator.clipboard — em muitos celulares (testado
+// e confirmado que falha) essa API simplesmente não funciona dentro
+// do Wix. Por isso o caminho garantido é outro: um campo de texto
+// com o valor pronto, onde a família toca, segura e usa o "Selecionar
+// tudo / Copiar" do próprio celular (isso nunca depende de permissão
+// de navegador). O botão só tenta copiar sozinho como bônus.
 function copiarTexto(texto, aoSucesso, aoFalhar) {
 
     const temClipboard = navigator.clipboard && navigator.clipboard.writeText;
@@ -109,33 +112,56 @@ function copiarTexto(texto, aoSucesso, aoFalhar) {
 
 function carregarPix() {
 
-    // Caminho 1: botão do código "copia e cola" completo.
-    $w("#btnCopiarPix").onClick(() => {
+    // Campo com o código completo — toque e segure pra selecionar
+    // e copiar manualmente (caminho garantido, funciona sempre).
+    try {
+        $w("#inputCodigoPix").value = CODIGO_PIX;
+        $w("#inputCodigoPix").readOnly = true;
+    } catch (err) {
+        console.log("#inputCodigoPix não encontrado na página.");
+    }
 
-        copiarTexto(CODIGO_PIX,
+    // Campo com a chave PIX (celular) — mesmo esquema.
+    try {
+        $w("#inputChavePix").value = CHAVE_PIX;
+        $w("#inputChavePix").readOnly = true;
+    } catch (err) {
+        console.log("#inputChavePix não encontrado na página.");
+    }
 
-            () => {
-                $w("#btnCopiarPix").label = "Copiado!";
-                setTimeout(() => {
-                    $w("#btnCopiarPix").label = "Copiar código PIX";
-                }, 2500);
-            },
-
-            () => {
-                $w("#btnCopiarPix").label = "Erro — use a chave abaixo";
-                setTimeout(() => {
-                    $w("#btnCopiarPix").label = "Copiar código PIX";
-                }, 2500);
-            }
-
-        );
-
-    });
-
-    // Caminho 2: botão com a chave PIX (celular) visível no rótulo.
+    // Botão do código — tenta copiar sozinho; se conseguir, ótimo,
+    // se não, só foca o campo pra facilitar selecionar na mão.
     try {
 
-        $w("#btnChavePix").label = CHAVE_PIX;
+        $w("#btnCopiarPix").onClick(() => {
+
+            copiarTexto(CODIGO_PIX,
+
+                () => {
+                    $w("#btnCopiarPix").label = "Copiado!";
+                    setTimeout(() => {
+                        $w("#btnCopiarPix").label = "Copiar código PIX";
+                    }, 2500);
+                },
+
+                () => {
+                    $w("#btnCopiarPix").label = "Toque e segure no campo acima";
+                    try { $w("#inputCodigoPix").focus(); } catch (e) {}
+                    setTimeout(() => {
+                        $w("#btnCopiarPix").label = "Copiar código PIX";
+                    }, 3000);
+                }
+
+            );
+
+        });
+
+    } catch (err) {
+        console.log("#btnCopiarPix não encontrado na página.");
+    }
+
+    // Botão da chave — mesma lógica.
+    try {
 
         $w("#btnChavePix").onClick(() => {
 
@@ -144,11 +170,17 @@ function carregarPix() {
                 () => {
                     $w("#btnChavePix").label = "Copiado!";
                     setTimeout(() => {
-                        $w("#btnChavePix").label = CHAVE_PIX;
+                        $w("#btnChavePix").label = "Copiar chave PIX";
                     }, 1500);
                 },
 
-                () => {}
+                () => {
+                    $w("#btnChavePix").label = "Toque e segure no campo acima";
+                    try { $w("#inputChavePix").focus(); } catch (e) {}
+                    setTimeout(() => {
+                        $w("#btnChavePix").label = "Copiar chave PIX";
+                    }, 3000);
+                }
 
             );
 
