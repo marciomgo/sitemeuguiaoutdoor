@@ -1,12 +1,5 @@
 import wixData from 'wix-data';
 
-// Chave PIX (celular), mostrada como texto simples — a família toca
-// e segura pra selecionar e copiar pelo próprio celular. Sem botão,
-// sem tentar copiar via código: isso depende de permissão de
-// navegador que trava sozinha depois de um tempo e não dá pra
-// pedir que a família vá resetar configuração nenhuma.
-const CHAVE_PIX = "51999993012";
-
 $w.onReady(function () {
 
     $w("#dynamicDataset").onReady(() => {
@@ -20,7 +13,6 @@ $w.onReady(function () {
 
         carregarParceiros(resgate.missao);
         mostrarPrazoFinal(resgate.dataConclusao);
-        carregarPix();
 
     });
 
@@ -79,22 +71,5 @@ function mostrarPrazoFinal(dataConclusao) {
         month: "2-digit",
         year: "numeric"
     });
-
-}
-
-//==================================================
-// PIX
-//==================================================
-
-// Só texto simples com a chave — a família toca e segura pra
-// selecionar e copiar pelo próprio celular. Sem botão, sem tentar
-// copiar via código.
-function carregarPix() {
-
-    try {
-        $w("#txtChavePix").text = CHAVE_PIX;
-    } catch (err) {
-        console.log("#txtChavePix não encontrado na página.");
-    }
 
 }
