@@ -90,14 +90,10 @@ function conectarPesquisa(resgateId) {
 
         $w("#btnPesquisaSim").onClick(() => {
             respostaPesquisaSelecionada = true;
-            $w("#btnPesquisaSim").label = "✅ Sim";
-            $w("#btnPesquisaNao").label = "Não";
         });
 
         $w("#btnPesquisaNao").onClick(() => {
             respostaPesquisaSelecionada = false;
-            $w("#btnPesquisaNao").label = "✅ Não";
-            $w("#btnPesquisaSim").label = "Sim";
         });
 
     } catch (err) {
