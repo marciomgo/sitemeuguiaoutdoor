@@ -461,6 +461,31 @@ function atualizarLocalizacaoMapa() {
 
 function ativarBussola() {
 
+    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir. Tenta
+    // vários caminhos até o objeto global de verdade, caso "window"
+    // sozinho esteja escondido pelo sandbox do Velo.
+    const diagJanela = typeof window;
+    const diagGlobalThis = typeof globalThis;
+    const diagSelf = typeof (typeof self !== "undefined" ? self : undefined);
+
+    const globalReal =
+        (typeof globalThis !== "undefined" && globalThis) ||
+        (typeof self !== "undefined" && self) ||
+        (typeof window !== "undefined" && window) ||
+        null;
+
+    const diagDOE = typeof (globalReal ? globalReal.DeviceOrientationEvent : undefined);
+
+    console.log("DEBUG bússola:", { diagJanela, diagGlobalThis, diagSelf, diagDOE });
+
+    if (!globalReal || typeof globalReal.DeviceOrientationEvent === "undefined") {
+
+        $w("#txtResultado").text =
+            `⚠️ Não suportada. [DEBUG window=${diagJanela} globalThis=${diagGlobalThis} self=${diagSelf} DOE=${diagDOE}]`;
+        return;
+
+    }
+
     function aoReceberOrientacao(evento) {
 
         let heading = null;
@@ -492,32 +517,18 @@ function ativarBussola() {
 
     function iniciarEscuta() {
 
-        if ("ondeviceorientationabsolute" in window) {
-            window.addEventListener("deviceorientationabsolute", aoReceberOrientacao);
+        if ("ondeviceorientationabsolute" in globalReal) {
+            globalReal.addEventListener("deviceorientationabsolute", aoReceberOrientacao);
         } else {
-            window.addEventListener("deviceorientation", aoReceberOrientacao);
+            globalReal.addEventListener("deviceorientation", aoReceberOrientacao);
         }
 
     }
 
-    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir
-    const diagJanela = typeof window;
-    const diagDOE = typeof (typeof window !== "undefined" ? window.DeviceOrientationEvent : undefined);
-    const diagListener = typeof (typeof window !== "undefined" ? window.addEventListener : undefined);
-    console.log("DEBUG bússola:", { diagJanela, diagDOE, diagListener });
-
-    if (typeof DeviceOrientationEvent === "undefined") {
-
-        $w("#txtResultado").text =
-            `⚠️ Não suportada. [DEBUG window=${diagJanela} DOE=${diagDOE} listener=${diagListener}]`;
-        return;
-
-    }
-
-    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+    if (typeof globalReal.DeviceOrientationEvent.requestPermission === "function") {
 
         // iOS — precisa desse pedido explícito, direto no clique.
-        DeviceOrientationEvent.requestPermission()
+        globalReal.DeviceOrientationEvent.requestPermission()
 
             .then((resultado) => {
 
