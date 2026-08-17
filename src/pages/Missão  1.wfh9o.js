@@ -3,7 +3,7 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterAnguloSeta } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterProximoPontoAlvo } from 'public/motorMissao';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
 import { htmlSetaGps } from 'public/setaGpsHtml';
 
@@ -12,15 +12,6 @@ let intervaloLocalizacaoMapa;
 let inicioDesafio = 0;
 let tempoLimite = 0;
 let desafioConcluido = true;
-
-// Última posição/direção conhecidas — a bússola atualiza rápido
-// (várias vezes por segundo), o GPS só a cada 5s. Guarda os dois
-// aqui pra recalcular a seta a cada leitura da bússola, usando a
-// posição mais recente que tiver.
-let ultimaLat = null;
-let ultimaLng = null;
-let ultimoHeading = null;
-let setaPronta = false;
 
 //==================================================
 // CONFIGURAÇÃO DA PÁGINA
@@ -142,6 +133,8 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 //=========================================
 // Widget separado do mapa — só uma seta que gira apontando pro
 // próximo ponto. Mapa continua fixo, sem nenhuma lógica nova.
+// A bússola (permissão + sensor) vive dentro do próprio HTML da
+// seta — só manda posição e ponto alvo pra lá.
 
 try {
 
@@ -151,8 +144,15 @@ try {
     $w("#htmlSetaGps").onMessage((event) => {
 
         if (event.data && event.data.acao === "setaPronta") {
-            setaPronta = true;
-            atualizarSeta();
+
+            const alvo = obterProximoPontoAlvo();
+
+            $w("#htmlSetaGps").postMessage({
+                acao: "proximoPonto",
+                latitude: alvo ? alvo.latitude : null,
+                longitude: alvo ? alvo.longitude : null
+            });
+
         }
 
     });
@@ -160,19 +160,6 @@ try {
 } catch (err) {
 
     console.log("#htmlSetaGps não encontrado na página.");
-
-}
-
-// Fora do try acima de propósito — a bússola precisa ligar mesmo
-// que o elemento da seta não exista ainda, senão fica impossível
-// saber (via console) se o problema é a bússola ou o widget.
-try {
-
-    ativarBussola();
-
-} catch (err) {
-
-    console.log("Erro ao ativar bússola:", err);
 
 }
 
@@ -433,85 +420,18 @@ function atualizarLocalizacaoMapa() {
                 lng: posicao.coords.longitude
             });
 
-            ultimaLat = posicao.coords.latitude;
-            ultimaLng = posicao.coords.longitude;
-
-            atualizarSeta();
+            try {
+                $w("#htmlSetaGps").postMessage({
+                    acao: "minhaLocalizacao",
+                    lat: posicao.coords.latitude,
+                    lng: posicao.coords.longitude
+                });
+            } catch (err) {}
 
         })
         .catch((err) => {
             console.error("Erro ao buscar localização pro mapa:", err);
         });
-
-}
-
-//=========================================
-// BÚSSOLA
-//=========================================
-// A bússola atualiza a seta continuamente (muito mais rápido que o
-// GPS) usando a última posição conhecida. iOS exige webkitCompass-
-// Heading (mais confiável que "alpha" ali); Android usa "alpha" do
-// evento absoluto.
-
-function ativarBussola() {
-
-    function aoReceberOrientacao(evento) {
-
-        let heading = null;
-
-        if (typeof evento.webkitCompassHeading === "number") {
-
-            // iOS — já vem absoluto (0° = Norte).
-            heading = evento.webkitCompassHeading;
-
-        } else if (evento.absolute && typeof evento.alpha === "number") {
-
-            // Android — "alpha" cresce sentido anti-horário a partir
-            // do Norte, o oposto de heading de bússola.
-            heading = (360 - evento.alpha) % 360;
-
-        }
-
-        if (heading === null) return;
-
-        ultimoHeading = heading;
-
-        atualizarSeta();
-
-    }
-
-    if (typeof DeviceOrientationEvent !== "undefined" &&
-        typeof DeviceOrientationEvent.requestPermission === "function") {
-
-        // iOS — a permissão já devia ter sido pedida no botão
-        // Iniciar da página Aventura (precisa de gesto direto do
-        // usuário). Se não foi concedida ainda, isso aqui não
-        // funciona sozinho — só tenta escutar, sem travar a página.
-        window.addEventListener("deviceorientation", aoReceberOrientacao);
-
-    } else if ("ondeviceorientationabsolute" in window) {
-
-        window.addEventListener("deviceorientationabsolute", aoReceberOrientacao);
-
-    } else {
-
-        window.addEventListener("deviceorientation", aoReceberOrientacao);
-
-    }
-
-}
-
-function atualizarSeta() {
-
-    if (!setaPronta) return;
-
-    const angulo = obterAnguloSeta(ultimaLat, ultimaLng, ultimoHeading);
-
-    if (angulo === null) return;
-
-    try {
-        $w("#htmlSetaGps").postMessage({ acao: "angulo", valor: angulo });
-    } catch (err) {}
 
 }
 
