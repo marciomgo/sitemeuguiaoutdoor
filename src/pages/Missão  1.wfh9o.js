@@ -500,9 +500,16 @@ function ativarBussola() {
 
     }
 
+    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir
+    const diagJanela = typeof window;
+    const diagDOE = typeof (typeof window !== "undefined" ? window.DeviceOrientationEvent : undefined);
+    const diagListener = typeof (typeof window !== "undefined" ? window.addEventListener : undefined);
+    console.log("DEBUG bússola:", { diagJanela, diagDOE, diagListener });
+
     if (typeof DeviceOrientationEvent === "undefined") {
 
-        $w("#txtResultado").text = "⚠️ Bússola não é suportada nesse navegador.";
+        $w("#txtResultado").text =
+            `⚠️ Não suportada. [DEBUG window=${diagJanela} DOE=${diagDOE} listener=${diagListener}]`;
         return;
 
     }
