@@ -5,7 +5,13 @@ import wixWindow from 'wix-window';
 
 import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterProximoPontoAlvo } from 'public/motorMissao';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
-import { htmlSetaGps } from 'public/setaGpsHtml';
+
+// Seta de navegação hospedada de verdade no GitHub Pages (não como
+// data:text/html embutido) — o pedido de permissão do sensor de
+// bússola no iOS precisa de uma origem https estável pra funcionar,
+// e isso só existe hospedado, não dentro de um iframe data: nem no
+// código de página do Wix (roda numa Web Worker, sem DOM/sensor).
+const URL_SETA_GPS = "https://marciomgo.github.io/sitemeuguiaoutdoor/seta.html";
 
 let cronometro;
 let intervaloLocalizacaoMapa;
@@ -132,15 +138,14 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 // SETA DE NAVEGAÇÃO (bússola)
 //=========================================
 // Widget separado do mapa — só uma seta que gira apontando pro
-// próximo ponto. Mapa continua fixo, sem nenhuma lógica nova.
-// A permissão + leitura da bússola agora são pedidas aqui na própria
-// página (endereço https:// de verdade) — dentro do iframe (data:
-// URI) o iOS não disponibiliza a função de pedir permissão.
+// próximo ponto. Mapa continua fixo, sem nenhuma lógica nova. A
+// permissão + leitura da bússola vivem dentro do próprio HTML
+// hospedado (URL_SETA_GPS) — botão nativo "Ativar bússola" aparece
+// sozinho ali dentro, não precisa de nada extra nessa página.
 
 try {
 
-    $w("#htmlSetaGps").src =
-        `data:text/html;charset=utf-8,${encodeURIComponent(htmlSetaGps)}`;
+    $w("#htmlSetaGps").src = URL_SETA_GPS;
 
     $w("#htmlSetaGps").onMessage((event) => {
 
@@ -161,20 +166,6 @@ try {
 } catch (err) {
 
     console.log("#htmlSetaGps não encontrado na página.");
-
-}
-
-try {
-
-    $w("#btnAtivarBussola").onClick(() => {
-
-        ativarBussola();
-
-    });
-
-} catch (err) {
-
-    console.log("#btnAtivarBussola não encontrado na página.");
 
 }
 
@@ -447,109 +438,6 @@ function atualizarLocalizacaoMapa() {
         .catch((err) => {
             console.error("Erro ao buscar localização pro mapa:", err);
         });
-
-}
-
-//=========================================
-// BÚSSOLA
-//=========================================
-// Pedido de permissão + leitura do sensor, feito aqui na própria
-// página (não dentro do iframe da seta) — precisa de endereço https
-// de verdade pro iOS disponibilizar a função de permissão. Mostra o
-// resultado em #txtResultado (mesmo texto usado pros pontos) pra dar
-// pra ver o que aconteceu sem precisar abrir console nenhum.
-
-function ativarBussola() {
-
-    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir. "globalThis"
-    // nem passou no build do Wix (lista restrita de globais
-    // conhecidos) — tentando "self" agora, mais antigo/consolidado.
-    const diagJanela = typeof window;
-    const diagSelf = typeof self;
-
-    const globalReal =
-        (typeof self !== "undefined" && self) ||
-        (typeof window !== "undefined" && window) ||
-        null;
-
-    const diagDOE = typeof (globalReal ? globalReal.DeviceOrientationEvent : undefined);
-
-    console.log("DEBUG bússola:", { diagJanela, diagSelf, diagDOE });
-
-    if (!globalReal || typeof globalReal.DeviceOrientationEvent === "undefined") {
-
-        $w("#txtResultado").text =
-            `⚠️ Não suportada. [DEBUG window=${diagJanela} self=${diagSelf} DOE=${diagDOE}]`;
-        return;
-
-    }
-
-    function aoReceberOrientacao(evento) {
-
-        let heading = null;
-
-        if (typeof evento.webkitCompassHeading === "number") {
-
-            // iOS — já vem absoluto (0° = Norte).
-            heading = evento.webkitCompassHeading;
-
-        } else if (evento.absolute && typeof evento.alpha === "number") {
-
-            // Android — "alpha" cresce sentido anti-horário a partir
-            // do Norte, o oposto de heading de bússola.
-            heading = (360 - evento.alpha) % 360;
-
-        } else if (typeof evento.alpha === "number") {
-
-            heading = (360 - evento.alpha) % 360;
-
-        }
-
-        if (heading === null) return;
-
-        try {
-            $w("#htmlSetaGps").postMessage({ acao: "heading", valor: heading });
-        } catch (err) {}
-
-    }
-
-    function iniciarEscuta() {
-
-        if ("ondeviceorientationabsolute" in globalReal) {
-            globalReal.addEventListener("deviceorientationabsolute", aoReceberOrientacao);
-        } else {
-            globalReal.addEventListener("deviceorientation", aoReceberOrientacao);
-        }
-
-    }
-
-    if (typeof globalReal.DeviceOrientationEvent.requestPermission === "function") {
-
-        // iOS — precisa desse pedido explícito, direto no clique.
-        globalReal.DeviceOrientationEvent.requestPermission()
-
-            .then((resultado) => {
-
-                if (resultado === "granted") {
-                    $w("#txtResultado").text = "✅ Bússola ativada!";
-                    iniciarEscuta();
-                } else {
-                    $w("#txtResultado").text = `⚠️ Permissão da bússola: ${resultado}`;
-                }
-
-            })
-
-            .catch((err) => {
-                $w("#txtResultado").text = "⚠️ Erro ao pedir permissão: " + err.message;
-            });
-
-    } else {
-
-        // Android e navegadores que não exigem essa permissão.
-        $w("#txtResultado").text = "✅ Bússola ativada!";
-        iniciarEscuta();
-
-    }
 
 }
 

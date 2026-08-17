@@ -316,8 +316,8 @@ async function verificarPonto(ponto) {
 // SETA DE NAVEGAÇÃO (bússola)
 //==================================================
 // A conta do ângulo (bearing até o ponto - direção da bússola) e a
-// leitura do sensor vivem dentro do próprio HTML da seta agora
-// (setaGpsHtml.js) — aqui só informa qual é o próximo ponto
+// leitura do sensor vivem no HTML da seta hospedado no GitHub Pages
+// (docs/seta.html) — aqui só informa qual é o próximo ponto
 // obrigatório. Bônus não entram, só a sequência numerada.
 
 export function obterProximoPontoAlvo() {
