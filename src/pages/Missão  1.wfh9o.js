@@ -133,8 +133,9 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 //=========================================
 // Widget separado do mapa — só uma seta que gira apontando pro
 // próximo ponto. Mapa continua fixo, sem nenhuma lógica nova.
-// A bússola (permissão + sensor) vive dentro do próprio HTML da
-// seta — só manda posição e ponto alvo pra lá.
+// A permissão + leitura da bússola agora são pedidas aqui na própria
+// página (endereço https:// de verdade) — dentro do iframe (data:
+// URI) o iOS não disponibiliza a função de pedir permissão.
 
 try {
 
@@ -160,6 +161,20 @@ try {
 } catch (err) {
 
     console.log("#htmlSetaGps não encontrado na página.");
+
+}
+
+try {
+
+    $w("#btnAtivarBussola").onClick(() => {
+
+        ativarBussola();
+
+    });
+
+} catch (err) {
+
+    console.log("#btnAtivarBussola não encontrado na página.");
 
 }
 
@@ -432,6 +447,93 @@ function atualizarLocalizacaoMapa() {
         .catch((err) => {
             console.error("Erro ao buscar localização pro mapa:", err);
         });
+
+}
+
+//=========================================
+// BÚSSOLA
+//=========================================
+// Pedido de permissão + leitura do sensor, feito aqui na própria
+// página (não dentro do iframe da seta) — precisa de endereço https
+// de verdade pro iOS disponibilizar a função de permissão. Mostra o
+// resultado em #txtResultado (mesmo texto usado pros pontos) pra dar
+// pra ver o que aconteceu sem precisar abrir console nenhum.
+
+function ativarBussola() {
+
+    function aoReceberOrientacao(evento) {
+
+        let heading = null;
+
+        if (typeof evento.webkitCompassHeading === "number") {
+
+            // iOS — já vem absoluto (0° = Norte).
+            heading = evento.webkitCompassHeading;
+
+        } else if (evento.absolute && typeof evento.alpha === "number") {
+
+            // Android — "alpha" cresce sentido anti-horário a partir
+            // do Norte, o oposto de heading de bússola.
+            heading = (360 - evento.alpha) % 360;
+
+        } else if (typeof evento.alpha === "number") {
+
+            heading = (360 - evento.alpha) % 360;
+
+        }
+
+        if (heading === null) return;
+
+        try {
+            $w("#htmlSetaGps").postMessage({ acao: "heading", valor: heading });
+        } catch (err) {}
+
+    }
+
+    function iniciarEscuta() {
+
+        if ("ondeviceorientationabsolute" in window) {
+            window.addEventListener("deviceorientationabsolute", aoReceberOrientacao);
+        } else {
+            window.addEventListener("deviceorientation", aoReceberOrientacao);
+        }
+
+    }
+
+    if (typeof DeviceOrientationEvent === "undefined") {
+
+        $w("#txtResultado").text = "⚠️ Bússola não é suportada nesse navegador.";
+        return;
+
+    }
+
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+
+        // iOS — precisa desse pedido explícito, direto no clique.
+        DeviceOrientationEvent.requestPermission()
+
+            .then((resultado) => {
+
+                if (resultado === "granted") {
+                    $w("#txtResultado").text = "✅ Bússola ativada!";
+                    iniciarEscuta();
+                } else {
+                    $w("#txtResultado").text = `⚠️ Permissão da bússola: ${resultado}`;
+                }
+
+            })
+
+            .catch((err) => {
+                $w("#txtResultado").text = "⚠️ Erro ao pedir permissão: " + err.message;
+            });
+
+    } else {
+
+        // Android e navegadores que não exigem essa permissão.
+        $w("#txtResultado").text = "✅ Bússola ativada!";
+        iniciarEscuta();
+
+    }
 
 }
 
