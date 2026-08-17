@@ -157,11 +157,22 @@ try {
 
     });
 
+} catch (err) {
+
+    console.log("#htmlSetaGps não encontrado na página.");
+
+}
+
+// Fora do try acima de propósito — a bússola precisa ligar mesmo
+// que o elemento da seta não exista ainda, senão fica impossível
+// saber (via console) se o problema é a bússola ou o widget.
+try {
+
     ativarBussola();
 
 } catch (err) {
 
-    console.log("#htmlSetaGps não encontrado na página.");
+    console.log("Erro ao ativar bússola:", err);
 
 }
 
