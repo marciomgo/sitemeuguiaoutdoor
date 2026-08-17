@@ -808,12 +808,12 @@ const resultadoDesafio =
     if (modoDesafioAtivo) {
 
         mensagemCompleta += resultadoDesafio
-            ? "🏁 Modo Desafio: concluído com sucesso!\n"
-            : "⏱️ Modo Desafio: tempo esgotado, mas vocês terminaram!\n";
+            ? "🏁 Modo Desafio: concluído com sucesso!\n\n"
+            : "⏱️ Modo Desafio: tempo esgotado, mas vocês terminaram!\n\n";
 
     }
 
-    mensagemCompleta += `✅ Pontos oficiais: ${progresso.concluidos.length}/${missao.totalPontos}\n`;
+    mensagemCompleta += `✅ Pontos oficiais: ${progresso.concluidos.length}/${missao.totalPontos}\n\n`;
 
     if (totalBonus > 0) {
         mensagemCompleta += `🎁 Pontos bônus: ${bonusAchados}/${totalBonus}\n`;
