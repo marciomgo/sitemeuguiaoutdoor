@@ -461,27 +461,25 @@ function atualizarLocalizacaoMapa() {
 
 function ativarBussola() {
 
-    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir. Tenta
-    // vários caminhos até o objeto global de verdade, caso "window"
-    // sozinho esteja escondido pelo sandbox do Velo.
+    // DIAGNÓSTICO TEMPORÁRIO — remover depois de conferir. "globalThis"
+    // nem passou no build do Wix (lista restrita de globais
+    // conhecidos) — tentando "self" agora, mais antigo/consolidado.
     const diagJanela = typeof window;
-    const diagGlobalThis = typeof globalThis;
-    const diagSelf = typeof (typeof self !== "undefined" ? self : undefined);
+    const diagSelf = typeof self;
 
     const globalReal =
-        (typeof globalThis !== "undefined" && globalThis) ||
         (typeof self !== "undefined" && self) ||
         (typeof window !== "undefined" && window) ||
         null;
 
     const diagDOE = typeof (globalReal ? globalReal.DeviceOrientationEvent : undefined);
 
-    console.log("DEBUG bússola:", { diagJanela, diagGlobalThis, diagSelf, diagDOE });
+    console.log("DEBUG bússola:", { diagJanela, diagSelf, diagDOE });
 
     if (!globalReal || typeof globalReal.DeviceOrientationEvent === "undefined") {
 
         $w("#txtResultado").text =
-            `⚠️ Não suportada. [DEBUG window=${diagJanela} globalThis=${diagGlobalThis} self=${diagSelf} DOE=${diagDOE}]`;
+            `⚠️ Não suportada. [DEBUG window=${diagJanela} self=${diagSelf} DOE=${diagDOE}]`;
         return;
 
     }
