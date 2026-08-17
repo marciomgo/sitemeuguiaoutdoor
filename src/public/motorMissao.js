@@ -313,6 +313,56 @@ async function verificarPonto(ponto) {
 }
 
 //==================================================
+// SETA DE NAVEGAÇÃO (bússola)
+//==================================================
+// Calcula quanto a seta precisa girar na tela: a direção geográfica
+// até o próximo ponto obrigatório (bearing), menos a direção que o
+// celular está apontando agora (heading da bússola). Sempre aponta
+// só pro próximo ponto da sequência — bônus não entram aqui.
+
+function calcularBearing(lat1, lon1, lat2, lon2) {
+
+    const toRad = grau => grau * Math.PI / 180;
+    const toGrau = rad => rad * 180 / Math.PI;
+
+    const dLon = toRad(lon2 - lon1);
+
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+
+    const x =
+        Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+        Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+
+    const bearing = toGrau(Math.atan2(y, x));
+
+    return (bearing + 360) % 360;
+
+}
+
+// Retorna o ângulo pronto (0-360) pra rotacionar a seta, ou null se
+// ainda não tiver dado suficiente (sem GPS, sem bússola, ou sem
+// próximo ponto — ex: missão já concluída).
+export function obterAnguloSeta(latAtual, lngAtual, headingAtual) {
+
+    if (latAtual == null || lngAtual == null || headingAtual == null) {
+        return null;
+    }
+
+    const proximaOrdem = progresso.concluidos.length + 1;
+
+    const alvo = missao.pontos.find(p => p.ordem === proximaOrdem);
+
+    if (!alvo) {
+        return null;
+    }
+
+    const bearing = calcularBearing(latAtual, lngAtual, alvo.latitude, alvo.longitude);
+
+    return (bearing - headingAtual + 360) % 360;
+
+}
+
+//==================================================
 // MAPA GPS
 //==================================================
 

@@ -140,6 +140,22 @@ function iniciarAventura() {
         console.log("#composicaoFamilia não encontrado na página.");
     }
 
+    // Pede permissão da bússola aqui (precisa ser direto num clique
+    // do usuário no iOS — não funciona se pedir depois, sem gesto).
+    // A seta de navegação, lá na tela da missão, depende disso.
+    try {
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+
+            DeviceOrientationEvent.requestPermission().catch((err) => {
+                console.log("Permissão de bússola não concedida:", err);
+            });
+
+        }
+    } catch (err) {
+        console.log("Erro ao pedir permissão de bússola:", err);
+    }
+
     const configMissao = {
 
         desafio: $w("#switchDesafio").checked,
