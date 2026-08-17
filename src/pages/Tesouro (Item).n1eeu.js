@@ -98,12 +98,16 @@ function conectarPesquisa(resgateId) {
 
             // Radio Buttons nativo do Wix — .value vem "" se a
             // família não marcou nenhuma opção. Valor real das
-            // opções é "sim"/"nao" (minúsculo, sem acento).
+            // opções é "sim"/"nao" (minúsculo, sem acento). Salva
+            // como texto "Sim"/"Não" (não boleano) pra não confundir
+            // com "sem resposta" numa olhada rápida na tabela do CMS.
             let respostaPesquisaSelecionada = null;
             try {
                 const valor = $w("#grupoJogariaNovamente").value;
-                if (valor) {
-                    respostaPesquisaSelecionada = (valor === "sim");
+                if (valor === "sim") {
+                    respostaPesquisaSelecionada = "Sim";
+                } else if (valor === "nao") {
+                    respostaPesquisaSelecionada = "Não";
                 }
             } catch (err) {
                 console.log("#grupoJogariaNovamente não encontrado na página.");
