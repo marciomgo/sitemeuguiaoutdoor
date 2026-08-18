@@ -50,20 +50,64 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     opacity:0.35;
     background:transparent;
 }
+#btnCamada{
+    position:absolute;
+    bottom:10px;right:10px;
+    z-index:1000;
+    width:34px;height:34px;
+    padding:0;
+    font-size:18px;
+    line-height:34px;
+    text-align:center;
+    border:none;
+    border-radius:50%;
+    background:rgba(255,255,255,0.9);
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    cursor:pointer;
+}
 </style>
 </head>
 <body>
 
 <div id="map"></div>
+<button id="btnCamada" onclick="alternarCamada()">🛰️</button>
 
 <script>
 
 let mapa = L.map('map', { zoomControl: false }).setView([-30.0346, -51.2177], 15);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+// Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
+// Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
+// botão #btnCamada.
+const camadaRuas = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap'
-}).addTo(mapa);
+});
+
+const camadaSatelite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+});
+
+camadaRuas.addTo(mapa);
+
+let sateliteAtivo = false;
+
+function alternarCamada(){
+
+    if(sateliteAtivo){
+        mapa.removeLayer(camadaSatelite);
+        camadaRuas.addTo(mapa);
+        document.getElementById('btnCamada').textContent = '🛰️';
+    } else {
+        mapa.removeLayer(camadaRuas);
+        camadaSatelite.addTo(mapa);
+        document.getElementById('btnCamada').textContent = '🗺️';
+    }
+
+    sateliteAtivo = !sateliteAtivo;
+
+}
 
 // Perímetro do parque — não fica fixo aqui, vem de fora (campo
 // "perimetro" da coleção "Parques" no CMS) via postMessage.
