@@ -495,6 +495,12 @@ const TIPOS_DESAFIO_BONUS = ["travessuras", "coracao"];
 
 async function verificarPontoBonus(ponto) {
 
+    // Aponta a seta pro bônus assim que ele é tocado — ajuda a
+    // caminhar até lá mesmo antes de estar no raio. Volta sozinha pra
+    // sequência numérica quando o popup fechar (dentro de
+    // mostrarConteudoBonus).
+    apontarSetaPara(ponto.latitude, ponto.longitude);
+
     // Já resolvido (achado ou recusado) — abre direto o conteúdo de
     // novo, sem precisar repetir a checagem de GPS.
     if (progresso.bonusConcluidos.includes(ponto.id) || progresso.bonusRecusados.includes(ponto.id)) {
@@ -573,6 +579,12 @@ function mostrarConteudoBonus(ponto) {
 
             .catch((err) => {
                 console.error(err);
+            })
+
+            .finally(() => {
+                // Popup do bônus fechou — seta volta pro próximo
+                // ponto da sequência numérica.
+                atualizarSetaAlvo();
             });
 
         return;
@@ -583,7 +595,9 @@ function mostrarConteudoBonus(ponto) {
     // novo, sem repetir a decisão.
     if (progresso.bonusConcluidos.includes(ponto.id)) {
 
-        wixWindow.openLightbox("Conteudo", ponto.conteudo).catch((err) => console.error(err));
+        wixWindow.openLightbox("Conteudo", ponto.conteudo)
+            .catch((err) => console.error(err))
+            .finally(() => atualizarSetaAlvo());
 
         return;
 
@@ -615,6 +629,12 @@ function mostrarConteudoBonus(ponto) {
 
         .catch((err) => {
             console.error(err);
+        })
+
+        .finally(() => {
+            // Popup do bônus fechou — seta volta pro próximo ponto da
+            // sequência numérica.
+            atualizarSetaAlvo();
         });
 
 }
@@ -1296,6 +1316,24 @@ function atualizarSetaAlvo() {
             $wPage("#eltSeta").setAttribute("alvo-lat", String(alvo.latitude));
             $wPage("#eltSeta").setAttribute("alvo-lng", String(alvo.longitude));
         }
+
+    } catch (err) {
+
+        // Seta não existe nessa página — ignora.
+
+    }
+
+}
+
+// Aponta a seta temporariamente pra um ponto bônus (usado ao tocar
+// num marcador bônus no mapa) — volta pra sequência numérica quando o
+// popup desse bônus fecha, via atualizarSetaAlvo().
+function apontarSetaPara(latitude, longitude) {
+
+    try {
+
+        $wPage("#eltSeta").setAttribute("alvo-lat", String(latitude));
+        $wPage("#eltSeta").setAttribute("alvo-lng", String(longitude));
 
     } catch (err) {
 
