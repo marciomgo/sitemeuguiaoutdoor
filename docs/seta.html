@@ -1,4 +1,3 @@
-<!-- build trigger -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -26,7 +25,7 @@ html,body{
 #seta svg{
     width:70%;height:70%;
 }
-#btnAtivar{
+button{
     padding:14px 20px;
     font-size:15px;
     font-weight:bold;
@@ -41,22 +40,34 @@ html,body{
 <body>
 
 <!--
-    Seta de navegação (bússola) — hospedada de verdade no GitHub
-    Pages (não como data:text/html embutido) porque o pedido de
-    permissão do sensor de orientação no iOS
-    (DeviceOrientationEvent.requestPermission) exige uma origem
-    https estável — não funciona nem dentro de um iframe data:
-    (origem "sem endereço"), nem no código de página do Wix (roda
-    numa Web Worker, sem acesso nenhum ao DOM/sensor).
+    Seta de navegação (bússola).
 
-    Recebe do site (via postMessage): a localização atual e o
-    próximo ponto obrigatório da missão. Calcula a direção (bearing)
-    e gira a seta na tela.
+    O iOS bloqueia o pedido de permissão de bússola
+    (DeviceOrientationEvent.requestPermission) quando é feito de dentro
+    de um iframe de outra origem — bloqueia na hora, sem nem mostrar a
+    pergunta pro usuário (confirmado testando ao vivo). Por isso essa
+    página tem dois "modos", dependendo de como foi aberta:
+
+    - MODO EMBUTIDO (dentro do iframe do jogo, #htmlSetaGps): só mostra
+      um botão "Abrir seta". Ao tocar, abre ESSA MESMA página de novo
+      numa aba nova de verdade (window.open) — aí sim o iOS libera a
+      permissão. A partir daí, o iframe escondido dentro do jogo vira
+      um retransmissor: tudo que o Wix manda pra ele (localização atual,
+      próximo ponto) ele repassa automaticamente pra aba nova via
+      postMessage. Assim a família só precisa abrir a aba UMA vez — não
+      precisa ficar tocando de novo toda hora que um ponto é concluído.
+
+    - MODO ABA PRÓPRIA (a aba nova que foi aberta): pede a permissão de
+      verdade (gesto de toque genuíno, fora de iframe = funciona) e
+      escuta os dados retransmitidos pelo iframe (via window.opener) pra
+      girar a seta.
 -->
 
 <div id="container">
 
-    <button id="btnAtivar" onclick="ativarBussola()">🧭 Ativar bússola</button>
+    <button id="btnAbrirAba" onclick="abrirAba()">🧭 Abrir seta</button>
+
+    <button id="btnAtivar" onclick="ativarBussola()" style="display:none;">🧭 Ativar bússola</button>
 
     <div id="seta" style="display:none;">
         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -68,6 +79,9 @@ html,body{
 
 <script>
 
+const emIframe = (window.self !== window.top);
+
+const btnAbrirAba = document.getElementById('btnAbrirAba');
 const btnAtivar = document.getElementById('btnAtivar');
 const seta = document.getElementById('seta');
 
@@ -175,10 +189,66 @@ function ativarBussola(){
 
 }
 
+//==================================================
+// MODO EMBUTIDO — retransmissor (dentro do iframe do jogo)
+//==================================================
+
+let popupSeta = null;
+
+// Guarda os últimos dados recebidos do Wix, pra poder repassar assim
+// que a aba nova abrir (não precisa esperar a próxima atualização).
+let ultimaLocalizacao = null;
+let ultimoAlvo = null;
+
+function abrirAba(){
+
+    popupSeta = window.open(window.location.href, 'setaGps');
+
+    btnAbrirAba.textContent = '✅ Seta aberta numa aba separada';
+
+    // Repassa o que já sabemos assim que a aba estiver pronta pra
+    // receber (ela avisa via postMessage quando carregar).
+
+}
+
+function repassarParaPopup(dados){
+
+    if(popupSeta && !popupSeta.closed){
+        popupSeta.postMessage(dados, '*');
+    }
+
+}
+
+//==================================================
+// Recebe mensagens (do Wix, se estiver no iframe do jogo; ou do
+// iframe-mãe, se estiver na aba própria depois de aberta por ele).
+//==================================================
+
 window.onmessage = function(event){
 
     const dados = event.data || {};
 
+    if(emIframe){
+
+        // Está dentro do jogo — guarda e repassa pra aba nova, se já
+        // estiver aberta.
+        if(dados.acao === 'minhaLocalizacao' || dados.acao === 'proximoPonto'){
+            if(dados.acao === 'minhaLocalizacao') ultimaLocalizacao = dados;
+            if(dados.acao === 'proximoPonto') ultimoAlvo = dados;
+            repassarParaPopup(dados);
+        }
+
+        if(dados.acao === 'setaAbertaPronta'){
+            // A aba nova avisou que carregou — manda o que já temos.
+            if(ultimaLocalizacao) repassarParaPopup(ultimaLocalizacao);
+            if(ultimoAlvo) repassarParaPopup(ultimoAlvo);
+        }
+
+        return;
+
+    }
+
+    // Está na aba própria — aplica os dados recebidos (do iframe-mãe).
     if(dados.acao === 'minhaLocalizacao'){
         minhaLat = dados.lat;
         minhaLng = dados.lng;
@@ -193,7 +263,25 @@ window.onmessage = function(event){
 
 };
 
-parent.postMessage({ acao: 'setaPronta' }, '*');
+//==================================================
+// Inicialização — mostra a UI certa dependendo do modo.
+//==================================================
+
+if(emIframe){
+
+    btnAbrirAba.style.display = 'inline-block';
+    parent.postMessage({ acao: 'setaPronta' }, '*');
+
+} else {
+
+    btnAbrirAba.style.display = 'none';
+    btnAtivar.style.display = 'inline-block';
+
+    if(window.opener){
+        window.opener.postMessage({ acao: 'setaAbertaPronta' }, '*');
+    }
+
+}
 
 </script>
 
