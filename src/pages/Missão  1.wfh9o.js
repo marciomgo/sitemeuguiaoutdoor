@@ -6,12 +6,12 @@ import wixWindow from 'wix-window';
 import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterProximoPontoAlvo } from 'public/motorMissao';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
 
-// Seta de navegação hospedada de verdade no GitHub Pages (não como
-// data:text/html embutido) — o pedido de permissão do sensor de
-// bússola no iOS precisa de uma origem https estável pra funcionar,
-// e isso só existe hospedado, não dentro de um iframe data: nem no
-// código de página do Wix (roda numa Web Worker, sem DOM/sensor).
-const URL_SETA_GPS = "https://marciomgo.github.io/sitemeuguiaoutdoor/seta.html";
+// A seta de navegação é um Custom Element (#eltSeta), não um iframe —
+// pedido de permissão de bússola do iOS é bloqueado dentro de
+// qualquer iframe (mesmo hospedado numa origem https estável, já
+// testado). Custom Element roda direto no DOM da página publicada,
+// sem isolamento, então o botão "Ativar bússola" dentro dele funciona
+// de verdade. Ver docs/seta-elemento.js.
 
 let cronometro;
 let intervaloLocalizacaoMapa;
@@ -137,35 +137,23 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 //=========================================
 // SETA DE NAVEGAÇÃO (bússola)
 //=========================================
-// Widget separado do mapa — só uma seta que gira apontando pro
-// próximo ponto. Mapa continua fixo, sem nenhuma lógica nova. A
-// permissão + leitura da bússola vivem dentro do próprio HTML
-// hospedado (URL_SETA_GPS) — botão nativo "Ativar bússola" aparece
-// sozinho ali dentro, não precisa de nada extra nessa página.
+// Widget separado do mapa (#eltSeta, Custom Element) — só uma seta
+// que gira apontando pro próximo ponto. Mapa continua fixo, sem
+// nenhuma lógica nova. Manda o alvo inicial assim que a missão
+// carrega; localização é atualizada por atualizarLocalizacaoMapa().
 
 try {
 
-    $w("#htmlSetaGps").src = URL_SETA_GPS;
+    const alvo = obterProximoPontoAlvo();
 
-    $w("#htmlSetaGps").onMessage((event) => {
-
-        if (event.data && event.data.acao === "setaPronta") {
-
-            const alvo = obterProximoPontoAlvo();
-
-            $w("#htmlSetaGps").postMessage({
-                acao: "proximoPonto",
-                latitude: alvo ? alvo.latitude : null,
-                longitude: alvo ? alvo.longitude : null
-            });
-
-        }
-
-    });
+    if (alvo) {
+        $w("#eltSeta").setAttribute("alvo-lat", String(alvo.latitude));
+        $w("#eltSeta").setAttribute("alvo-lng", String(alvo.longitude));
+    }
 
 } catch (err) {
 
-    console.log("#htmlSetaGps não encontrado na página.");
+    console.log("#eltSeta não encontrado na página.");
 
 }
 
@@ -427,11 +415,8 @@ function atualizarLocalizacaoMapa() {
             });
 
             try {
-                $w("#htmlSetaGps").postMessage({
-                    acao: "minhaLocalizacao",
-                    lat: posicao.coords.latitude,
-                    lng: posicao.coords.longitude
-                });
+                $w("#eltSeta").setAttribute("lat", String(posicao.coords.latitude));
+                $w("#eltSeta").setAttribute("lng", String(posicao.coords.longitude));
             } catch (err) {}
 
         })

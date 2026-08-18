@@ -1284,19 +1284,18 @@ function atualizarMapaPontos() {
 
 }
 
-// Reenvia o próximo ponto pra seta depois de concluir um — o alvo
-// muda a cada ponto.
+// Atualiza o alvo do Custom Element da seta depois de concluir um
+// ponto — o alvo muda a cada ponto.
 function atualizarSetaAlvo() {
 
     try {
 
         const alvo = obterProximoPontoAlvo();
 
-        $wPage("#htmlSetaGps").postMessage({
-            acao: "proximoPonto",
-            latitude: alvo ? alvo.latitude : null,
-            longitude: alvo ? alvo.longitude : null
-        });
+        if (alvo) {
+            $wPage("#eltSeta").setAttribute("alvo-lat", String(alvo.latitude));
+            $wPage("#eltSeta").setAttribute("alvo-lng", String(alvo.longitude));
+        }
 
     } catch (err) {
 
