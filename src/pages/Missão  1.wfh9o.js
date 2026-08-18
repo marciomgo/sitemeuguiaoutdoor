@@ -11,7 +11,11 @@ import { htmlMapaGps } from 'public/mapaGpsHtml';
 // bússola no iOS precisa de uma origem https estável pra funcionar,
 // e isso só existe hospedado, não dentro de um iframe data: nem no
 // código de página do Wix (roda numa Web Worker, sem DOM/sensor).
-const URL_SETA_GPS = "https://marciomgo.github.io/sitemeuguiaoutdoor/seta.html";
+// O repositório no GitHub chama "universomgo" por dentro (foi
+// renomeado em algum momento — o git push/pull continua indo pro
+// mesmo lugar porque o GitHub redireciona, mas o link do GitHub
+// Pages já usa o nome novo).
+const URL_SETA_GPS = "https://marciomgo.github.io/universomgo/seta.html";
 
 let cronometro;
 let intervaloLocalizacaoMapa;
