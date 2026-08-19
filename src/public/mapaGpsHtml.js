@@ -134,6 +134,13 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
        um fundo de mapa parecido com a cor do ícone. */
     filter:drop-shadow(0 1px 3px rgba(0,0,0,0.7));
 }
+/* Mais específico que ".icone-barra img" de propósito — senão a
+   sombra acima ganha do filtro cinza (duas regras disputando a mesma
+   propriedade "filter", só uma vale) e o ícone nunca fica cinza de
+   verdade. Aqui inclui os dois efeitos juntos. */
+.icone-barra img.icone-ponto-cinza{
+    filter: grayscale(100%) brightness(70%) drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
 .icone-barra.invisivel{ visibility:hidden; }
 
 /* Overlay de bônus liberado — mesmo espírito do botão de ativar
