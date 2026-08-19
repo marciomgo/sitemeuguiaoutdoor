@@ -119,7 +119,10 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     scrollbar-width:none;
 }
 .barra-progresso::-webkit-scrollbar{ display:none; }
-#barraOficiais{ left:10px; }
+/* Invertida — chegada em cima, ponto 1 embaixo (sobe conforme avança
+   na missão). Só inverte a ORDEM VISUAL, os dados continuam vindo
+   1..N normalmente. */
+#barraOficiais{ left:10px; flex-direction:column-reverse; }
 #barraBonus{ right:10px; }
 .icone-barra{
     width:34px;height:34px;
@@ -160,22 +163,29 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     padding:24px;
     box-sizing:border-box;
 }
+/* Espaço reservado pro ícone que fica flutuando por cima (fixed) —
+   sem isso, o ícone e o texto disputavam o mesmo centro da tela e
+   ficavam sobrepostos. */
+#overlayIconeEspaco{
+    width:120px;height:120px;
+    flex:none;
+}
 #overlayBonusTexto{
     color:#fff;
-    font-size:20px;
+    font-size:15px;
     font-weight:bold;
     max-width:80vw;
 }
-#overlayBonusBotoes{ display:flex; gap:12px; }
+#overlayBonusBotoes{ display:flex; gap:8px; }
 #overlayBonusBotoes button{
-    padding:14px 22px;
-    font-size:16px;
+    padding:7px 11px;
+    font-size:13px;
     font-weight:bold;
     border:none;
-    border-radius:12px;
+    border-radius:8px;
     cursor:pointer;
 }
-#btnBonusSim{ background:#2b6ef2; color:#fff; }
+#btnBonusSim{ background:#e8a33d; color:#4a2e05; }
 #btnBonusNao{ background:rgba(255,255,255,0.85); color:#333; }
 
 /* Ícone que "voa" do centro até a posição dele na barra da direita —
@@ -205,6 +215,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 <div id="barraBonus" class="barra-progresso" style="align-items:flex-end;"></div>
 
 <div id="overlayBonus">
+    <div id="overlayIconeEspaco"></div>
     <div id="overlayBonusTexto">Ponto bônus liberado! Quer ir até lá?</div>
     <div id="overlayBonusBotoes">
         <button id="btnBonusSim">✅ Sim, vamos!</button>
@@ -611,18 +622,18 @@ function mostrarBonusLiberado(bonus){
 
     img.src = bonus.icone;
 
-    // Tudo em pixel absoluto (nada de margem/transform) — são
-    // exatamente as mesmas propriedades que a transição do CSS
-    // observa (top/left/width/height/opacity), então anima liso do
-    // início ao fim, sem pulo no meio do caminho.
-    const tamanhoInicial = 120;
+    // Posiciona em cima do espaço reservado dentro do overlay (que já
+    // empurra o texto/botões pra baixo dele) — em vez de um chute de
+    // "30% da tela", que ficava sobrepondo o texto dependendo do
+    // tamanho da mensagem.
+    const espaco = document.getElementById('overlayIconeEspaco').getBoundingClientRect();
 
     voando.style.transition = 'none';
     voando.style.opacity = '1';
-    voando.style.width = tamanhoInicial + 'px';
-    voando.style.height = tamanhoInicial + 'px';
-    voando.style.top = (window.innerHeight * 0.3 - tamanhoInicial / 2) + 'px';
-    voando.style.left = (window.innerWidth * 0.5 - tamanhoInicial / 2) + 'px';
+    voando.style.width = espaco.width + 'px';
+    voando.style.height = espaco.height + 'px';
+    voando.style.top = espaco.top + 'px';
+    voando.style.left = espaco.left + 'px';
     voando.style.display = 'block';
 
     // Força o navegador a aplicar o estado inicial antes de religar a
@@ -781,7 +792,7 @@ function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
-            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[50,50], iconAnchor:[25,25] }),
+            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[64,64], iconAnchor:[32,32] }),
             zIndexOffset: 1000
         }).addTo(mapa);
     } else {
