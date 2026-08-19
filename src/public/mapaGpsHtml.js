@@ -422,8 +422,7 @@ function calcularBearing(lat1, lon1, lat2, lon2){
 
 function iconeEuSvg(){
     return '<div class="icone-eu-seta"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
-        '<polygon points="50,8 82,88 50,66 18,88" fill="#d9a441" stroke="#5a3814" stroke-width="7" stroke-linejoin="round"/>' +
-        '<circle cx="50" cy="60" r="14" fill="#d9a441" stroke="#5a3814" stroke-width="7"/>' +
+        '<polygon points="50,4 90,92 50,68 10,92" fill="#ffcc00" stroke="#a67c00" stroke-width="6" stroke-linejoin="round"/>' +
         '</svg></div>';
 }
 
@@ -466,7 +465,7 @@ function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
-            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[36,36], iconAnchor:[18,18] }),
+            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[50,50], iconAnchor:[25,25] }),
             zIndexOffset: 1000
         }).addTo(mapa);
     } else {
