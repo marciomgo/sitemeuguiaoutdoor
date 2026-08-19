@@ -1304,8 +1304,8 @@ function atualizarMapaPontos() {
 
 }
 
-// Atualiza o alvo do Custom Element da seta depois de concluir um
-// ponto — o alvo muda a cada ponto.
+// Atualiza o alvo que o pontinho do mapa aponta, depois de concluir
+// um ponto — o alvo muda a cada ponto.
 function atualizarSetaAlvo() {
 
     try {
@@ -1313,31 +1313,37 @@ function atualizarSetaAlvo() {
         const alvo = obterProximoPontoAlvo();
 
         if (alvo) {
-            $wPage("#eltSeta").setAttribute("alvo-lat", String(alvo.latitude));
-            $wPage("#eltSeta").setAttribute("alvo-lng", String(alvo.longitude));
+            $wPage("#htmlMapaGps").postMessage({
+                acao: "alvoAtual",
+                latitude: alvo.latitude,
+                longitude: alvo.longitude
+            });
         }
 
     } catch (err) {
 
-        // Seta não existe nessa página — ignora.
+        // Mapa não existe nessa página — ignora.
 
     }
 
 }
 
-// Aponta a seta temporariamente pra um ponto bônus (usado ao tocar
-// num marcador bônus no mapa) — volta pra sequência numérica quando o
-// popup desse bônus fecha, via atualizarSetaAlvo().
+// Aponta o pontinho temporariamente pra um ponto bônus (usado ao
+// tocar num marcador bônus no mapa) — volta pra sequência numérica
+// quando o popup desse bônus fecha, via atualizarSetaAlvo().
 function apontarSetaPara(latitude, longitude) {
 
     try {
 
-        $wPage("#eltSeta").setAttribute("alvo-lat", String(latitude));
-        $wPage("#eltSeta").setAttribute("alvo-lng", String(longitude));
+        $wPage("#htmlMapaGps").postMessage({
+            acao: "alvoAtual",
+            latitude: latitude,
+            longitude: longitude
+        });
 
     } catch (err) {
 
-        // Seta não existe nessa página — ignora.
+        // Mapa não existe nessa página — ignora.
 
     }
 

@@ -1,4 +1,4 @@
-// Seta de navegação — Wix Custom Element.
+// Leitor de bússola — Wix Custom Element.
 //
 // Ao contrário do iframe (usado no mapa e nos popups), um Custom
 // Element roda dentro do DOM de verdade da página publicada — sem
@@ -14,147 +14,92 @@
 // site publicado de verdade que ele roda solto. Testar a bússola tem
 // que ser sempre no site publicado, nunca no preview.
 //
-// Comunicação com o Velo: a página manda a localização atual e o
-// próximo ponto via atributos (lat/lng/alvo-lat/alvo-lng), sem
-// precisar de postMessage.
+// Esse widget não desenha seta nenhuma — quem aponta pro alvo agora é
+// o próprio pontinho da família no mapa (ver mapaGpsHtml.js), que já
+// gira sozinho junto com o mapa. Aqui só existe pra pedir a permissão
+// (uma vez, com um botão grande centralizado, fundo escurecido) e
+// depois ficar invisível, só repassando o heading pra página (evento
+// "headingAtualizado") — a página repassa esse número pro mapa.
 
-class SetaNavegacao extends HTMLElement {
-
-    static get observedAttributes() {
-        return ['lat', 'lng', 'alvo-lat', 'alvo-lng'];
-    }
+class LeitorBussola extends HTMLElement {
 
     constructor() {
 
         super();
 
-        this.minhaLat = null;
-        this.minhaLng = null;
-        this.alvoLat = null;
-        this.alvoLng = null;
-        this.heading = null;
-
         const shadow = this.attachShadow({ mode: 'open' });
 
         shadow.innerHTML = `
             <style>
-                :host{ display:block; width:100%; height:100%; }
-                #container{
-                    width:100%;height:100%;
-                    display:flex;align-items:center;justify-content:center;
-                    font-family:Arial,Helvetica,sans-serif;
+                :host{ display:block; }
+                #overlay{
+                    position:fixed;
+                    inset:0;
+                    background:rgba(0,0,0,0.75);
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    z-index:99999;
                 }
-                #seta{
-                    width:100%;height:100%;
-                    display:flex;align-items:center;justify-content:center;
-                    transition: transform 0.15s linear;
-                    transform: rotate(0deg);
-                }
-                #seta svg{ width:80%;height:80%; }
                 button{
-                    padding:10px 14px;
-                    font-size:12px;
+                    padding:24px 30px;
+                    font-size:20px;
                     font-weight:bold;
+                    font-family:Arial,Helvetica,sans-serif;
                     border:none;
-                    border-radius:10px;
+                    border-radius:18px;
                     background:#2b6ef2;
                     color:#fff;
                     cursor:pointer;
+                    max-width:80vw;
+                    text-align:center;
+                    box-shadow:0 6px 24px rgba(0,0,0,0.5);
                 }
             </style>
-            <div id="container">
-                <button id="btnAtivar">🧭 Ativar bússola</button>
-                <div id="seta" style="display:none;">
-                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                        <polygon points="50,6 78,88 50,68 22,88" fill="#2b6ef2" stroke="#ffffff" stroke-width="4" stroke-linejoin="round"/>
-                    </svg>
-                </div>
+            <div id="overlay">
+                <button id="btnAtivar">🧭 Toque para ativar a bússola</button>
             </div>
         `;
 
+        this.overlay = shadow.getElementById('overlay');
         this.btnAtivar = shadow.getElementById('btnAtivar');
-        this.setaEl = shadow.getElementById('seta');
 
         this.aoReceberOrientacao = this.aoReceberOrientacao.bind(this);
         this.btnAtivar.addEventListener('click', () => this.ativarBussola());
 
     }
 
-    attributeChangedCallback(nome, valorAntigo, valorNovo) {
-
-        const numero = (valorNovo === null || valorNovo === '') ? null : Number(valorNovo);
-
-        if (nome === 'lat') this.minhaLat = numero;
-        if (nome === 'lng') this.minhaLng = numero;
-        if (nome === 'alvo-lat') this.alvoLat = numero;
-        if (nome === 'alvo-lng') this.alvoLng = numero;
-
-        this.atualizarRotacao();
-
-    }
-
-    calcularBearing(lat1, lon1, lat2, lon2) {
-
-        const toRad = g => g * Math.PI / 180;
-        const toGrau = r => r * 180 / Math.PI;
-
-        const dLon = toRad(lon2 - lon1);
-
-        const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-
-        const x =
-            Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-
-        return (toGrau(Math.atan2(y, x)) + 360) % 360;
-
-    }
-
-    atualizarRotacao() {
-
-        if (this.minhaLat === null || this.minhaLng === null ||
-            this.alvoLat === null || this.alvoLng === null ||
-            this.heading === null) {
-            return;
-        }
-
-        const bearing = this.calcularBearing(this.minhaLat, this.minhaLng, this.alvoLat, this.alvoLng);
-        const angulo = (bearing - this.heading + 360) % 360;
-
-        this.setaEl.style.transform = 'rotate(' + angulo + 'deg)';
-
-    }
-
     aoReceberOrientacao(evento) {
+
+        let heading;
 
         if (typeof evento.webkitCompassHeading === 'number') {
 
             // iOS — já vem absoluto (0° = Norte).
-            this.heading = evento.webkitCompassHeading;
+            heading = evento.webkitCompassHeading;
 
         } else if (typeof evento.alpha === 'number') {
 
             // Android — "alpha" cresce sentido anti-horário a partir
             // do Norte, o oposto de heading de bússola.
-            this.heading = (360 - evento.alpha) % 360;
+            heading = (360 - evento.alpha) % 360;
 
         } else {
             return;
         }
 
-        this.atualizarRotacao();
-
-        // Avisa a página (Velo) do novo heading, pra ela poder
-        // repassar pro mapa girar junto — modo "bússola" de navegação,
-        // igual ao Google Maps/Waze no modo pedestre.
-        this.dispatchEvent(new CustomEvent('headingAtualizado', { detail: this.heading }));
+        // Avisa a página (Velo) do novo heading, pra ela repassar pro
+        // mapa girar junto — modo "bússola" de navegação, igual ao
+        // Google Maps/Waze no modo pedestre.
+        this.dispatchEvent(new CustomEvent('headingAtualizado', { detail: heading }));
 
     }
 
     iniciarEscuta() {
 
-        this.btnAtivar.style.display = 'none';
-        this.setaEl.style.display = 'flex';
+        // Ativado — some por completo, nem o fundo escurecido nem o
+        // espaço do botão ficam ocupando nada na tela.
+        this.overlay.style.display = 'none';
 
         if ('ondeviceorientationabsolute' in window) {
             window.addEventListener('deviceorientationabsolute', this.aoReceberOrientacao);
@@ -194,4 +139,4 @@ class SetaNavegacao extends HTMLElement {
 
 }
 
-customElements.define('seta-navegacao', SetaNavegacao);
+customElements.define('seta-navegacao', LeitorBussola);

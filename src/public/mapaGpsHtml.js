@@ -36,13 +36,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     transition: transform 0.15s linear;
 }
 #map{width:100%;height:100%;}
-.icone-eu{
-    background:#2b6ef2;
-    width:18px;height:18px;
-    border-radius:50%;
-    border:3px solid #fff;
-    box-shadow:0 0 0 2px #2b6ef2, 0 1px 4px rgba(0,0,0,0.5);
+/* Pontinho da família — agora é a própria seta, estilo mapa do
+   tesouro (traço grosso, cor terrosa/dourada). Gira em volta do
+   próprio centro (não do rodapé, diferente dos pinos) — é uma agulha,
+   não um marcador fixo num lugar. */
+.icone-eu-seta{
+    width:100%;height:100%;
+    transform-origin:50% 50%;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+    transition: transform 0.15s linear;
 }
+.icone-eu-seta svg{ width:100%;height:100%; }
 .icone-ponto-img{
     width:100%;height:100%;
     object-fit:contain;
@@ -397,19 +401,79 @@ function deslocarPonto(lat, lng, bearingGraus, distanciaMetros){
 
 }
 
+// Direção (bearing, 0°=Norte, sentido horário) de um ponto até outro
+// — mesma fórmula que a seta antiga usava.
+function calcularBearing(lat1, lon1, lat2, lon2){
+
+    const toRad = g => g * Math.PI / 180;
+    const toGrau = r => r * 180 / Math.PI;
+
+    const dLon = toRad(lon2 - lon1);
+
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+
+    const x =
+        Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+        Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+
+    return (toGrau(Math.atan2(y, x)) + 360) % 360;
+
+}
+
+function iconeEuSvg(){
+    return '<div class="icone-eu-seta"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+        '<polygon points="50,8 82,88 50,66 18,88" fill="#d9a441" stroke="#5a3814" stroke-width="7" stroke-linejoin="round"/>' +
+        '<circle cx="50" cy="60" r="14" fill="#d9a441" stroke="#5a3814" stroke-width="7"/>' +
+        '</svg></div>';
+}
+
+let minhaLatAtual = null;
+let minhaLngAtual = null;
+let alvoLat = null;
+let alvoLng = null;
+
+// Gira o pontinho (que agora é a seta) pra apontar pro alvo. Só
+// precisa do bearing puro (sem descontar o heading) — o desconto já
+// acontece uma vez só, no giro do mapa inteiro (#mapGiro); como o
+// pontinho gira JUNTO com o mapa, o resultado na tela já sai certo.
+function atualizarSetaEu(){
+
+    if(!marcadorEu) return;
+
+    const el = marcadorEu.getElement();
+    if(!el) return;
+
+    const seta = el.querySelector('.icone-eu-seta');
+    if(!seta) return;
+
+    let angulo = 0;
+
+    if(minhaLatAtual !== null && minhaLngAtual !== null && alvoLat !== null && alvoLng !== null){
+        angulo = calcularBearing(minhaLatAtual, minhaLngAtual, alvoLat, alvoLng);
+    }
+
+    seta.style.transform = 'rotate(' + angulo + 'deg)';
+
+}
+
 // Marca onde a família está e recentraliza o mapa (deslocado pra
 // frente) nela, sempre — modo foco: mapa segue a pessoa em vez dela
 // precisar arrastar.
 function atualizarMinhaLocalizacao(lat, lng){
 
+    minhaLatAtual = lat;
+    minhaLngAtual = lng;
+
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
-            icon: L.divIcon({ className:'', html:'<div class="icone-eu"></div>', iconSize:[18,18], iconAnchor:[9,9] }),
+            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[36,36], iconAnchor:[18,18] }),
             zIndexOffset: 1000
         }).addTo(mapa);
     } else {
         marcadorEu.setLatLng([lat,lng]);
     }
+
+    atualizarSetaEu();
 
     const [latCentro, lngCentro] = deslocarPonto(lat, lng, anguloAtual, DESLOCAMENTO_FRENTE_M);
 
@@ -477,6 +541,12 @@ window.onmessage = function(event){
 
     if(dados.acao === 'heading'){
         girarMapa(dados.valor);
+    }
+
+    if(dados.acao === 'alvoAtual'){
+        alvoLat = dados.latitude;
+        alvoLng = dados.longitude;
+        atualizarSetaEu();
     }
 
 };
