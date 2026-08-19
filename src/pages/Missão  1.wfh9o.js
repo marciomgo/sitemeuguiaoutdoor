@@ -138,9 +138,11 @@ intervaloLocalizacaoMapa = setInterval(atualizarLocalizacaoMapa, 5000);
 // SETA DE NAVEGAÇÃO (bússola)
 //=========================================
 // Widget separado do mapa (#eltSeta, Custom Element) — só uma seta
-// que gira apontando pro próximo ponto. Mapa continua fixo, sem
-// nenhuma lógica nova. Manda o alvo inicial assim que a missão
-// carrega; localização é atualizada por atualizarLocalizacaoMapa().
+// que gira apontando pro próximo ponto. Manda o alvo inicial assim
+// que a missão carrega; localização é atualizada por
+// atualizarLocalizacaoMapa(). O heading que a seta lê também é
+// repassado pro mapa (#htmlMapaGps), que gira junto — modo "bússola"
+// de navegação, igual Google Maps/Waze no modo pedestre.
 
 try {
 
@@ -150,6 +152,12 @@ try {
         $w("#eltSeta").setAttribute("alvo-lat", String(alvo.latitude));
         $w("#eltSeta").setAttribute("alvo-lng", String(alvo.longitude));
     }
+
+    $w("#eltSeta").on("headingAtualizado", (event) => {
+        try {
+            $w("#htmlMapaGps").postMessage({ acao: "heading", valor: event.detail });
+        } catch (err) {}
+    });
 
 } catch (err) {
 

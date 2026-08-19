@@ -17,7 +17,25 @@ export const htmlMapaGps = `<!DOCTYPE html>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 html,body{margin:0;padding:0;height:100%;overflow:hidden;}
-#map{width:100%;height:100%;border-radius:16px;}
+/* #viewport é o "buraco" visível de verdade (tamanho do widget na
+   página). #mapGiro é maior que isso de propósito (150%) e centralizado
+   por cima — sobra o suficiente pra girar em qualquer ângulo sem
+   deixar canto vazio aparecendo. Girar só o #mapGiro (nunca as panes
+   internas do Leaflet) evita brigar com o jeito que o Leaflet já
+   controla sozinho o posicionamento/zoom por dentro. */
+#viewport{
+    width:100%;height:100%;
+    overflow:hidden;
+    position:relative;
+    border-radius:16px;
+}
+#mapGiro{
+    position:absolute;
+    width:150%;height:150%;
+    top:-25%;left:-25%;
+    transition: transform 0.15s linear;
+}
+#map{width:100%;height:100%;}
 .icone-eu{
     background:#2b6ef2;
     width:18px;height:18px;
@@ -26,7 +44,18 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     box-shadow:0 0 0 2px #2b6ef2, 0 1px 4px rgba(0,0,0,0.5);
 }
 .icone-ponto-img{
+    width:100%;height:100%;
     object-fit:contain;
+    display:block;
+}
+/* Contra-giro dos ícones — o mapa todo gira (#mapGiro), mas cada
+   marcador tem esse wrapper girando pro lado oposto por dentro, pra
+   ficar sempre "em pé" na tela (número/imagem legível), não de
+   cabeça pra baixo. Ponto de rotação no rodapé/centro do ícone,
+   batendo com o iconAnchor (base do pino é o ponto real no mapa). */
+.giro-marcador{
+    width:100%;height:100%;
+    transform-origin:50% 100%;
 }
 .icone-ponto-cinza{
     filter: grayscale(100%) brightness(70%);
@@ -69,12 +98,30 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 </head>
 <body>
 
-<div id="map"></div>
+<div id="viewport">
+    <div id="mapGiro">
+        <div id="map"></div>
+    </div>
+</div>
 <button id="btnCamada" onclick="alternarCamada()">🛰️</button>
 
 <script>
 
-let mapa = L.map('map', { zoomControl: false }).setView([-30.0346, -51.2177], 15);
+// Zoom fixo, sempre o mesmo — foco total no entorno próximo (o
+// próximo ponto obrigatório), em vez de mostrar o parque inteiro.
+// Modo simples de navegação: mapa sempre centralizado em quem está
+// jogando, sem precisar arrastar nem dar zoom manual.
+const ZOOM_FOCO = 18;
+
+let mapa = L.map('map', {
+    zoomControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    keyboard: false
+}).setView([-30.0346, -51.2177], ZOOM_FOCO);
 
 // Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
 // Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
@@ -113,11 +160,6 @@ function alternarCamada(){
 // "perimetro" da coleção "Parques" no CMS) via postMessage.
 let camadaPerimetro = null;
 let camadaMascara = null;
-
-// Assim que o perímetro chega, esse vira o enquadramento inicial do
-// mapa (parque inteiro, centralizado) — some a visão provisória da
-// largada que aparece por um instante antes disso carregar.
-let primeiroDesenhoPerimetro = true;
 
 // Retângulo enorme (cobre o mapa inteiro) com um "buraco" no formato
 // do parque — o resultado visual é tudo fora do perímetro ficando
@@ -166,10 +208,8 @@ function desenharPerimetro(coordenadas){
     if(marcadorEu) marcadorEu.bringToFront();
     if(marcadorLargada) marcadorLargada.bringToFront();
 
-    if(primeiroDesenhoPerimetro){
-        mapa.fitBounds(camadaPerimetro.getBounds(), { padding: [30,30], maxZoom: 17 });
-        primeiroDesenhoPerimetro = false;
-    }
+    // Zoom agora é sempre fixo (ZOOM_FOCO) — não dá mais fitBounds no
+    // perímetro inteiro, senão perderia o foco no ponto próximo.
 
 }
 
@@ -181,6 +221,9 @@ let marcadorEu = null;
 // mais leve (sem escurecer ainda mais) quando ainda não achado.
 const TIPOS_FILTRO_LEVE = ['travessuras'];
 
+// Ícones em divIcon com um wrapper .giro-marcador por dentro — é
+// esse wrapper que recebe o contra-giro (aplicarContraGiro), não o
+// marcador inteiro, senão o Leaflet perderia a posição dele no mapa.
 function iconeBonus(url, achado, tipo){
 
     if(url){
@@ -188,17 +231,17 @@ function iconeBonus(url, achado, tipo){
         if(!achado){
             classe += TIPOS_FILTRO_LEVE.includes(tipo) ? ' icone-ponto-cinza-leve' : ' icone-ponto-cinza';
         }
-        return L.icon({
-            iconUrl: url,
+        return L.divIcon({
+            className: '',
+            html: '<div class="giro-marcador"><img src="' + url + '" class="' + classe + '"></div>',
             iconSize: [40,40],
-            iconAnchor: [20,40],
-            className: classe
+            iconAnchor: [20,40]
         });
     }
 
     return L.divIcon({
         className: '',
-        html: '<div class="icone-bonus">?</div>',
+        html: '<div class="giro-marcador"><div class="icone-bonus">?</div></div>',
         iconSize: [30,30],
         iconAnchor: [15,15]
     });
@@ -224,6 +267,8 @@ function desenharPontosBonus(pontosBonus){
         marcadoresBonus[ponto.id] = marcador;
 
     });
+
+    aplicarContraGiro();
 
 }
 
@@ -251,8 +296,8 @@ const ICONE_LARGADA = "https://static.wixstatic.com/media/f02643_83d5d7c16a834a8
 let marcadorLargada = null;
 
 // Abre o mapa centralizado na largada (não na localização crua da
-// família) — dá uma visão útil do parque/trilha, em vez de zoom
-// fechado em cima de onde a pessoa está antes mesmo de começar.
+// família) só até a primeira localização ao vivo chegar — a partir
+// daí quem manda no enquadramento é atualizarMinhaLocalizacao().
 let primeiroDesenhoLargada = true;
 
 function desenharLargada(latitude, longitude){
@@ -264,44 +309,39 @@ function desenharLargada(latitude, longitude){
     }
 
     marcadorLargada = L.marker([latitude, longitude], {
-        icon: L.icon({
-            iconUrl: ICONE_LARGADA,
+        icon: L.divIcon({
+            className: '',
+            html: '<div class="giro-marcador"><img src="' + ICONE_LARGADA + '" class="icone-ponto-img"></div>',
             iconSize: [40,40],
-            iconAnchor: [20,40],
-            className: 'icone-ponto-img'
+            iconAnchor: [20,40]
         }),
         zIndexOffset: 900
     }).addTo(mapa);
 
     if(primeiroDesenhoLargada){
-        mapa.setView([latitude, longitude], 16);
+        mapa.setView([latitude, longitude], ZOOM_FOCO);
         primeiroDesenhoLargada = false;
     }
+
+    aplicarContraGiro();
 
 }
 
 function iconePonto(codigo, ehChegada, concluido){
     const url = ehChegada ? ICONE_CHEGADA : (ICONES_NUMERADOS[codigo] || ICONES_NUMERADOS[1]);
     const classe = 'icone-ponto-img' + (concluido ? '' : ' icone-ponto-cinza');
-    return L.icon({
-        iconUrl: url,
+    return L.divIcon({
+        className: '',
+        html: '<div class="giro-marcador"><img src="' + url + '" class="' + classe + '"></div>',
         iconSize: [40,40],
-        iconAnchor: [20,40],
-        className: classe
+        iconAnchor: [20,40]
     });
 }
-
-// Só ajusta o zoom/centro no primeiro desenho — depois disso os
-// pontos são redesenhados de novo a cada conclusão (só pra trocar
-// cinza -> colorido), sem precisar dar zoom-out toda vez.
-let primeiroDesenhoPontos = true;
 
 function desenharPontos(pontos){
 
     Object.values(marcadoresPontos).forEach(m => mapa.removeLayer(m));
     marcadoresPontos = {};
-
-    const bounds = [];
 
     const maiorCodigo = Math.max(...pontos.map(p => p.codigo));
 
@@ -318,20 +358,17 @@ function desenharPontos(pontos){
         });
 
         marcadoresPontos[ponto.codigo] = marcador;
-        bounds.push([ponto.latitude, ponto.longitude]);
 
     });
 
-    if(bounds.length && primeiroDesenhoPontos){
-        mapa.fitBounds(bounds, { padding: [40,40] });
-        primeiroDesenhoPontos = false;
-    }
+    // Zoom agora é sempre fixo (ZOOM_FOCO) — não dá mais fitBounds nos
+    // pontos, senão perderia o foco no ponto próximo.
+    aplicarContraGiro();
 
 }
 
-// Só marca onde a família está — não move mais o mapa pra cima da
-// localização dela (isso ficava fechado demais e sem contexto do
-// parque; quem decide o enquadramento inicial agora é a largada).
+// Marca onde a família está e recentraliza o mapa nela, sempre —
+// modo foco: mapa segue a pessoa em vez dela precisar arrastar.
 function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
@@ -342,6 +379,38 @@ function atualizarMinhaLocalizacao(lat, lng){
     } else {
         marcadorEu.setLatLng([lat,lng]);
     }
+
+    mapa.setView([lat,lng], ZOOM_FOCO, { animate: true });
+
+}
+
+// Gira o mapa inteiro (#mapGiro) pro sentido oposto do heading da
+// bússola — assim "pra cima na tela" sempre é "pra frente de quem
+// está segurando o celular", igual ao modo bússola do Google Maps.
+// Cada marcador tem seu próprio contra-giro (.giro-marcador) pra não
+// ficar de cabeça pra baixo.
+let anguloAtual = 0;
+
+function girarMapa(heading){
+
+    if(typeof heading !== 'number' || isNaN(heading)) return;
+
+    anguloAtual = heading;
+
+    const giro = document.getElementById('mapGiro');
+    if(giro){
+        giro.style.transform = 'rotate(' + (-heading) + 'deg)';
+    }
+
+    aplicarContraGiro();
+
+}
+
+function aplicarContraGiro(){
+
+    document.querySelectorAll('.giro-marcador').forEach((el) => {
+        el.style.transform = 'rotate(' + anguloAtual + 'deg)';
+    });
 
 }
 
@@ -371,6 +440,10 @@ window.onmessage = function(event){
 
     if(dados.acao === 'minhaLocalizacao'){
         atualizarMinhaLocalizacao(dados.lat, dados.lng);
+    }
+
+    if(dados.acao === 'heading'){
+        girarMapa(dados.valor);
     }
 
 };

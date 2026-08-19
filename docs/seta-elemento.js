@@ -144,6 +144,11 @@ class SetaNavegacao extends HTMLElement {
 
         this.atualizarRotacao();
 
+        // Avisa a página (Velo) do novo heading, pra ela poder
+        // repassar pro mapa girar junto — modo "bússola" de navegação,
+        // igual ao Google Maps/Waze no modo pedestre.
+        this.dispatchEvent(new CustomEvent('headingAtualizado', { detail: this.heading }));
+
     }
 
     iniciarEscuta() {
