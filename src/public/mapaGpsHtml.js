@@ -117,6 +117,12 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     gap:6px;
     overflow-y:auto;
     scrollbar-width:none;
+    /* A faixa inteira (inclusive os espaços vazios entre ícones) NÃO
+       pode bloquear toque — o mapa gira por baixo, então qualquer
+       marcador pode girar pra debaixo dessa faixa fixa e ficar
+       "surdo" ao toque. Cada ícone reativa o toque individualmente
+       (.icone-barra abaixo), só onde ele realmente está desenhado. */
+    pointer-events:none;
 }
 .barra-progresso::-webkit-scrollbar{ display:none; }
 /* Invertida — chegada em cima, ponto 1 embaixo (sobe conforme avança
@@ -128,6 +134,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     width:34px;height:34px;
     flex:none;
     cursor:pointer;
+    pointer-events:auto;
 }
 .icone-barra img{
     width:100%;height:100%;
