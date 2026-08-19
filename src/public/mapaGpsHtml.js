@@ -41,17 +41,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     transition: transform 0.15s linear;
 }
 #map{width:100%;height:100%;}
-/* Pontinho da família — agora é a própria seta, estilo mapa do
-   tesouro (traço grosso, cor terrosa/dourada). Gira em volta do
-   próprio centro (não do rodapé, diferente dos pinos) — é uma agulha,
-   não um marcador fixo num lugar. */
+/* Pontinho da família — agora é a própria seta (a carinha do
+   personagem). Gira em volta do próprio centro (não do rodapé,
+   diferente dos pinos) — é uma agulha, não um marcador fixo num
+   lugar. */
 .icone-eu-seta{
     width:100%;height:100%;
     transform-origin:50% 50%;
     filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));
     transition: transform 0.15s linear;
 }
-.icone-eu-seta svg{ width:100%;height:100%; }
+.icone-eu-seta img{ width:100%;height:100%;object-fit:contain; }
 .icone-ponto-img{
     width:100%;height:100%;
     object-fit:contain;
@@ -736,10 +736,10 @@ function calcularBearing(lat1, lon1, lat2, lon2){
 
 }
 
+const ICONE_EU = "https://static.wixstatic.com/media/f02643_750c3c17b1fd4cbc929e825f71145400~mv2.png";
+
 function iconeEuSvg(){
-    return '<div class="icone-eu-seta"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
-        '<polygon points="50,4 90,92 50,68 10,92" fill="#ffcc00" stroke="#a67c00" stroke-width="6" stroke-linejoin="round"/>' +
-        '</svg></div>';
+    return '<div class="icone-eu-seta"><img src="' + ICONE_EU + '"></div>';
 }
 
 let minhaLatAtual = null;
