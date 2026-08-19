@@ -367,8 +367,39 @@ function desenharPontos(pontos){
 
 }
 
-// Marca onde a família está e recentraliza o mapa nela, sempre —
-// modo foco: mapa segue a pessoa em vez dela precisar arrastar.
+// Distância (metros) que o centro do mapa fica deslocado pra frente
+// de quem está jogando — não centraliza exatamente em cima da pessoa,
+// centraliza um pouco à frente. Resultado: o pontinho acaba sobrando
+// mais pra baixo na tela, sobrando mais mapa visível do que vem pela
+// frente (igual apps de navegação a pé).
+const DESLOCAMENTO_FRENTE_M = 25;
+
+// Calcula um ponto a uma distância/direção de outro (fórmula padrão
+// de "destino a partir de origem + bearing + distância", esfera).
+function deslocarPonto(lat, lng, bearingGraus, distanciaMetros){
+
+    const R = 6371000;
+    const brng = bearingGraus * Math.PI / 180;
+    const lat1 = lat * Math.PI / 180;
+    const lon1 = lng * Math.PI / 180;
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(distanciaMetros / R) +
+        Math.cos(lat1) * Math.sin(distanciaMetros / R) * Math.cos(brng)
+    );
+
+    const lon2 = lon1 + Math.atan2(
+        Math.sin(brng) * Math.sin(distanciaMetros / R) * Math.cos(lat1),
+        Math.cos(distanciaMetros / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+    return [lat2 * 180 / Math.PI, lon2 * 180 / Math.PI];
+
+}
+
+// Marca onde a família está e recentraliza o mapa (deslocado pra
+// frente) nela, sempre — modo foco: mapa segue a pessoa em vez dela
+// precisar arrastar.
 function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
@@ -380,7 +411,9 @@ function atualizarMinhaLocalizacao(lat, lng){
         marcadorEu.setLatLng([lat,lng]);
     }
 
-    mapa.setView([lat,lng], ZOOM_FOCO, { animate: true });
+    const [latCentro, lngCentro] = deslocarPonto(lat, lng, anguloAtual, DESLOCAMENTO_FRENTE_M);
+
+    mapa.setView([latCentro, lngCentro], ZOOM_FOCO, { animate: true });
 
 }
 
