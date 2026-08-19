@@ -68,11 +68,15 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 /* Contra-giro dos ícones — o mapa todo gira (#mapGiro), mas cada
    marcador tem esse wrapper girando pro lado oposto por dentro, pra
    ficar sempre "em pé" na tela (número/imagem legível), não de
-   cabeça pra baixo. Ponto de rotação no rodapé/centro do ícone,
-   batendo com o iconAnchor (base do pino é o ponto real no mapa). */
+   cabeça pra baixo. Girar em volta do CENTRO (não do rodapé) —
+   girando pelo rodapé, em ângulos grandes o desenho "balança" pra
+   longe da posição real (a caixinha do Leaflet, que decide onde o
+   toque vale, não gira e fica pra trás) — o ícone parecia noutro
+   lugar da tela, mas o toque só funcionava na posição de verdade.
+   Girando pelo centro, o ícone só gira no lugar, sem se deslocar. */
 .giro-marcador{
     width:100%;height:100%;
-    transform-origin:50% 100%;
+    transform-origin:50% 50%;
 }
 .icone-ponto-cinza{
     filter: grayscale(100%) brightness(70%);
@@ -226,8 +230,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 </div>
 <button id="btnCamada" onclick="alternarCamada()">🛰️</button>
 
-<div id="debugToque" style="position:absolute;top:6px;left:6px;right:6px;z-index:100000;background:rgba(255,0,0,0.9);color:#fff;font-size:10px;padding:4px 6px;border-radius:6px;font-family:Arial;pointer-events:none;word-break:break-all;">aguardando...</div>
-
 <div id="barraOficiais" class="barra-progresso"></div>
 <div id="barraBonus" class="barra-progresso" style="align-items:flex-end;"></div>
 
@@ -259,28 +261,6 @@ let mapa = L.map('map', {
     boxZoom: false,
     keyboard: false
 }).setView([-30.0346, -51.2177], ZOOM_FOCO);
-
-// DEBUG TEMPORÁRIO — checa exatamente em cima da posição da SETA
-// (não do centro da tela), pra confirmar de vez se ela é mesmo quem
-// bloqueia o toque mesmo com interactive:false + pointer-events:none.
-function descreverElemento(el){
-    if(!el) return 'nenhum';
-    let desc = el.tagName;
-    if(el.id) desc += '#' + el.id;
-    if(el.className && typeof el.className === 'string') desc += '.' + el.className.replace(/ /g, '.');
-    return desc;
-}
-setInterval(function(){
-    const dbg = document.getElementById('debugToque');
-    if(!dbg || !marcadorEu) return;
-    const elSeta = marcadorEu.getElement();
-    if(!elSeta) { dbg.textContent = 'seta sem elemento DOM ainda'; return; }
-    const rect = elSeta.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const achado = document.elementFromPoint(cx, cy);
-    dbg.textContent = 'em cima da seta: ' + descreverElemento(achado) + ' | seta tem pointer-events: ' + getComputedStyle(elSeta).pointerEvents;
-}, 700);
 
 // Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
 // Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
