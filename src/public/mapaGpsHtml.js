@@ -124,14 +124,16 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 .icone-barra{
     width:34px;height:34px;
     flex:none;
-    border-radius:50%;
-    background:rgba(255,255,255,0.9);
-    box-shadow:0 1px 4px rgba(0,0,0,0.4);
-    padding:4px;
-    box-sizing:border-box;
     cursor:pointer;
 }
-.icone-barra img{ width:100%;height:100%;object-fit:contain;display:block; }
+.icone-barra img{
+    width:100%;height:100%;
+    object-fit:contain;
+    display:block;
+    /* Sem círculo branco atrás — só a sombra pra não sumir em cima de
+       um fundo de mapa parecido com a cor do ícone. */
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+}
 .icone-barra.invisivel{ visibility:hidden; }
 
 /* Overlay de bônus liberado — mesmo espírito do botão de ativar
@@ -478,6 +480,34 @@ function desenharPontos(pontos){
 // pontos já foram feitos, sem precisar do mapa cheio como antes.
 // Cliques disparam a mesma mensagem que um marcador do mapa dispara.
 
+const TAMANHO_MAX_ICONE_BARRA = 34;
+const TAMANHO_MIN_ICONE_BARRA = 16;
+const GAP_BARRA = 6;
+
+// Encolhe os ícones o quanto precisar pra a fileira inteira caber na
+// altura disponível, sem cortar nem precisar rolar (com poucos
+// pontos, fica no tamanho máximo normal).
+function ajustarTamanhoBarra(idBarra){
+
+    const barra = document.getElementById(idBarra);
+    const itens = barra.children;
+    const total = itens.length;
+
+    if(total === 0) return;
+
+    const alturaDisponivel = barra.clientHeight;
+    const alturaComGaps = alturaDisponivel - GAP_BARRA * (total - 1);
+
+    let tamanho = Math.floor(alturaComGaps / total);
+    tamanho = Math.max(TAMANHO_MIN_ICONE_BARRA, Math.min(TAMANHO_MAX_ICONE_BARRA, tamanho));
+
+    for(let i = 0; i < total; i++){
+        itens[i].style.width = tamanho + 'px';
+        itens[i].style.height = tamanho + 'px';
+    }
+
+}
+
 function renderizarBarraOficiais(pontos, maiorCodigo){
 
     const barra = document.getElementById('barraOficiais');
@@ -507,6 +537,8 @@ function renderizarBarraOficiais(pontos, maiorCodigo){
         barra.appendChild(item);
 
     });
+
+    ajustarTamanhoBarra('barraOficiais');
 
 }
 
@@ -544,6 +576,8 @@ function renderizarBarraBonus(pontosBonus){
         barra.appendChild(item);
 
     });
+
+    ajustarTamanhoBarra('barraBonus');
 
 }
 

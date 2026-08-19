@@ -93,20 +93,11 @@ export function iniciarMotor($w, dadosMissao) {
 
 }
 
-// Some sozinha depois de uns segundos — tempo suficiente pra ler sem
-// ficar poluindo a tela pro resto do jogo. Uma mensagem nova sempre
-// reseta o tempo (não some no meio de outra pessoa lendo).
-let timeoutStatus = null;
-
+// Fica na tela até a próxima mensagem substituir — vira um guia dos
+// próximos passos durante o jogo, não um aviso passageiro.
 function mostrarStatus(mensagem) {
 
     $wPage("#txtResultado").text = mensagem;
-
-    clearTimeout(timeoutStatus);
-
-    timeoutStatus = setTimeout(() => {
-        $wPage("#txtResultado").text = "";
-    }, 5000);
 
 }
 
