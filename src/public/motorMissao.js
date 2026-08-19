@@ -82,8 +82,6 @@ export function iniciarMotor($w, dadosMissao) {
     missao = dadosMissao;
     carregarProgresso();
 
-    atualizarBotoes();
-
     console.log("=================================");
     console.log("MOTOR DE MISSÕES MGO");
     console.log("Missão:", missao.titulo);
@@ -95,9 +93,20 @@ export function iniciarMotor($w, dadosMissao) {
 
 }
 
+// Some sozinha depois de uns segundos — tempo suficiente pra ler sem
+// ficar poluindo a tela pro resto do jogo. Uma mensagem nova sempre
+// reseta o tempo (não some no meio de outra pessoa lendo).
+let timeoutStatus = null;
+
 function mostrarStatus(mensagem) {
 
     $wPage("#txtResultado").text = mensagem;
+
+    clearTimeout(timeoutStatus);
+
+    timeoutStatus = setTimeout(() => {
+        $wPage("#txtResultado").text = "";
+    }, 5000);
 
 }
 
@@ -107,34 +116,10 @@ function mostrarStatus(mensagem) {
 
 function conectarBotoes() {
 
-    missao.pontos.forEach(ponto => {
-
-        // O ponto de chegada tem elemento próprio (#imgChegada,
-        // uma imagem — mesmo ícone usado no mapa), não entra na
-        // fileira numerada de botões.
-        if (ponto.ordem === missao.totalPontos) return;
-
-        const idBotao = `#btnPonto${ponto.codigo}`;
-
-        try {
-
-            const botao = $wPage(idBotao);
-
-            botao.onClick(() => {
-
-                verificarPonto(ponto);
-
-            });
-
-            console.log("✓", idBotao, "conectado");
-
-        } catch (err) {
-
-            console.warn(idBotao + " não existe na página.");
-
-        }
-
-    });
+    // Fileira de botões numerados (#btnPonto{codigo}) saiu — os
+    // ícones de progresso dentro do próprio mapa (barra lateral)
+    // cumprem esse papel agora, clicáveis do mesmo jeito que os
+    // marcadores do mapa (via #htmlMapaGps onMessage).
 
     conectarImagemChegada();
 
@@ -372,11 +357,11 @@ export function verificarPontoPorCodigo(codigo) {
 // PONTOS BÔNUS
 //==================================================
 // Mesma lógica dos pontos normais (checa GPS, abre o mesmo popup
-// "Conteudo" com pergunta/dica/resposta se houver), só que num
-// elemento à parte por ponto — #imgBonus{codigo}, do mesmo jeito
-// que os pontos numerados usam #btnPonto{codigo}, posicionado à
-// mão em cada tela de missão. O progresso fica separado
-// (bonusConcluidos) pra alimentar uma futura tela de recompensas.
+// "Conteudo" com pergunta/dica/resposta se houver). Clicável tanto
+// pelo ícone na barra lateral do mapa quanto por um elemento à parte
+// na página (#imgBonus{codigo}, se existir). O progresso fica
+// separado (bonusConcluidos) pra alimentar uma futura tela de
+// recompensas.
 
 // Um bônus só fica disponível depois que a família concluir o ponto
 // oficial indicado em "liberaApos" — como os pontos são concluídos
@@ -1266,7 +1251,6 @@ export function resetarProgresso() {
         diario: ""
     };
 
-    atualizarBotoes();
     atualizarBotoesBonus();
     atualizarMapaPontos();
     atualizarMapaPontosBonus();
@@ -1297,17 +1281,30 @@ function concluirPonto(codigo) {
 
     }
 
-    atualizarBotoes();
     atualizarBotoesBonus();
     atualizarMapaPontos();
     atualizarMapaPontosBonus();
     atualizarSetaAlvo();
 
-    if (novosBonusLiberados.length === 1) {
-        mostrarStatus("🎁 Um bônus foi liberado! Fica de olho no mapa.");
-    } else if (novosBonusLiberados.length > 1) {
-        mostrarStatus("🎁 Novos bônus foram liberados! Fica de olho no mapa.");
-    }
+    // Aviso de bônus liberado vira o popup grande no mapa (ícone +
+    // nome + Sim/Não), não o texto de status — evita também o texto
+    // de status ser sobrescrito pela mensagem de "ponto concluído"
+    // logo em seguida.
+    novosBonusLiberados.forEach((bonus) => {
+        try {
+            const icones = ICONES_BONUS[bonus.tipoBonus] || ICONES_BONUS.prarir;
+            $wPage("#htmlMapaGps").postMessage({
+                acao: "bonusLiberado",
+                bonus: {
+                    id: bonus.id,
+                    titulo: bonus.conteudo.titulo || "Ponto bônus",
+                    icone: icones.encontrado
+                }
+            });
+        } catch (err) {
+            // Mapa não existe nessa página — ignora.
+        }
+    });
 
     console.log(
         progresso.concluidos.length,
@@ -1325,7 +1322,10 @@ function concluirPonto(codigo) {
 
     } else {
 
-        mostrarStatus("✅ Ponto concluído!");
+        const pontoConcluido = missao.pontos.find((p) => p.codigo === codigo);
+        const nomePonto = (pontoConcluido && pontoConcluido.conteudo.titulo) || `Ponto ${codigo}`;
+
+        mostrarStatus(`✅ ${nomePonto} concluído!`);
 
     }
 
@@ -1397,46 +1397,3 @@ function apontarSetaPara(latitude, longitude) {
 
 }
 
-function atualizarBotoes() {
-
-    const ultimoConcluido = progresso.concluidos.length;
-
-    missao.pontos.forEach(ponto => {
-
-        // Chegada tem elemento próprio (#imgChegada) — não entra
-        // nessa fileira numerada de botões.
-        if (ponto.ordem === missao.totalPontos) return;
-
-        try {
-
-        const botao = $wPage(`#btnPonto${ponto.codigo}`);
-
-        if (progresso.concluidos.includes(ponto.codigo)) {
-
-            botao.label = `✔${ponto.codigo}`;
-
-            botao.enable();
-
-        } else if (ponto.ordem === ultimoConcluido + 1) {
-
-            botao.label = `🧭${ponto.codigo}`;
-
-            botao.enable();
-
-        } else {
-
-            botao.label = `🔒${ponto.codigo}`;
-
-            botao.disable();
-
-        }
-
-        } catch (err) {
-
-            console.warn(`#btnPonto${ponto.codigo} não existe na página.`);
-
-        }
-
-    });
-
-}

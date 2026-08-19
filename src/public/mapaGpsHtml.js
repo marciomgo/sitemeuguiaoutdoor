@@ -103,6 +103,84 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     box-shadow:0 1px 4px rgba(0,0,0,0.4);
     cursor:pointer;
 }
+/* Barras de progresso — ficam FORA do #mapGiro de propósito, então
+   não giram junto com o mapa; são só uma lista fixa na tela. Pontos
+   oficiais na esquerda, bônus liberados na direita. Substituem os
+   botões numerados que existiam fora do mapa. */
+.barra-progresso{
+    position:absolute;
+    top:10px;
+    bottom:50px;
+    z-index:900;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    overflow-y:auto;
+    scrollbar-width:none;
+}
+.barra-progresso::-webkit-scrollbar{ display:none; }
+#barraOficiais{ left:10px; }
+#barraBonus{ right:10px; }
+.icone-barra{
+    width:34px;height:34px;
+    flex:none;
+    border-radius:50%;
+    background:rgba(255,255,255,0.9);
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    padding:4px;
+    box-sizing:border-box;
+    cursor:pointer;
+}
+.icone-barra img{ width:100%;height:100%;object-fit:contain;display:block; }
+.icone-barra.invisivel{ visibility:hidden; }
+
+/* Overlay de bônus liberado — mesmo espírito do botão de ativar
+   bússola (grande, centralizado, fundo escurecido). */
+#overlayBonus{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.75);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:99998;
+    font-family:Arial,Helvetica,sans-serif;
+    text-align:center;
+    flex-direction:column;
+    gap:16px;
+    padding:24px;
+    box-sizing:border-box;
+}
+#overlayBonusTexto{
+    color:#fff;
+    font-size:20px;
+    font-weight:bold;
+    max-width:80vw;
+}
+#overlayBonusBotoes{ display:flex; gap:12px; }
+#overlayBonusBotoes button{
+    padding:14px 22px;
+    font-size:16px;
+    font-weight:bold;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+}
+#btnBonusSim{ background:#2b6ef2; color:#fff; }
+#btnBonusNao{ background:rgba(255,255,255,0.85); color:#333; }
+
+/* Ícone que "voa" do centro até a posição dele na barra da direita —
+   elemento próprio, fora do overlay, pra poder animar livremente por
+   cima de tudo. */
+#iconeVoando{
+    position:fixed;
+    z-index:99999;
+    border-radius:50%;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    transition: top 0.6s ease, left 0.6s ease, width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
+    pointer-events:none;
+}
+#iconeVoando img{ width:100%;height:100%;object-fit:contain;display:block; }
 </style>
 </head>
 <body>
@@ -113,6 +191,19 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     </div>
 </div>
 <button id="btnCamada" onclick="alternarCamada()">🛰️</button>
+
+<div id="barraOficiais" class="barra-progresso"></div>
+<div id="barraBonus" class="barra-progresso" style="align-items:flex-end;"></div>
+
+<div id="overlayBonus">
+    <div id="overlayBonusTexto">Ponto bônus liberado! Quer ir até lá?</div>
+    <div id="overlayBonusBotoes">
+        <button id="btnBonusSim">✅ Sim, vamos!</button>
+        <button id="btnBonusNao">Agora não</button>
+    </div>
+</div>
+
+<div id="iconeVoando"><img id="iconeVoandoImg" src=""></div>
 
 <script>
 
@@ -279,6 +370,8 @@ function desenharPontosBonus(pontosBonus){
 
     aplicarContraGiro();
 
+    renderizarBarraBonus(pontosBonus);
+
 }
 
 // Ícones customizados (imagens do Gerenciador de Mídia do Wix).
@@ -374,7 +467,184 @@ function desenharPontos(pontos){
     // pontos, senão perderia o foco no ponto próximo.
     aplicarContraGiro();
 
+    renderizarBarraOficiais(pontos, maiorCodigo);
+
 }
+
+//==================================================
+// BARRAS DE PROGRESSO (dentro do mapa)
+//==================================================
+// Ficam fora do #mapGiro (não giram) — mostram de relance quais
+// pontos já foram feitos, sem precisar do mapa cheio como antes.
+// Cliques disparam a mesma mensagem que um marcador do mapa dispara.
+
+function renderizarBarraOficiais(pontos, maiorCodigo){
+
+    const barra = document.getElementById('barraOficiais');
+    barra.innerHTML = '';
+
+    pontos.forEach((ponto) => {
+
+        const url = ponto.codigo === maiorCodigo
+            ? ICONE_CHEGADA
+            : (ICONES_NUMERADOS[ponto.codigo] || ICONES_NUMERADOS[1]);
+
+        const item = document.createElement('div');
+        item.className = 'icone-barra';
+
+        const img = document.createElement('img');
+        img.src = url;
+        if(!ponto.concluido){
+            img.className = 'icone-ponto-cinza';
+        }
+
+        item.appendChild(img);
+
+        item.addEventListener('click', () => {
+            parent.postMessage({ acao: 'pontoClicado', codigo: ponto.codigo }, '*');
+        });
+
+        barra.appendChild(item);
+
+    });
+
+}
+
+// Ids de bônus com a animação de liberação em andamento — ficam
+// reservados (espaço ocupado, mas invisíveis) na barra até a
+// animação terminar, pra não aparecer duplicado nem "pular" no lugar.
+const bonusEmCelebracao = new Set();
+let ultimoPontosBonus = [];
+
+function renderizarBarraBonus(pontosBonus){
+
+    ultimoPontosBonus = pontosBonus;
+
+    const barra = document.getElementById('barraBonus');
+    barra.innerHTML = '';
+
+    pontosBonus.forEach((ponto) => {
+
+        const item = document.createElement('div');
+        item.className = 'icone-barra' + (bonusEmCelebracao.has(ponto.id) ? ' invisivel' : '');
+        item.setAttribute('data-bonus-id', ponto.id);
+
+        const img = document.createElement('img');
+        img.src = ponto.icone;
+        if(!ponto.achado){
+            img.className = 'icone-ponto-cinza';
+        }
+
+        item.appendChild(img);
+
+        item.addEventListener('click', () => {
+            parent.postMessage({ acao: 'pontoBonusClicado', id: ponto.id }, '*');
+        });
+
+        barra.appendChild(item);
+
+    });
+
+}
+
+//==================================================
+// BÔNUS LIBERADO — popup grande + animação até a barra
+//==================================================
+
+let bonusAguardando = null;
+
+function mostrarBonusLiberado(bonus){
+
+    bonusAguardando = bonus;
+
+    bonusEmCelebracao.add(bonus.id);
+    renderizarBarraBonus(ultimoPontosBonus);
+
+    document.getElementById('overlayBonusTexto').textContent =
+        bonus.titulo + ' liberado! Quer ir até lá?';
+
+    document.getElementById('overlayBonus').style.display = 'flex';
+
+    const voando = document.getElementById('iconeVoando');
+    const img = document.getElementById('iconeVoandoImg');
+
+    img.src = bonus.icone;
+
+    // Tudo em pixel absoluto (nada de margem/transform) — são
+    // exatamente as mesmas propriedades que a transição do CSS
+    // observa (top/left/width/height/opacity), então anima liso do
+    // início ao fim, sem pulo no meio do caminho.
+    const tamanhoInicial = 120;
+
+    voando.style.transition = 'none';
+    voando.style.opacity = '1';
+    voando.style.width = tamanhoInicial + 'px';
+    voando.style.height = tamanhoInicial + 'px';
+    voando.style.top = (window.innerHeight * 0.3 - tamanhoInicial / 2) + 'px';
+    voando.style.left = (window.innerWidth * 0.5 - tamanhoInicial / 2) + 'px';
+    voando.style.display = 'block';
+
+    // Força o navegador a aplicar o estado inicial antes de religar a
+    // transição — senão essa primeira aparição também animaria.
+    void voando.offsetWidth;
+    voando.style.transition = '';
+
+}
+
+function fecharOverlayBonus(){
+
+    document.getElementById('overlayBonus').style.display = 'none';
+
+    const voando = document.getElementById('iconeVoando');
+    const alvo = bonusAguardando
+        ? document.querySelector('.icone-barra[data-bonus-id="' + bonusAguardando.id + '"]')
+        : null;
+
+    if(alvo){
+
+        const rect = alvo.getBoundingClientRect();
+
+        voando.style.top = rect.top + 'px';
+        voando.style.left = rect.left + 'px';
+        voando.style.width = rect.width + 'px';
+        voando.style.height = rect.height + 'px';
+        voando.style.opacity = '0';
+
+    } else {
+
+        voando.style.opacity = '0';
+
+    }
+
+    const idTerminando = bonusAguardando ? bonusAguardando.id : null;
+    bonusAguardando = null;
+
+    setTimeout(() => {
+
+        voando.style.display = 'none';
+
+        if(idTerminando){
+            bonusEmCelebracao.delete(idTerminando);
+            renderizarBarraBonus(ultimoPontosBonus);
+        }
+
+    }, 650);
+
+}
+
+document.getElementById('btnBonusSim').addEventListener('click', () => {
+
+    if(bonusAguardando){
+        parent.postMessage({ acao: 'pontoBonusClicado', id: bonusAguardando.id }, '*');
+    }
+
+    fecharOverlayBonus();
+
+});
+
+document.getElementById('btnBonusNao').addEventListener('click', () => {
+    fecharOverlayBonus();
+});
 
 // Distância (metros) que o centro do mapa fica deslocado pra frente
 // de quem está jogando — não centraliza exatamente em cima da pessoa,
@@ -551,6 +821,10 @@ window.onmessage = function(event){
         alvoLat = dados.latitude;
         alvoLng = dados.longitude;
         atualizarSetaEu();
+    }
+
+    if(dados.acao === 'bonusLiberado' && dados.bonus){
+        mostrarBonusLiberado(dados.bonus);
     }
 
 };
