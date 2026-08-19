@@ -795,7 +795,12 @@ function atualizarMinhaLocalizacao(lat, lng){
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
             icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[64,64], iconAnchor:[32,32] }),
-            zIndexOffset: 1000
+            zIndexOffset: 1000,
+            // Não precisa ser clicável — só indica onde a família
+            // está. Sem isso, ele (que fica sempre por cima e ficou
+            // maior recentemente) bloqueia o toque em qualquer ponto
+            // que esteja embaixo dele quando a família chega perto.
+            interactive: false
         }).addTo(mapa);
     } else {
         marcadorEu.setLatLng([lat,lng]);
