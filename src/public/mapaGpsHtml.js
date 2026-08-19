@@ -858,7 +858,11 @@ function atualizarMinhaLocalizacao(lat, lng){
 
     const [latCentro, lngCentro] = deslocarPonto(lat, lng, anguloAtual, DESLOCAMENTO_FRENTE_M);
 
-    mapa.setView([latCentro, lngCentro], ZOOM_FOCO, { animate: true });
+    // Sem animação — a cada 5s isso recentraliza o mapa; a transição
+    // suave (animate:true) deixa o Leaflet num estado de "andamento"
+    // que pode suprimir clique em marcadores próximos do centro
+    // (onde a família está) durante a janela da animação.
+    mapa.setView([latCentro, lngCentro], ZOOM_FOCO, { animate: false });
 
 }
 
