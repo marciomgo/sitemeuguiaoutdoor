@@ -1047,6 +1047,11 @@ function calcularDistancia(lat1, lon1, lat2, lon2) {
 
 function adicionarNaMochila(ponto, resposta) {
 
+    // Já tem esse ponto na mochila — não duplica (pode acontecer se
+    // responderem certo de novo num ponto já concluído).
+    const jaTem = progresso.mochila.some((item) => item.ponto === ponto.codigo);
+    if (jaTem) return;
+
     const texto =
 
         ponto.conteudo.resposta ||
