@@ -48,8 +48,8 @@ class LeitorBussola extends HTMLElement {
                     font-family:Arial,Helvetica,sans-serif;
                     border:none;
                     border-radius:18px;
-                    background:#2b6ef2;
-                    color:#fff;
+                    background:#e8a33d;
+                    color:#4a2e05;
                     cursor:pointer;
                     max-width:80vw;
                     text-align:center;
@@ -106,6 +106,12 @@ class LeitorBussola extends HTMLElement {
         } else {
             window.addEventListener('deviceorientation', this.aoReceberOrientacao);
         }
+
+        // Avisa a página uma única vez que a bússola foi ativada de
+        // verdade — usado pra só começar a contar o tempo do Modo
+        // Desafio a partir daqui, não desde o cadastro (senão o tempo
+        // gasto lendo as regras/ativando a bússola já contaria).
+        this.dispatchEvent(new CustomEvent('bussolaAtivada'));
 
     }
 

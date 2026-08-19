@@ -62,11 +62,31 @@ if (configMissao.desafio) {
 
     console.log("🏁 Modo Desafio Ativado");
 
-    inicioDesafio = configMissao.inicio;
-
     $w("#boxModoDesafio").expand();
 
-    iniciarCronometro();
+    // Tempo só começa a contar depois que a bússola for ativada de
+    // verdade (toque no botão) — senão o tempo lendo as regras e
+    // ativando a bússola já contaria contra a família.
+    $w("#txtCronometro").text = "Ative a bússola";
+
+    try {
+
+        $w("#eltSeta").on("bussolaAtivada", () => {
+
+            if (inicioDesafio === 0) {
+                inicioDesafio = Date.now();
+                iniciarCronometro();
+            }
+
+        });
+
+    } catch (err) {
+
+        console.log("#eltSeta não encontrado — iniciando cronômetro direto.");
+        inicioDesafio = Date.now();
+        iniciarCronometro();
+
+    }
 
 } else {
 
