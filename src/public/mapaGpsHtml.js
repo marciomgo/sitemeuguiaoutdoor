@@ -45,15 +45,19 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
    personagem). Gira em volta do próprio centro (não do rodapé,
    diferente dos pinos) — é uma agulha, não um marcador fixo num
    lugar. */
+/* O Leaflet cria um <div> PRÓPRIO por fora do meu (com a classe que
+   eu passo em "className" no L.divIcon) — é ESSE que precisa do
+   pointer-events:none, não só o meu de dentro, senão ele continua
+   "sólido" pro navegador mesmo com o filho marcado como transparente
+   a toque (pointer-events não sobe pro pai, só desce pros filhos). */
+.icone-eu-wrapper{
+    pointer-events:none;
+}
 .icone-eu-seta{
     width:100%;height:100%;
     transform-origin:50% 50%;
     filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));
     transition: transform 0.15s linear;
-    /* interactive:false no Leaflet só desliga o clique dele mesmo —
-       o elemento continua "sólido" pro navegador, tampando o que tem
-       embaixo. Isso aqui que faz o toque atravessar de verdade. */
-    pointer-events:none;
 }
 .icone-eu-seta img{ width:100%;height:100%;object-fit:contain; }
 .icone-ponto-img{
@@ -805,7 +809,7 @@ function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
-            icon: L.divIcon({ className:'', html: iconeEuSvg(), iconSize:[64,64], iconAnchor:[32,32] }),
+            icon: L.divIcon({ className:'icone-eu-wrapper', html: iconeEuSvg(), iconSize:[64,64], iconAnchor:[32,32] }),
             zIndexOffset: 1000,
             // Não precisa ser clicável — só indica onde a família
             // está. Sem isso, ele (que fica sempre por cima e ficou
