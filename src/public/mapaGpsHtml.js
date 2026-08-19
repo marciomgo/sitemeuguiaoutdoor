@@ -278,6 +278,17 @@ document.addEventListener('touchend', function(evento){
     dbg.textContent = 'toque em: ' + descreverElemento(el) + ' | pai: ' + descreverElemento(el ? el.parentElement : null);
 }, true);
 
+// Ao vivo, sem precisar tocar: mostra o que está bem no centro da
+// tela (onde a família costuma estar / onde a seta fica).
+setInterval(function(){
+    const dbg = document.getElementById('debugToque');
+    if(!dbg) return;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const el = document.elementFromPoint(cx, cy);
+    dbg.textContent = 'centro da tela: ' + descreverElemento(el) + ' | pai: ' + descreverElemento(el ? el.parentElement : null) + ' | avo: ' + descreverElemento(el && el.parentElement ? el.parentElement.parentElement : null);
+}, 500);
+
 // Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
 // Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
 // botão #btnCamada.
