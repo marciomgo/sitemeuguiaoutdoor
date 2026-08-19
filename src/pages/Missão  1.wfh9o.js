@@ -337,6 +337,13 @@ async function carregarMissao(slug) {
 
             longitude: item.longitude,
 
+            // Número da ordem de um ponto oficial que precisa estar
+            // concluído antes desse bônus aparecer/ficar disponível —
+            // controla QUANDO faz sentido a família ir atrás dele (em
+            // vez de ficarem vendo tudo solto e tentando adivinhar o
+            // caminho mais curto). 0/vazio = sempre disponível.
+            liberaApos: Number(item.liberaApos) || 0,
+
             conteudo: {
 
                 titulo: item.titulo,

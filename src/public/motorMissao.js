@@ -378,12 +378,26 @@ export function verificarPontoPorCodigo(codigo) {
 // mão em cada tela de missão. O progresso fica separado
 // (bonusConcluidos) pra alimentar uma futura tela de recompensas.
 
+// Um bônus só fica disponível depois que a família concluir o ponto
+// oficial indicado em "liberaApos" — como os pontos são concluídos
+// estritamente em ordem (1..N), o total já concluído até agora é o
+// mesmo que "ordem do último ponto concluído", não precisa cruzar
+// código/ordem pra descobrir isso.
+function bonusLiberado(ponto) {
+    return !ponto.liberaApos || progresso.concluidos.length >= ponto.liberaApos;
+}
+
 // Dados que o mapa GPS precisa pra desenhar os marcadores bônus —
-// posição + ícone do tipo, já colorido ou cinza (filtro CSS,
-// aplicado do lado do mapa) conforme já foi achado ou não.
+// só os já liberados (senão apareceria no mapa antes de fazer
+// sentido ir) — posição + ícone do tipo, já colorido ou cinza (filtro
+// CSS, aplicado do lado do mapa) conforme já foi achado ou não.
 export function obterPontosBonusParaMapa() {
 
-    return (missao.pontosBonus || []).map(ponto => {
+    return (missao.pontosBonus || [])
+
+        .filter(ponto => bonusLiberado(ponto))
+
+        .map(ponto => {
 
         const icones = ICONES_BONUS[ponto.tipoBonus] || ICONES_BONUS.prarir;
         const achado = progresso.bonusConcluidos.includes(ponto.id);
@@ -462,6 +476,15 @@ function conectarBotoesBonus() {
 
 function atualizarImagemBonus(imagem, ponto) {
 
+    // Ainda não liberado (falta concluir o ponto oficial exigido) —
+    // some da tela por completo, não é pra dar nem pra ver que existe.
+    if (!bonusLiberado(ponto)) {
+        try { imagem.collapse(); } catch (err) {}
+        return;
+    }
+
+    try { imagem.expand(); } catch (err) {}
+
     const achado = progresso.bonusConcluidos.includes(ponto.id);
 
     const icones = ICONES_BONUS[ponto.tipoBonus] || ICONES_BONUS.prarir;
@@ -494,6 +517,10 @@ function atualizarBotoesBonus() {
 const TIPOS_DESAFIO_BONUS = ["travessuras", "coracao"];
 
 async function verificarPontoBonus(ponto) {
+
+    // Defesa: não deveria nem estar visível/clicável se ainda
+    // bloqueado, mas ignora aqui também por segurança.
+    if (!bonusLiberado(ponto)) return;
 
     // Aponta a seta pro bônus assim que ele é tocado — ajuda a
     // caminhar até lá mesmo antes de estar no raio. Volta sozinha pra
@@ -1254,17 +1281,33 @@ function concluirPonto(codigo) {
     console.log("Total:", missao.pontos.length);
     console.log("Tipo Total:", typeof missao.totalPontos);
 
+    let novosBonusLiberados = [];
+
     if (!progresso.concluidos.includes(codigo)) {
 
         progresso.concluidos.push(codigo);
 
         salvarProgresso();
 
+        // Bônus cujo "liberaApos" bate exatamente com a contagem nova
+        // acabaram de ficar disponíveis agora.
+        novosBonusLiberados = (missao.pontosBonus || []).filter(
+            (ponto) => ponto.liberaApos === progresso.concluidos.length
+        );
+
     }
 
     atualizarBotoes();
+    atualizarBotoesBonus();
     atualizarMapaPontos();
+    atualizarMapaPontosBonus();
     atualizarSetaAlvo();
+
+    if (novosBonusLiberados.length === 1) {
+        mostrarStatus("🎁 Um bônus foi liberado! Fica de olho no mapa.");
+    } else if (novosBonusLiberados.length > 1) {
+        mostrarStatus("🎁 Novos bônus foram liberados! Fica de olho no mapa.");
+    }
 
     console.log(
         progresso.concluidos.length,
