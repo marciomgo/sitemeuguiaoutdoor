@@ -28,6 +28,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     overflow:hidden;
     position:relative;
     border-radius:16px;
+    /* Sem isso, com o arrastar/zoom do Leaflet desligados (modo foco),
+       o celular pode interpretar o toque como um gesto de rolagem da
+       página em vez de um clique no ícone — os pontos ficavam "surdos"
+       ao toque por causa disso. */
+    touch-action: none;
 }
 #mapGiro{
     position:absolute;
