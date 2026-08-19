@@ -377,7 +377,8 @@ function desenharPontosBonus(pontosBonus){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconeBonus(ponto.icone, ponto.achado, ponto.tipo)
+            icon: iconeBonus(ponto.icone, ponto.achado, ponto.tipo),
+            zIndexOffset: 950
         }).addTo(mapa);
 
         marcador.on('click', () => {
@@ -472,7 +473,8 @@ function desenharPontos(pontos){
         if(!ponto.latitude || !ponto.longitude) return;
 
         const marcador = L.marker([ponto.latitude, ponto.longitude], {
-            icon: iconePonto(ponto.codigo, ponto.codigo === maiorCodigo, ponto.concluido)
+            icon: iconePonto(ponto.codigo, ponto.codigo === maiorCodigo, ponto.concluido),
+            zIndexOffset: 950
         }).addTo(mapa);
 
         marcador.on('click', () => {
