@@ -218,6 +218,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 </div>
 <button id="btnCamada" onclick="alternarCamada()">🛰️</button>
 
+<div id="debugToque" style="position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:100000;background:rgba(255,0,0,0.85);color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;font-family:Arial;pointer-events:none;">sem toque ainda</div>
+
 <div id="barraOficiais" class="barra-progresso"></div>
 <div id="barraBonus" class="barra-progresso" style="align-items:flex-end;"></div>
 
@@ -249,6 +251,17 @@ let mapa = L.map('map', {
     boxZoom: false,
     keyboard: false
 }).setView([-30.0346, -51.2177], ZOOM_FOCO);
+
+// DEBUG TEMPORÁRIO — comparação: toque no mapa em geral (fora de
+// marcador) vs toque num marcador especificamente.
+mapa.on('click', function(){
+    const dbg = document.getElementById('debugToque');
+    if(dbg) dbg.textContent = 'mapa tocado (fora de marcador)';
+});
+document.addEventListener('touchstart', function(){
+    const dbg = document.getElementById('debugToque');
+    if(dbg && dbg.textContent === 'sem toque ainda') dbg.textContent = 'touchstart chegou no documento';
+}, true);
 
 // Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
 // Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
@@ -485,6 +498,8 @@ function desenharPontos(pontos){
         }).addTo(mapa);
 
         marcador.on('click', () => {
+            const dbg = document.getElementById('debugToque');
+            if(dbg) dbg.textContent = 'marcador ' + ponto.codigo + ' tocado!';
             parent.postMessage({ acao: 'pontoClicado', codigo: ponto.codigo }, '*');
         });
 
