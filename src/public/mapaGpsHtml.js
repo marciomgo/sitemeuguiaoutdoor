@@ -226,8 +226,6 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 </div>
 <button id="btnCamada" onclick="alternarCamada()">🛰️</button>
 
-<div id="debugToque" style="position:absolute;top:6px;left:6px;right:6px;z-index:100000;background:rgba(255,0,0,0.9);color:#fff;font-size:10px;padding:4px 6px;border-radius:6px;font-family:Arial;pointer-events:none;word-break:break-all;">sem toque ainda</div>
-
 <div id="barraOficiais" class="barra-progresso"></div>
 <div id="barraBonus" class="barra-progresso" style="align-items:flex-end;"></div>
 
@@ -259,35 +257,6 @@ let mapa = L.map('map', {
     boxZoom: false,
     keyboard: false
 }).setView([-30.0346, -51.2177], ZOOM_FOCO);
-
-// DEBUG TEMPORÁRIO — mostra exatamente qual elemento está recebendo
-// o toque (document.elementFromPoint), pra achar quem está "roubando"
-// o clique dos marcadores de uma vez por todas.
-function descreverElemento(el){
-    if(!el) return 'nenhum';
-    let desc = el.tagName;
-    if(el.id) desc += '#' + el.id;
-    if(el.className && typeof el.className === 'string') desc += '.' + el.className.replace(/ /g, '.');
-    return desc;
-}
-document.addEventListener('touchend', function(evento){
-    const dbg = document.getElementById('debugToque');
-    if(!dbg || !evento.changedTouches || !evento.changedTouches[0]) return;
-    const t = evento.changedTouches[0];
-    const el = document.elementFromPoint(t.clientX, t.clientY);
-    dbg.textContent = 'toque em: ' + descreverElemento(el) + ' | pai: ' + descreverElemento(el ? el.parentElement : null);
-}, true);
-
-// Ao vivo, sem precisar tocar: mostra o que está bem no centro da
-// tela (onde a família costuma estar / onde a seta fica).
-setInterval(function(){
-    const dbg = document.getElementById('debugToque');
-    if(!dbg) return;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const el = document.elementFromPoint(cx, cy);
-    dbg.textContent = 'centro da tela: ' + descreverElemento(el) + ' | pai: ' + descreverElemento(el ? el.parentElement : null) + ' | avo: ' + descreverElemento(el && el.parentElement ? el.parentElement.parentElement : null);
-}, 500);
 
 // Duas camadas de base — ruas (OpenStreetMap) e satélite (Esri World
 // Imagery, gratuito, sem precisar de chave de API) — alternadas pelo
@@ -338,7 +307,13 @@ function desenharMascara(coordenadas){
     camadaMascara = L.polygon([anelExterno, buraco], {
         stroke: false,
         fillColor: '#000000',
-        fillOpacity: 0.5
+        fillOpacity: 0.5,
+        // Puramente decorativa (nunca teve clique nenhum nela) — mas
+        // por padrão o Leaflet deixa toda forma vetorial (polígono)
+        // clicável, e o "buraco" do formato não conta pra isso: o
+        // navegador enxerga o contorno inteiro como área de toque,
+        // roubando cliques de marcadores que caem por cima dela.
+        interactive: false
     }).addTo(mapa);
 
     camadaMascara.bringToBack();
@@ -365,7 +340,10 @@ function desenharPerimetro(coordenadas){
             color: '#000000',
             weight: 3,
             fillColor: 'transparent'
-        }
+        },
+        // Também decorativa — mesma razão do interactive:false na
+        // máscara logo abaixo.
+        interactive: false
     }).addTo(mapa);
 
     desenharMascara(coordenadas);
