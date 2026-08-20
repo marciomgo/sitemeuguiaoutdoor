@@ -71,7 +71,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
    elemento que gira, então gira junto com o personagem. */
 .linhas-movimento{
     position:absolute;
-    bottom:-2px;left:50%;
+    bottom:-18px;left:50%;
     transform:translateX(-50%);
     display:none;
     flex-direction:column;
