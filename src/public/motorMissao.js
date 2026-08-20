@@ -3,6 +3,40 @@ import wixLocation from 'wix-location';
 import wixData from 'wix-data';
 import { local } from 'wix-storage';
 
+//==================================================
+// CACHE DE LOCALIZAÇÃO
+//==================================================
+// O mapa já busca a localização a cada 5s pra mover o pontinho —
+// reaproveita essa leitura recente em vez de pedir uma nova toda vez
+// que alguém toca num ponto (isso que causava a espera do
+// "Localizando..."). A distância continua sendo conferida do mesmo
+// jeito de sempre — só muda de onde vem a coordenada, não libera
+// nada que não bateria com uma leitura fresca.
+const IDADE_MAXIMA_CACHE_MS = 6000;
+let localizacaoCache = null;
+let localizacaoCacheHora = 0;
+
+export function atualizarLocalizacaoCache(lat, lng, accuracy) {
+    localizacaoCache = { lat, lng, accuracy };
+    localizacaoCacheHora = Date.now();
+}
+
+async function obterLocalizacaoAtual() {
+
+    if (localizacaoCache && (Date.now() - localizacaoCacheHora) < IDADE_MAXIMA_CACHE_MS) {
+        return localizacaoCache;
+    }
+
+    const location = await wixWindow.getCurrentGeolocation();
+
+    return {
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+        accuracy: location.coords.accuracy
+    };
+
+}
+
 // (marca de versão pra forçar invalidação de cache do CDN)
 
 // Ícones customizados (Gerenciador de Mídia do Wix) usados nos
@@ -250,16 +284,16 @@ async function verificarPonto(ponto) {
         mostrarStatus("🛰️ Localizando...");
 
         const location =
-            await wixWindow.getCurrentGeolocation();
+            await obterLocalizacaoAtual();
 
         const lat =
-            location.coords.latitude;
+            location.lat;
 
         const lng =
-            location.coords.longitude;
+            location.lng;
 
         const accuracy =
-            location.coords.accuracy;
+            location.accuracy;
 
         const distancia =
             calcularDistancia(
@@ -537,13 +571,13 @@ async function verificarPontoBonus(ponto) {
         mostrarStatus("🛰️ Localizando...");
 
         const location =
-            await wixWindow.getCurrentGeolocation();
+            await obterLocalizacaoAtual();
 
         const distancia =
             calcularDistancia(
 
-                location.coords.latitude,
-                location.coords.longitude,
+                location.lat,
+                location.lng,
 
                 ponto.latitude,
                 ponto.longitude
@@ -551,7 +585,7 @@ async function verificarPontoBonus(ponto) {
             );
 
         const raio =
-            raioPermitido(location.coords.accuracy);
+            raioPermitido(location.accuracy);
 
         if (distancia <= raio) {
 

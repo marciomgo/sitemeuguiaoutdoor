@@ -3,7 +3,7 @@ import wixLocation from 'wix-location';
 import { local } from 'wix-storage';
 import wixWindow from 'wix-window';
 
-import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterProximoPontoAlvo } from 'public/motorMissao';
+import { iniciarMotor, resetarProgresso, pularParaFinal, obterPontosParaMapa, verificarPontoPorCodigo, obterPontosBonusParaMapa, verificarPontoBonusPorId, obterProximoPontoAlvo, atualizarLocalizacaoCache } from 'public/motorMissao';
 import { htmlMapaGps } from 'public/mapaGpsHtml';
 
 // A seta de navegação é um Custom Element (#eltSeta), não um iframe —
@@ -446,10 +446,15 @@ function atualizarLocalizacaoMapa() {
                 lng: posicao.coords.longitude
             });
 
-            try {
-                $w("#eltSeta").setAttribute("lat", String(posicao.coords.latitude));
-                $w("#eltSeta").setAttribute("lng", String(posicao.coords.longitude));
-            } catch (err) {}
+            // Guarda essa leitura pra verificarPonto/verificarPontoBonus
+            // reaproveitarem em vez de pedir uma localização nova a
+            // cada toque — confirmação de ponto fica quase instantânea
+            // na maioria das vezes, sem esperar o GPS de novo.
+            atualizarLocalizacaoCache(
+                posicao.coords.latitude,
+                posicao.coords.longitude,
+                posicao.coords.accuracy
+            );
 
         })
         .catch((err) => {
