@@ -57,12 +57,36 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     pointer-events:none;
 }
 .icone-eu-seta{
+    position:relative;
     width:100%;height:100%;
     transform-origin:50% 50%;
     filter:drop-shadow(0 1px 3px rgba(0,0,0,0.5));
     transition: transform 0.15s linear;
 }
 .icone-eu-seta img{ width:100%;height:100%;object-fit:contain; }
+/* Tracinhos de velocidade, tipo quadrinho — só aparecem durante o
+   "pulsinho" de caminhada (mesma janela da troca de perna), do lado
+   do personagem. Ficam dentro do mesmo elemento que gira, então
+   giram junto com ele. */
+.linhas-movimento{
+    position:absolute;
+    top:50%;left:-4px;
+    transform:translateY(-50%);
+    display:none;
+    flex-direction:column;
+    gap:5px;
+}
+.linhas-movimento.ativo{ display:flex; }
+.linhas-movimento span{
+    display:block;
+    height:3px;
+    background:rgba(255,255,255,0.85);
+    border-radius:2px;
+    box-shadow:0 0 2px rgba(0,0,0,0.4);
+}
+.linhas-movimento span:nth-child(1){ width:16px; }
+.linhas-movimento span:nth-child(2){ width:11px; margin-left:5px; }
+.linhas-movimento span:nth-child(3){ width:7px; margin-left:9px; }
 .icone-ponto-img{
     width:100%;height:100%;
     object-fit:contain;
@@ -891,7 +915,9 @@ const ICONE_EU_PERNA_DIREITA = "https://static.wixstatic.com/media/f02643_8152aa
 const ICONE_EU_PERNA_ESQUERDA = "https://static.wixstatic.com/media/f02643_f5c1463acdc04d85978f56dbab851628~mv2.png";
 
 function iconeEuSvg(){
-    return '<div class="icone-eu-seta"><img id="imgEuAtual" src="' + ICONE_EU_PARADO + '"></div>';
+    return '<div class="icone-eu-seta"><img id="imgEuAtual" src="' + ICONE_EU_PARADO + '">' +
+        '<div id="linhasMovimento" class="linhas-movimento"><span></span><span></span><span></span></div>' +
+        '</div>';
 }
 
 // Distância (metros) entre dois pontos — fórmula padrão de haversine.
@@ -934,6 +960,8 @@ function simularCaminhada(){
     const img = el.querySelector('#imgEuAtual');
     if(!img) return;
 
+    const linhas = el.querySelector('#linhasMovimento');
+
     const passos = [
         ICONE_EU_PERNA_DIREITA,
         ICONE_EU_PERNA_ESQUERDA,
@@ -942,9 +970,15 @@ function simularCaminhada(){
         ICONE_EU_PARADO
     ];
 
+    if(linhas) linhas.classList.add('ativo');
+
     passos.forEach((src, i) => {
         timeoutsCaminhada.push(setTimeout(() => { img.src = src; }, i * 200));
     });
+
+    timeoutsCaminhada.push(setTimeout(() => {
+        if(linhas) linhas.classList.remove('ativo');
+    }, passos.length * 200));
 
 }
 
