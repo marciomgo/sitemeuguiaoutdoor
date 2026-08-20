@@ -1206,13 +1206,11 @@ function abrirComoFunciona() {
         titulo: tituloComIcone(ICONE_REGRAS, "Como funciona"),
 
         mensagem:
-            "Passo a passo de como jogar<br><br>" +
-            "Sejam bem vindos!<br><br>" +
-            "1º Encontre os pontos na ordem numérica<br><br>" +
-            "2º Confirme que chegou clicando no ponto<br><br>" +
-            "3º Complete a missão do ponto<br><br>" +
-            "4º Repita até o fim<br><br>" +
-            "Pelo caminho, fiquem de olho nos pontos bônus — são opcionais, não seguem a ordem numérica e podem ser encontrados a qualquer momento.<br><br>" +
+            "1º O Guia aponta pro próximo ponto — sigam ele!<br><br>" +
+            "2º Toquem no ponto quando chegarem<br><br>" +
+            "3º Completem o desafio<br><br>" +
+            "4º Repitam até o fim<br><br>" +
+            "Bônus 🎁 aparecem no caminho — são opcionais!<br><br>" +
             "Boa diversão!"
 
     });
