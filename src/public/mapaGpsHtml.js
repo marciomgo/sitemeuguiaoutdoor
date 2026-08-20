@@ -177,6 +177,24 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     filter: grayscale(100%) brightness(70%) drop-shadow(0 1px 3px rgba(0,0,0,0.7));
 }
 .icone-barra.invisivel{ visibility:hidden; }
+/* Só o bônus ganha o círculo branco atrás — o ícone dentro dele fica
+   sem sombra (o círculo já dá contraste sozinho; a sombra por cima do
+   fundo branco ficava com um ar borrado/sujo). Seletores com #barraBonus
+   na frente de propósito, pra ganhar das regras de sombra/cinza acima
+   (mesma pegadinha de especificidade CSS de antes). */
+#barraBonus .icone-barra{
+    background:rgba(255,255,255,0.9);
+    border-radius:50%;
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    padding:4px;
+    box-sizing:border-box;
+}
+#barraBonus .icone-barra img{
+    filter:none;
+}
+#barraBonus .icone-barra img.icone-ponto-cinza{
+    filter: grayscale(100%) brightness(70%);
+}
 
 /* Overlay de bônus liberado — mesmo espírito do botão de ativar
    bússola (grande, centralizado, fundo escurecido). */
@@ -227,9 +245,11 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     position:fixed;
     z-index:99999;
     border-radius:50%;
+    background:rgba(255,255,255,0.9);
     box-shadow:0 4px 20px rgba(0,0,0,0.5);
     transition: top 0.6s ease, left 0.6s ease, width 0.6s ease, height 0.6s ease, opacity 0.6s ease;
     pointer-events:none;
+    box-sizing:border-box;
 }
 #iconeVoando img{ width:100%;height:100%;object-fit:contain;display:block; }
 
