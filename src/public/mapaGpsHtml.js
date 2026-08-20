@@ -859,7 +859,7 @@ function calcularBearing(lat1, lon1, lat2, lon2){
 
 }
 
-const ICONE_EU = "https://static.wixstatic.com/media/f02643_750c3c17b1fd4cbc929e825f71145400~mv2.png";
+const ICONE_EU = "https://static.wixstatic.com/media/f02643_337efeb8f7ca4565aecb4b2f8b8b0ea4~mv2.png";
 
 function iconeEuSvg(){
     return '<div class="icone-eu-seta"><img src="' + ICONE_EU + '"></div>';
