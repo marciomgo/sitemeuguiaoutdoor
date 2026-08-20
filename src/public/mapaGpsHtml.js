@@ -38,7 +38,10 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     position:absolute;
     width:150%;height:150%;
     top:-25%;left:-25%;
-    transition: transform 0.15s linear;
+    /* Sem transição — o mapa girando o tempo todo (mesmo suave)
+       deixava o toque nos marcadores muito instável (media uns 10
+       toques até um registrar). Atualiza em saltinhos a cada leitura
+       da bússola em vez de deslizar continuamente. */
 }
 #map{width:100%;height:100%;}
 /* Pontinho da família — agora é a própria seta (a carinha do
