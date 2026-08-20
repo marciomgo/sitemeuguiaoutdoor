@@ -59,6 +59,24 @@ function conectarEventos() {
 
     });
 
+    // Popup "Modo Desafio" — explica de novo, com o tempo específico
+    // dessa missão (missao.tempoDesafio, em minutos).
+    try {
+
+        $w("#button31").onClick(() => {
+
+            wixWindow.openLightbox("Modo Desafio", {
+                tempoDesafio: missao.tempoDesafio
+            });
+
+        });
+
+    } catch (err) {
+
+        console.log("#button31 não encontrado na página.");
+
+    }
+
 }
 
 //==================================================
