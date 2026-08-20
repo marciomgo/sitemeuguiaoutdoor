@@ -129,7 +129,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     z-index:900;
     display:flex;
     flex-direction:column;
-    gap:6px;
+    gap:4px;
     overflow-y:auto;
     scrollbar-width:none;
     /* A faixa inteira (inclusive os espaços vazios entre ícones) NÃO
@@ -144,7 +144,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
    na missão). Só inverte a ORDEM VISUAL, os dados continuam vindo
    1..N normalmente. */
 #barraOficiais{ left:10px; flex-direction:column-reverse; }
-#barraBonus{ right:10px; }
+/* Bônus não estica do topo à base como a de oficiais — cresce a
+   partir do centro vertical (top:50% + translateY), então conforme
+   mais bônus vão sendo liberados a fileira cresce pros dois lados,
+   sem "pular" de posição nem ficar grudada no topo com poucos itens. */
+#barraBonus{
+    right:10px;
+    top:50%;
+    bottom:auto;
+    max-height:calc(100% - 60px);
+    transform:translateY(-50%);
+}
 .icone-barra{
     width:34px;height:34px;
     flex:none;
@@ -577,7 +587,12 @@ function desenharPontos(pontos){
 
 const TAMANHO_MAX_ICONE_BARRA = 34;
 const TAMANHO_MIN_ICONE_BARRA = 16;
-const GAP_BARRA = 6;
+const GAP_BARRA = 4;
+
+// Bônus não usa o encolhimento dinâmico (a barra dele não estica do
+// topo à base, cresce a partir do centro — ver CSS #barraBonus), fica
+// nesse tamanho fixo, um pouco maior que os oficiais.
+const TAMANHO_ICONE_BONUS = 40;
 
 // Encolhe os ícones o quanto precisar pra a fileira inteira caber na
 // altura disponível, sem cortar nem precisar rolar (com poucos
@@ -655,6 +670,8 @@ function renderizarBarraBonus(pontosBonus){
         const item = document.createElement('div');
         item.className = 'icone-barra' + (bonusEmCelebracao.has(ponto.id) ? ' invisivel' : '');
         item.setAttribute('data-bonus-id', ponto.id);
+        item.style.width = TAMANHO_ICONE_BONUS + 'px';
+        item.style.height = TAMANHO_ICONE_BONUS + 'px';
 
         const img = document.createElement('img');
         img.src = ponto.icone;
@@ -671,8 +688,6 @@ function renderizarBarraBonus(pontosBonus){
         barra.appendChild(item);
 
     });
-
-    ajustarTamanhoBarra('barraBonus');
 
 }
 
