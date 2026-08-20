@@ -222,6 +222,24 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     pointer-events:none;
 }
 #iconeVoando img{ width:100%;height:100%;object-fit:contain;display:block; }
+
+/* Confirma visualmente que o toque foi recebido, mesmo quando não
+   acerta em cima de nada — ajuda a não ficar tocando freneticamente
+   sem saber se o app "sentiu" o toque. */
+.toque-splash{
+    position:fixed;
+    width:42px;height:42px;
+    margin-left:-21px;margin-top:-21px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.55);
+    border:2px solid rgba(255,255,255,0.85);
+    box-sizing:border-box;
+    pointer-events:none;
+    z-index:99997;
+    transform:scale(0.3);
+    opacity:1;
+    transition: transform 0.45s ease-out, opacity 0.45s ease-out;
+}
 </style>
 </head>
 <body>
@@ -248,6 +266,26 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 <div id="iconeVoando"><img id="iconeVoandoImg" src=""></div>
 
 <script>
+
+// Splash de toque — feedback visual imediato em qualquer toque na
+// tela, mesmo que não acerte em cima de nada. pointerdown cobre
+// touch e mouse num só evento, sem duplicar.
+document.addEventListener('pointerdown', function(evento){
+
+    const el = document.createElement('div');
+    el.className = 'toque-splash';
+    el.style.left = evento.clientX + 'px';
+    el.style.top = evento.clientY + 'px';
+    document.body.appendChild(el);
+
+    requestAnimationFrame(() => {
+        el.style.transform = 'scale(1.9)';
+        el.style.opacity = '0';
+    });
+
+    setTimeout(() => el.remove(), 500);
+
+});
 
 // Zoom fixo, sempre o mesmo — foco total no entorno próximo (o
 // próximo ponto obrigatório), em vez de mostrar o parque inteiro.
