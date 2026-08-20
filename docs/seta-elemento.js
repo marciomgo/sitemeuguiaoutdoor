@@ -59,7 +59,7 @@ class LeitorBussola extends HTMLElement {
                     font-family:Arial,Helvetica,sans-serif;
                     border:none;
                     border-radius:18px;
-                    background:#e8a33d;
+                    background:#ff69b4;
                     color:#4a2e05;
                     cursor:pointer;
                     max-width:80vw;
