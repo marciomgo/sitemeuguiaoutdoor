@@ -869,7 +869,7 @@ function atualizarMinhaLocalizacao(lat, lng){
 
     if(!marcadorEu){
         marcadorEu = L.marker([lat,lng], {
-            icon: L.divIcon({ className:'icone-eu-wrapper', html: iconeEuSvg(), iconSize:[44,44], iconAnchor:[22,22] }),
+            icon: L.divIcon({ className:'icone-eu-wrapper', html: iconeEuSvg(), iconSize:[88,88], iconAnchor:[44,44] }),
             zIndexOffset: 1000,
             // Não precisa ser clicável — só indica onde a família
             // está. Sem isso, ele (que fica sempre por cima e ficou
