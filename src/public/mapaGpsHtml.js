@@ -444,22 +444,22 @@ function iconeBonus(url, achado, tipo){
         return L.divIcon({
             className: '',
             html: '<div class="giro-marcador"><img src="' + url + '" class="' + classe + '"></div>',
-            iconSize: [40,40],
+            iconSize: [50,50],
             // Ancorado pelo centro (não pela base) — bate exatamente
             // com o ponto de giro (.giro-marcador, transform-origin
             // 50% 50%), senão o desenho gira em volta de um ponto
             // diferente de onde o toque de verdade vale, e "descola"
             // conforme o ângulo. Mesmo esquema do bonequinho, que
             // nunca teve esse problema.
-            iconAnchor: [20,20]
+            iconAnchor: [25,25]
         });
     }
 
     return L.divIcon({
         className: '',
         html: '<div class="giro-marcador"><div class="icone-bonus">?</div></div>',
-        iconSize: [30,30],
-        iconAnchor: [15,15]
+        iconSize: [38,38],
+        iconAnchor: [19,19]
     });
 }
 
