@@ -266,7 +266,7 @@ async function verificarPonto(ponto) {
 
         if (distancia <= raio) {
 
-            mostrarStatus("✅ Local encontrado!");
+            mostrarStatus(`✅ Ponto ${ponto.codigo} encontrado!`);
 
             mostrarConteudo(ponto);
 
