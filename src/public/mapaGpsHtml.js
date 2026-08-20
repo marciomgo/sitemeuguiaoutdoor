@@ -612,7 +612,7 @@ const GAP_BARRA = 4;
 // Bônus não usa o encolhimento dinâmico (a barra dele não estica do
 // topo à base, cresce a partir do centro — ver CSS #barraBonus), fica
 // nesse tamanho fixo, um pouco maior que os oficiais.
-const TAMANHO_ICONE_BONUS = 40;
+const TAMANHO_ICONE_BONUS = 32;
 
 // Encolhe os ícones o quanto precisar pra a fileira inteira caber na
 // altura disponível, sem cortar nem precisar rolar (com poucos
