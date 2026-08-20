@@ -31,7 +31,13 @@ class LeitorBussola extends HTMLElement {
 
         shadow.innerHTML = `
             <style>
-                :host{ display:block; }
+                /* pointer-events:none no host — o tamanho/posição que
+                   ele tem no Editor não importa pro overlay (que usa
+                   position:fixed e escapa dessa caixinha), mas sem
+                   isso o próprio host, mesmo com o conteúdo escondido,
+                   continuava "sólido" pro navegador — bloqueava toque
+                   em cima do mapa, bem onde foi posicionado. */
+                :host{ display:block; pointer-events:none; }
                 #overlay{
                     position:fixed;
                     inset:0;
@@ -40,6 +46,9 @@ class LeitorBussola extends HTMLElement {
                     align-items:center;
                     justify-content:center;
                     z-index:99999;
+                    /* Reativa o toque só aqui, enquanto o pedido de
+                       permissão está visível. */
+                    pointer-events:auto;
                 }
                 button{
                     padding:24px 30px;
