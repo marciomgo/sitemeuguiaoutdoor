@@ -298,14 +298,14 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
 <script>
 
 // Splash de toque — feedback visual imediato em qualquer toque na
-// tela, mesmo que não acerte em cima de nada. pointerdown cobre
-// touch e mouse num só evento, sem duplicar.
-document.addEventListener('pointerdown', function(evento){
+// tela, mesmo que não acerte em cima de nada. pointerdown/pointermove
+// cobre touch e mouse num só evento, sem duplicar.
+function criarSplash(x, y){
 
     const el = document.createElement('div');
     el.className = 'toque-splash';
-    el.style.left = evento.clientX + 'px';
-    el.style.top = evento.clientY + 'px';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
     document.body.appendChild(el);
 
     requestAnimationFrame(() => {
@@ -315,7 +315,34 @@ document.addEventListener('pointerdown', function(evento){
 
     setTimeout(() => el.remove(), 500);
 
+}
+
+let arrastando = false;
+let ultimoSplashArraste = 0;
+
+document.addEventListener('pointerdown', function(evento){
+    arrastando = true;
+    criarSplash(evento.clientX, evento.clientY);
 });
+
+document.addEventListener('pointermove', function(evento){
+
+    if(!arrastando) return;
+
+    // Limita a frequência do "rastro" durante o arraste — sem isso,
+    // um arrasto longo criaria dezenas de elementos por segundo à
+    // toa (o dedo se move rápido demais pra precisar de um splash a
+    // cada pixel).
+    const agora = Date.now();
+    if(agora - ultimoSplashArraste < 45) return;
+    ultimoSplashArraste = agora;
+
+    criarSplash(evento.clientX, evento.clientY);
+
+});
+
+document.addEventListener('pointerup', function(){ arrastando = false; });
+document.addEventListener('pointercancel', function(){ arrastando = false; });
 
 // Zoom fixo, sempre o mesmo — foco total no entorno próximo (o
 // próximo ponto obrigatório), em vez de mostrar o parque inteiro.
