@@ -33,12 +33,22 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
        página em vez de um clique no ícone — os pontos ficavam "surdos"
        ao toque por causa disso. */
     touch-action: none;
+    /* Perspectiva 3D — junto com o rotateX() no #mapGiro, dá aquele
+       efeito de câmera atrás e acima do personagem, olhando o mapa
+       de um ângulo (tipo Pokémon Go), em vez de reto de cima. É só
+       um mapa plano inclinado — não tem prédio/relevo de verdade,
+       mas dá a sensação de profundidade. */
+    perspective: 500px;
 }
 #mapGiro{
     position:absolute;
-    width:150%;height:150%;
-    top:-25%;left:-25%;
+    /* Maior que antes (220% em vez de 150%) — inclinado em 3D, a
+       "sobra" pras bordas girarem sem aparecer canto vazio precisa
+       ser maior do que quando era só rotação plana. */
+    width:220%;height:220%;
+    top:-60%;left:-60%;
     transition: transform 0.15s linear;
+    transform: rotateX(55deg);
 }
 #map{width:100%;height:100%;}
 /* Pontinho da família — agora é a própria seta (a carinha do
@@ -861,7 +871,10 @@ function girarMapa(heading){
 
     const giro = document.getElementById('mapGiro');
     if(giro){
-        giro.style.transform = 'rotate(' + (-heading) + 'deg)';
+        // rotateX inclina (efeito câmera atrás/acima do personagem);
+        // rotate continua fazendo o mapa acompanhar a bússola, dentro
+        // do plano já inclinado.
+        giro.style.transform = 'rotateX(55deg) rotate(' + (-heading) + 'deg)';
     }
 
     aplicarContraGiro();
