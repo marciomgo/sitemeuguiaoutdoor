@@ -71,6 +71,18 @@ class LeitorBussola extends HTMLElement {
 
     aoReceberOrientacao(evento) {
 
+        // O sensor dispara isso muitas vezes por segundo (30-60x),
+        // bem mais rápido do que dá pra perceber visualmente (o mapa
+        // só anima a cada 0.15s de qualquer jeito) — repassar cada
+        // leitura sobrecarrega o processamento à toa (o mapa
+        // reprocessa todos os ícones a cada aviso). Limita a no
+        // máximo ~8 vezes por segundo.
+        const agora = Date.now();
+        if (this.ultimoEnvio && (agora - this.ultimoEnvio) < 120) {
+            return;
+        }
+        this.ultimoEnvio = agora;
+
         let heading;
 
         if (typeof evento.webkitCompassHeading === 'number') {
