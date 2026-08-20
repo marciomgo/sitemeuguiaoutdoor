@@ -450,7 +450,9 @@ function desenharMascara(coordenadas){
     camadaMascara = L.polygon([anelExterno, buraco], {
         stroke: false,
         fillColor: '#000000',
-        fillOpacity: 0.5,
+        // TEMPORÁRIO: 0 pra tirar print fora do parque sem o fundo
+        // preto. Volta pra 0.5 depois.
+        fillOpacity: 0,
         // Puramente decorativa (nunca teve clique nenhum nela) — mas
         // por padrão o Leaflet deixa toda forma vetorial (polígono)
         // clicável, e o "buraco" do formato não conta pra isso: o
