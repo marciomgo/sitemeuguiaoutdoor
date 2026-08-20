@@ -43,8 +43,10 @@ class LeitorBussola extends HTMLElement {
                     inset:0;
                     background:rgba(0,0,0,0.75);
                     display:flex;
+                    flex-direction:column;
                     align-items:center;
                     justify-content:center;
+                    gap:14px;
                     z-index:99999;
                     /* Reativa o toque só aqui, enquanto o pedido de
                        permissão está visível. */
@@ -64,9 +66,18 @@ class LeitorBussola extends HTMLElement {
                     text-align:center;
                     box-shadow:0 6px 24px rgba(0,0,0,0.5);
                 }
+                #dicaAtivar{
+                    font-size:13px;
+                    font-family:Arial,Helvetica,sans-serif;
+                    color:#fff;
+                    text-align:center;
+                    max-width:75vw;
+                    line-height:1.4;
+                }
             </style>
             <div id="overlay">
                 <button id="btnAtivar">🧭 Toque para ativar a bússola</button>
+                <p id="dicaAtivar">Vai aparecer uma pergunta do iPhone — toquem em "Permitir"</p>
             </div>
         `;
 
