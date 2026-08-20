@@ -383,7 +383,13 @@ function iconeBonus(url, achado, tipo){
             className: '',
             html: '<div class="giro-marcador"><img src="' + url + '" class="' + classe + '"></div>',
             iconSize: [40,40],
-            iconAnchor: [20,40]
+            // Ancorado pelo centro (não pela base) — bate exatamente
+            // com o ponto de giro (.giro-marcador, transform-origin
+            // 50% 50%), senão o desenho gira em volta de um ponto
+            // diferente de onde o toque de verdade vale, e "descola"
+            // conforme o ângulo. Mesmo esquema do bonequinho, que
+            // nunca teve esse problema.
+            iconAnchor: [20,20]
         });
     }
 
@@ -464,7 +470,7 @@ function desenharLargada(latitude, longitude){
             className: '',
             html: '<div class="giro-marcador"><img src="' + ICONE_LARGADA + '" class="icone-ponto-img"></div>',
             iconSize: [40,40],
-            iconAnchor: [20,40]
+            iconAnchor: [20,20]
         }),
         zIndexOffset: 900
     }).addTo(mapa);
@@ -485,7 +491,7 @@ function iconePonto(codigo, ehChegada, concluido){
         className: '',
         html: '<div class="giro-marcador"><img src="' + url + '" class="' + classe + '"></div>',
         iconSize: [40,40],
-        iconAnchor: [20,40]
+        iconAnchor: [20,20]
     });
 }
 
