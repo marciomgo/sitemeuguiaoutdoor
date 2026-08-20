@@ -859,10 +859,66 @@ function calcularBearing(lat1, lon1, lat2, lon2){
 
 }
 
-const ICONE_EU = "https://static.wixstatic.com/media/f02643_337efeb8f7ca4565aecb4b2f8b8b0ea4~mv2.png";
+const ICONE_EU_PARADO = "https://static.wixstatic.com/media/f02643_337efeb8f7ca4565aecb4b2f8b8b0ea4~mv2.png";
+const ICONE_EU_PERNA_DIREITA = "https://static.wixstatic.com/media/f02643_8152aaff69a2439cb5ada2737a8c6f1f~mv2.png";
+const ICONE_EU_PERNA_ESQUERDA = "https://static.wixstatic.com/media/f02643_f5c1463acdc04d85978f56dbab851628~mv2.png";
 
 function iconeEuSvg(){
-    return '<div class="icone-eu-seta"><img src="' + ICONE_EU + '"></div>';
+    return '<div class="icone-eu-seta"><img id="imgEuAtual" src="' + ICONE_EU_PARADO + '"></div>';
+}
+
+// Distância (metros) entre dois pontos — fórmula padrão de haversine.
+function calcularDistanciaSimples(lat1, lon1, lat2, lon2){
+
+    const R = 6371000;
+    const toRad = g => g * Math.PI / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+}
+
+// Anima a troca de perna só quando a família realmente andou entre
+// uma leitura de GPS e outra (não fica "andando parado" — o mapa
+// recentraliza em saltos a cada 5s, não desliza suave, então a
+// animação só faz sentido nos momentos em que sabemos que houve
+// deslocamento de verdade). Um "pulsinho" de passos, depois volta pro
+// parado sozinha.
+const DISTANCIA_MINIMA_CAMINHADA_M = 3;
+let timeoutsCaminhada = [];
+
+function simularCaminhada(){
+
+    timeoutsCaminhada.forEach(id => clearTimeout(id));
+    timeoutsCaminhada = [];
+
+    if(!marcadorEu) return;
+
+    const el = marcadorEu.getElement();
+    if(!el) return;
+
+    const img = el.querySelector('#imgEuAtual');
+    if(!img) return;
+
+    const passos = [
+        ICONE_EU_PERNA_DIREITA,
+        ICONE_EU_PERNA_ESQUERDA,
+        ICONE_EU_PERNA_DIREITA,
+        ICONE_EU_PERNA_ESQUERDA,
+        ICONE_EU_PARADO
+    ];
+
+    passos.forEach((src, i) => {
+        timeoutsCaminhada.push(setTimeout(() => { img.src = src; }, i * 200));
+    });
+
 }
 
 let minhaLatAtual = null;
@@ -898,6 +954,16 @@ function atualizarSetaEu(){
 // frente) nela, sempre — modo foco: mapa segue a pessoa em vez dela
 // precisar arrastar.
 function atualizarMinhaLocalizacao(lat, lng){
+
+    // Compara com a posição anterior ANTES de sobrescrever — só assim
+    // dá pra saber se a família andou de verdade desde a última
+    // leitura (uns 5s atrás) e vale a pena animar os passos.
+    if(minhaLatAtual !== null && minhaLngAtual !== null){
+        const distanciaAndada = calcularDistanciaSimples(minhaLatAtual, minhaLngAtual, lat, lng);
+        if(distanciaAndada >= DISTANCIA_MINIMA_CAMINHADA_M){
+            simularCaminhada();
+        }
+    }
 
     minhaLatAtual = lat;
     minhaLngAtual = lng;
