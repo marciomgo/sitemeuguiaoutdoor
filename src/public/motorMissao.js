@@ -206,6 +206,10 @@ function conectarImagemChegada() {
 // VERIFICAR PONTO
 //==================================================
 
+// Compartilhado entre pontos oficiais e bônus — só uma consulta de
+// GPS por vez, não importa de onde veio o toque.
+let verificandoLocalizacao = false;
+
 async function verificarPonto(ponto) {
 
     // Se já foi concluído, abre direto o conteúdo
@@ -233,6 +237,13 @@ async function verificarPonto(ponto) {
         return;
 
     }
+
+    // Já tem uma verificação rolando (esperando o GPS responder) —
+    // ignora toques repetidos até essa terminar, senão cada toque
+    // dispara outra consulta de localização em paralelo e pode até
+    // tentar abrir o popup várias vezes ao mesmo tempo.
+    if (verificandoLocalizacao) return;
+    verificandoLocalizacao = true;
 
     try {
 
@@ -283,6 +294,10 @@ async function verificarPonto(ponto) {
         console.error(err);
 
         mostrarStatus("⚠️ " + err.message);
+
+    } finally {
+
+        verificandoLocalizacao = false;
 
     }
 
@@ -514,6 +529,9 @@ async function verificarPontoBonus(ponto) {
 
     }
 
+    if (verificandoLocalizacao) return;
+    verificandoLocalizacao = true;
+
     try {
 
         mostrarStatus("🛰️ Localizando...");
@@ -554,6 +572,10 @@ async function verificarPontoBonus(ponto) {
         console.error(err);
 
         mostrarStatus("⚠️ " + err.message);
+
+    } finally {
+
+        verificandoLocalizacao = false;
 
     }
 
