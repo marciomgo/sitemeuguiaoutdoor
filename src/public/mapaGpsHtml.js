@@ -302,8 +302,8 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     width:42px;height:42px;
     margin-left:-21px;margin-top:-21px;
     border-radius:50%;
-    background:rgba(255,255,255,0.55);
-    border:2px solid rgba(255,255,255,0.85);
+    background:rgba(0,0,0,0.55);
+    border:2px solid rgba(0,0,0,0.85);
     box-sizing:border-box;
     pointer-events:none;
     z-index:99997;
