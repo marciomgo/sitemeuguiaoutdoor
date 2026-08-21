@@ -309,7 +309,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;}
     z-index:99997;
     transform:scale(0.3);
     opacity:1;
-    transition: transform 0.45s ease-out, opacity 0.45s ease-out;
+    transition: transform 0.451s ease-out, opacity 0.451s ease-out;
 }
 </style>
 </head>
