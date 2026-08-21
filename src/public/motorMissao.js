@@ -69,7 +69,7 @@ const ICONES_BONUS = {
     },
 
     travessuras: {
-        bloqueado: "https://static.wixstatic.com/media/f02643_19b5c5cea70942d981b18b89a9818b46~mv2.png",
+        bloqueado: "https://static.wixstatic.com/media/f02643_8a3a0686bbde4752a141380157c0b2c3~mv2.png",
         encontrado: "https://static.wixstatic.com/media/f02643_64580c372f554928b3660c41dc5d371d~mv2.png"
     },
 
