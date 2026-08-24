@@ -1,4 +1,4 @@
-// Leitor de bússola — Wix Custom Element.
+// Leitor de bússola + GPS — Wix Custom Element.
 //
 // Ao contrário do iframe (usado no mapa e nos popups), um Custom
 // Element roda dentro do DOM de verdade da página publicada — sem
@@ -9,17 +9,27 @@
 // origem) conta como isolado — o iOS bloqueia sem nem perguntar.
 // Custom Element não tem esse problema.
 //
+// O mesmo bloqueio acontece com geolocalização dentro do código de
+// página da própria Wix (Velo) — confirmado testando: lá dentro,
+// "navigator.geolocation" nem existe. Aqui, sendo DOM real, dá pra
+// usar watchPosition() (rastreamento contínuo de verdade, o sistema
+// vai refinando a estimativa com o tempo — bem mais estável que
+// pedir uma leitura nova do zero a cada segundo, que era o que a
+// página fazia antes). Repassa pra página via evento
+// "localizacaoAtualizada"; se não vier nada em alguns segundos, a
+// própria página cai sozinha pro jeito antigo (ver Missão 1).
+//
 // Importante: no Editor/Preview do Wix, custom elements SEMPRE
 // aparecem dentro de um iframe (limitação do próprio editor) — só no
-// site publicado de verdade que ele roda solto. Testar a bússola tem
-// que ser sempre no site publicado, nunca no preview.
+// site publicado de verdade que ele roda solto. Testar bússola/GPS
+// tem que ser sempre no site publicado, nunca no preview.
 //
 // Esse widget não desenha seta nenhuma — quem aponta pro alvo agora é
 // o próprio pontinho da família no mapa (ver mapaGpsHtml.js), que já
-// gira sozinho junto com o mapa. Aqui só existe pra pedir a permissão
-// (uma vez, com um botão grande centralizado, fundo escurecido) e
-// depois ficar invisível, só repassando o heading pra página (evento
-// "headingAtualizado") — a página repassa esse número pro mapa.
+// gira sozinho junto com o mapa. Aqui só existe pra pedir as
+// permissões (uma vez, com um botão grande centralizado, fundo
+// escurecido) e depois ficar invisível, só repassando heading e
+// localização pra página.
 
 class LeitorBussola extends HTMLElement {
 
@@ -144,6 +154,49 @@ class LeitorBussola extends HTMLElement {
         // Desafio a partir daqui, não desde o cadastro (senão o tempo
         // gasto lendo as regras/ativando a bússola já contaria).
         this.dispatchEvent(new CustomEvent('bussolaAtivada'));
+
+        this.iniciarRastreamentoGps();
+
+    }
+
+    iniciarRastreamentoGps() {
+
+        if (!('geolocation' in navigator)) {
+            return;
+        }
+
+        this.ultimoEnvioGps = 0;
+
+        this.watchId = navigator.geolocation.watchPosition(
+
+            (posicao) => {
+
+                // watchPosition pode disparar mais rápido do que a
+                // página precisa processar — limita a no máximo
+                // ~2x por segundo.
+                const agora = Date.now();
+                if (this.ultimoEnvioGps && (agora - this.ultimoEnvioGps) < 500) {
+                    return;
+                }
+                this.ultimoEnvioGps = agora;
+
+                this.dispatchEvent(new CustomEvent('localizacaoAtualizada', {
+                    detail: {
+                        lat: posicao.coords.latitude,
+                        lng: posicao.coords.longitude,
+                        accuracy: posicao.coords.accuracy
+                    }
+                }));
+
+            },
+
+            (erro) => {
+                console.error('watchPosition falhou:', erro);
+            },
+
+            { enableHighAccuracy: true }
+
+        );
 
     }
 
