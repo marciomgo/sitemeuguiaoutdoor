@@ -87,7 +87,7 @@ class LeitorBussola extends HTMLElement {
             </style>
             <div id="overlay">
                 <button id="btnAtivar">🧭 Toque para ativar a bússola</button>
-                <p id="dicaAtivar">Vai aparecer uma pergunta do iPhone — toquem em "Permitir"</p>
+                <p id="dicaAtivar">Vai aparecer uma pergunta do celular — toquem em "Permitir"</p>
             </div>
         `;
 
