@@ -137,13 +137,53 @@ class LeitorBussola extends HTMLElement {
 
     }
 
-    // Trava do botão VOLTAR do navegador (a página Jogar já tem este elemento,
-    // então a trava vem junto — o mesmo código está em trava-voltar-elemento.js,
-    // que vai nas outras páginas). Roda no DOM de verdade da página, onde o
-    // Safari do iPhone aceita; dentro do iframe do mapa ele não aceita.
-    // Depois do primeiro toque põe uma entrada extra no histórico e a repõe a
-    // cada "voltar". Desfeita quando o elemento sai da página.
+    // Trava do botão VOLTAR do navegador — só quando a PÁGINA manda: a página Jogar
+    // liga com setAttribute("trava-voltar", "sim") no jogo em equipe e no jogo normal
+    // que tem o botão X de desistir (a saída). Sem isso a família ficaria presa no
+    // jogo. O mesmo código está em trava-voltar-elemento.js (outras páginas, sempre
+    // ligado). Roda no DOM de verdade da página, onde o Safari do iPhone aceita;
+    // dentro do iframe do mapa ele não aceita. Depois do primeiro toque põe
+    // entradas extras no histórico e as repõe a cada "voltar".
+    static get observedAttributes() {
+        return ['trava-voltar'];
+    }
+
+    attributeChangedCallback(nome, antes, depois) {
+
+        if (nome !== 'trava-voltar') return;
+
+        if (depois === 'sim') {
+            this.ligarTrava();
+        } else {
+            this.desligarTrava();
+        }
+
+    }
+
     connectedCallback() {
+
+        if (this.getAttribute('trava-voltar') === 'sim') {
+            this.ligarTrava();
+        }
+
+    }
+
+    disconnectedCallback() {
+
+        this.desligarTrava();
+
+    }
+
+    desligarTrava() {
+
+        if (this.desfazerTrava) {
+            this.desfazerTrava();
+            this.desfazerTrava = null;
+        }
+
+    }
+
+    ligarTrava() {
 
         if (this.desfazerTrava) return;
 
@@ -196,15 +236,6 @@ class LeitorBussola extends HTMLElement {
             window.removeEventListener('blur', aoFocoNoQuadro, true);
             window.removeEventListener('popstate', aoVoltar, true);
         };
-
-    }
-
-    disconnectedCallback() {
-
-        if (this.desfazerTrava) {
-            this.desfazerTrava();
-            this.desfazerTrava = null;
-        }
 
     }
 
