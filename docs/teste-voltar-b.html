@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teste do voltar - página B</title>
+<title>Teste do voltar - página B (versão 2)</title>
 <style>
 body{font-family:Arial,Helvetica,sans-serif;padding:24px;background:#f4f1e8;color:#3a2a1a}
 #estado{margin-top:16px;padding:16px;border-radius:14px;background:#fffdf6;border:2px solid #e4dcc6;font-size:18px;line-height:1.4}
@@ -11,7 +11,7 @@ b{color:#e8742a}
 </style>
 </head>
 <body>
-<h2>Teste do voltar (página B)</h2>
+<h2>Teste do voltar (página B, versão 2)</h2>
 <p>1) Toque UMA vez em qualquer lugar da tela.<br>2) Aperte o voltar do navegador (ou deslize da borda esquerda) várias vezes.</p>
 <div id="estado">Aguardando o primeiro toque...</div>
 
@@ -29,11 +29,19 @@ function mostrar(){
             : 'Aguardando o primeiro toque...';
 }
 
+var PROFUNDIDADE = 4;
+
+function empilhar(de){
+    for (var i = de; i <= PROFUNDIDADE; i++) {
+        try { history.pushState({ mgoTrava: i }, '', urlTrava); } catch (e) { erro = String(e); break; }
+    }
+}
+
 function armar(){
     if (armado) return;
     armado = true;
     urlTrava = location.href;
-    try { history.pushState({ trava: 1 }, '', urlTrava); } catch (e) { erro = String(e); }
+    empilhar(1);
     mostrar();
 }
 
@@ -44,7 +52,9 @@ function armar(){
 window.addEventListener('popstate', function(){
     if (!armado) return;
     bloqueios++;
-    try { history.pushState({ trava: 1 }, '', urlTrava); } catch (e) { erro = String(e); }
+    var estado = history.state;
+    var atual = (estado && typeof estado.mgoTrava === 'number') ? estado.mgoTrava : 0;
+    empilhar(atual + 1);
     mostrar();
 });
 </script>

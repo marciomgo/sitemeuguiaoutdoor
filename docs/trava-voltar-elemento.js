@@ -34,16 +34,30 @@ class TravaVoltar extends HTMLElement {
         let armado = false;
         let urlTrava = '';
 
+        // Várias entradas de reserva (não uma só): no iPhone, dois "voltar" rápidos
+        // podiam andar antes de a trava repor a entrada, e o segundo escapava. Com
+        // PROFUNDIDADE entradas, os voltar seguidos são absorvidos e a trava repõe
+        // até completar de novo a cada voltar.
+        const PROFUNDIDADE = 4;
+
+        const empilhar = (de) => {
+            for (let i = de; i <= PROFUNDIDADE; i++) {
+                try { history.pushState({ mgoTrava: i }, '', urlTrava); } catch (e) { break; }
+            }
+        };
+
         const armar = () => {
             if (armado) return;
             armado = true;
             urlTrava = location.href;
-            try { history.pushState({ mgoTrava: 1 }, '', urlTrava); } catch (e) {}
+            empilhar(1);
         };
 
         const aoVoltar = () => {
             if (!armado) return;
-            try { history.pushState({ mgoTrava: 1 }, '', urlTrava); } catch (e) {}
+            const estado = history.state;
+            const atual = (estado && typeof estado.mgoTrava === 'number') ? estado.mgoTrava : 0;
+            empilhar(atual + 1);
         };
 
         // Um toque DENTRO de um quadro (iframe) — as telas do jogo — não gera toque
