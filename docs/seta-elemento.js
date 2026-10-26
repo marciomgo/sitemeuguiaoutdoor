@@ -162,13 +162,24 @@ class LeitorBussola extends HTMLElement {
             try { history.pushState({ mgoTrava: 1 }, '', urlTrava); } catch (e) {}
         };
 
+        // Um toque DENTRO de um quadro (iframe) — as telas do jogo — não gera toque
+        // na página principal; só o foco passa pro quadro (blur). Arma por aí também.
+        const aoFocoNoQuadro = () => {
+            setTimeout(() => {
+                const ativo = document.activeElement;
+                if (ativo && ativo.tagName === 'IFRAME') armar();
+            }, 0);
+        };
+
         const eventos = ['touchend', 'pointerup', 'click', 'keydown'];
 
         eventos.forEach((e) => window.addEventListener(e, armar, true));
+        window.addEventListener('blur', aoFocoNoQuadro, true);
         window.addEventListener('popstate', aoVoltar, true);
 
         this.desfazerTrava = () => {
             eventos.forEach((e) => window.removeEventListener(e, armar, true));
+            window.removeEventListener('blur', aoFocoNoQuadro, true);
             window.removeEventListener('popstate', aoVoltar, true);
         };
 
