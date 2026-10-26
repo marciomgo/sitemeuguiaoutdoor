@@ -137,6 +137,52 @@ class LeitorBussola extends HTMLElement {
 
     }
 
+    // Trava do botão VOLTAR do navegador (a página Jogar já tem este elemento,
+    // então a trava vem junto — o mesmo código está em trava-voltar-elemento.js,
+    // que vai nas outras páginas). Roda no DOM de verdade da página, onde o
+    // Safari do iPhone aceita; dentro do iframe do mapa ele não aceita.
+    // Depois do primeiro toque põe uma entrada extra no histórico e a repõe a
+    // cada "voltar". Desfeita quando o elemento sai da página.
+    connectedCallback() {
+
+        if (this.desfazerTrava) return;
+
+        let armado = false;
+        let urlTrava = '';
+
+        const armar = () => {
+            if (armado) return;
+            armado = true;
+            urlTrava = location.href;
+            try { history.pushState({ mgoTrava: 1 }, '', urlTrava); } catch (e) {}
+        };
+
+        const aoVoltar = () => {
+            if (!armado) return;
+            try { history.pushState({ mgoTrava: 1 }, '', urlTrava); } catch (e) {}
+        };
+
+        const eventos = ['touchend', 'pointerup', 'click', 'keydown'];
+
+        eventos.forEach((e) => window.addEventListener(e, armar, true));
+        window.addEventListener('popstate', aoVoltar, true);
+
+        this.desfazerTrava = () => {
+            eventos.forEach((e) => window.removeEventListener(e, armar, true));
+            window.removeEventListener('popstate', aoVoltar, true);
+        };
+
+    }
+
+    disconnectedCallback() {
+
+        if (this.desfazerTrava) {
+            this.desfazerTrava();
+            this.desfazerTrava = null;
+        }
+
+    }
+
     iniciarEscuta() {
 
         // Ativado — some por completo, nem o fundo escurecido nem o
