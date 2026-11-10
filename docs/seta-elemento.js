@@ -214,6 +214,8 @@ class LeitorBussola extends HTMLElement {
             const estado = history.state;
             const atual = (estado && typeof estado.mgoTrava === 'number') ? estado.mgoTrava : 0;
             empilhar(atual + 1);
+            // Avisa a página que a pessoa apertou VOLTAR (a Jogar pergunta se quer sair da missão).
+            try { this.dispatchEvent(new CustomEvent('voltarPressionado')); } catch (e) { }
         };
 
         // Um toque DENTRO de um quadro (iframe) — as telas do jogo — não gera toque
