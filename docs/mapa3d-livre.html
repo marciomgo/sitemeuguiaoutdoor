@@ -100,8 +100,8 @@
   #inicio{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(25,35,18,.5)}
   #bInicio{font-size:20px;font-weight:bold;padding:20px 28px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   #bInicio:active{transform:scale(.97)}
-  #mineu.golpeando .corpo:not(#corpoGolpe) img{visibility:hidden}
-  #mineu.golpeando #galhoMineu{display:none !important}
+  #mineu.comPau .corpo:not(#corpoGolpe) img{visibility:hidden}
+  #mineu.comPau #galhoMineu{display:none !important}
 </style>
 </head>
 <body>
@@ -693,15 +693,23 @@ document.addEventListener('click', function () { ligarBussola(); obterAudio(); }
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
 var FRAME_GOLPE = { w: 361, h: 693, ax: 162.08, ay: 689, src: ['mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png'], prontos: 0 };
-FRAME_GOLPE.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_GOLPE.prontos++; }; im.src = u; });
+FRAME_GOLPE.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_GOLPE.prontos++; if (FRAME_GOLPE.prontos === 3) aplicarPosePau(); }; im.src = u; });
 var golpeTimers = [];
-function tocarFramesGolpe() { // 3 quadros: pau levantado -> no meio -> baixo; depois volta ao Mineu parado
+// com o pau selecionado, o Mineu fica SEMPRE na pose 1 (pau levantado); o golpe passa pelas poses 2 e 3 e volta pra 1
+function aplicarPosePau() {
   var cg = document.getElementById('corpoGolpe'), ig = document.getElementById('imgGolpe');
-  golpeTimers.forEach(clearTimeout); golpeTimers = [];
+  if (!cg || !ig || !elMineu) return;
+  var quer = (typeof ativa !== 'undefined' && ativa === 'galho') && FRAME_GOLPE.prontos >= 3;
+  elMineu.classList.toggle('comPau', quer);
+  cg.style.display = quer ? 'block' : 'none';
+  if (quer) ig.src = FRAME_GOLPE.src[0];
+}
+function tocarFramesGolpe() {
   if (FRAME_GOLPE.prontos < 3) return false;
-  elMineu.classList.add('golpeando'); cg.style.display = 'block';
-  [[0, 0], [120, 1], [240, 2]].forEach(function (q) { golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[q[1]]; }, q[0])); });
-  golpeTimers.push(setTimeout(function () { elMineu.classList.remove('golpeando'); cg.style.display = 'none'; }, 420));
+  var ig = document.getElementById('imgGolpe');
+  golpeTimers.forEach(clearTimeout); golpeTimers = [];
+  [[0, 1], [130, 2]].forEach(function (q) { golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[q[1]]; }, q[0])); });
+  golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[0]; }, 330));
   return true;
 }
 function ajustarMineu(pitch) {
@@ -742,6 +750,7 @@ function pintaMunicao() {
   document.getElementById("btnAtirar").innerHTML = ativa === "galho" ? GALHO_SVG : ESTILINGUE_HTML;
   document.getElementById("btnAtirar").setAttribute("aria-label", ativa === "galho" ? "Bater com o galho" : "Atirar");
   elGalho.style.display = ativa === "galho" ? "block" : "none";
+  aplicarPosePau();
 }
 // golpe de perto com o galho: sem munição, pausa curta entre golpes
 var ultimoGolpe = 0, GALHO_ALCANCE_M = 7, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
