@@ -92,6 +92,7 @@
   .fogo.roxo{filter:hue-rotate(255deg) saturate(1.5) drop-shadow(0 0 8px #aa00ff)}
   .rastro.fogo{background:rgba(255,109,0,.85);filter:none}
   .rastro.roxo{background:rgba(170,0,255,.85);filter:none}
+  .pe-amarela{display:inline-block;filter:sepia(1) saturate(6) hue-rotate(-10deg) brightness(1.15)}
 </style>
 </head>
 <body>
@@ -290,7 +291,7 @@ function tiroDoMineu() {
   var de = { lat: POS.lat, lng: POS.lng };
   var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
   var fora = document.createElement('div'); fora.style.zIndex = 100001;
-  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨'; fora.appendChild(el);
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now();
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
@@ -467,7 +468,7 @@ mapa.on('load', function () {
   if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng);
   DADOS.pontos.forEach(function (p) { pino('p-ponto', p.n, p.lat, p.lng); });
   DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
-  DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), '🪨', p.lat, p.lng); });
+  DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), (p.esp ? '<span class="pe-amarela">🪨</span>' : '🪨'), p.lat, p.lng); });
   DADOS.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
   DADOS.zumbis.forEach(function (z) { novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
   (DADOS.chefoes || []).forEach(function (c) { novoInimigo(c.lat, c.lng, 'p-chefao', c.final ? '👿' : '👹', c.final ? 200 : 25); });
@@ -517,7 +518,7 @@ var municao = { normal: 150, esp: 12 }, ativa = "normal";
 var ORDEM_ARMAS = ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
 var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva");
-function iconeArma(k) { return k === "galho" ? GALHO_SVG : "🪨"; }
+function iconeArma(k) { return k === "galho" ? GALHO_SVG : (k === "esp" ? "<span class=\"pe-amarela\">🪨</span>" : "🪨"); }
 function pintaMunicao() {
   var prox = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length];
   elTroca.classList.toggle("esp", ativa === "esp"); elTroca.classList.toggle("galho", ativa === "galho");
