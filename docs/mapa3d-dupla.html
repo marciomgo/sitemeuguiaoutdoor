@@ -364,7 +364,7 @@ function estouro(el) {
 }
 function tiroDoMineu() {
   if (municao[ativa] <= 0) return;
-  municao[ativa]--; pintaMunicao();
+  municao[ativa]--; pintaMunicao(); atacandoAte = performance.now() + 450;
   atualizarMira(); var alvo = alvoAtual, tipo = ativa;
   tocarSomTiro(); tocarFramesTiro();
   var de = { lat: POS.lat, lng: POS.lng };
@@ -379,7 +379,7 @@ function tiroDoMineu() {
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
   var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
-  atacandoAte = performance.now() + 450; net.enviar({ t: 'atq', p: net.pid, k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
+  net.enviar({ t: 'atq', p: net.pid, k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
@@ -922,10 +922,10 @@ function pintaMunicao() {
 // golpe de perto com o galho: sem munição, pausa curta entre golpes
 var ultimoGolpe = 0, GALHO_ALCANCE_M = 7, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
 function golpeDoGalho() {
-  var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
+  var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora; atacandoAte = agora + 450;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
   if (!tocarFramesGolpe()) { elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate'); }
-  atacandoAte = performance.now() + 450; net.enviar({ t: 'atq', p: net.pid, k: 'pau' });
+  net.enviar({ t: 'atq', p: net.pid, k: 'pau' });
   setTimeout(function () {
     var alvo = null;
     inimigos.forEach(function (i) {
