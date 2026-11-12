@@ -134,7 +134,7 @@ var ESTILO = {
         'fill-extrusion-opacity': 0.97, 'fill-extrusion-vertical-gradient': true } },
     // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
-    { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.22 } },
+    { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
     { id: 'galho-borda', type: 'line', source: 'galho-alc', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
     { id: 'alcance-sombra', type: 'line', source: 'alcance', paint: { 'line-color': '#000', 'line-width': 6, 'line-opacity': 0.35, 'line-blur': 2 } },
     { id: 'alcance', type: 'line', source: 'alcance', paint: { 'line-color': '#ffe082', 'line-width': 3.5, 'line-opacity': 1, 'line-dasharray': [3, 2] } },
@@ -356,14 +356,65 @@ function aplicarSatelite() {
 document.getElementById('bSat').onclick = function () { satelite = !satelite; aplicarSatelite(); };
 mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'top-left');
 function anelDe(raioM) { var c = circulo(POS.lat, POS.lng, raioM, 72); return { type: 'Feature', geometry: { type: 'LineString', coordinates: c } }; }
+function meiaLua(raioM) {
+  var pts = [[POS.lng, POS.lat]];
+  for (var a = -GALHO_CONE; a <= GALHO_CONE; a += 10) { var p = deslocar(POS.lat, POS.lng, raioM, heading + a); pts.push([p.lng, p.lat]); }
+  pts.push([POS.lng, POS.lat]);
+  return pts;
+}
 function atualizarAlcance() {
   var src = mapa.getSource('alcance');
   if (src) src.setData({ type: 'FeatureCollection', features: [anelDe(ALCANCE_TIRO_M)] });
   var sg = mapa.getSource('galho-alc');
-  if (sg) sg.setData(ativa === 'galho' ? { type: 'Feature', geometry: { type: 'Polygon', coordinates: [circulo(POS.lat, POS.lng, GALHO_ALCANCE_M, 48)] } } : { type: 'FeatureCollection', features: [] });
+  if (sg) sg.setData(ativa === 'galho' ? { type: 'Feature', geometry: { type: 'Polygon', coordinates: [meiaLua(GALHO_ALCANCE_M)] } } : { type: 'FeatureCollection', features: [] });
+}
+
+// ---------- modo livre: monstros e zumbis nascem ao redor de quem joga (nada fixo no mapa) ----------
+function deslocar(lat, lng, metros, grau) {
+  return { lat: lat + (metros * Math.cos(grau * rad)) / 111320, lng: lng + (metros * Math.sin(grau * rad)) / (111320 * Math.cos(lat * rad)) };
+}
+function limparInimigos() {
+  inimigos.forEach(function (i) {
+    i.el._mk.remove();
+    var k = marcadores.indexOf(i.el); if (k >= 0) marcadores.splice(k, 1);
+  });
+  inimigos.length = 0; alvoAtual = null;
+}
+function atualizarZonas(lista) {
+  var f = [], b = [];
+  lista.forEach(function (c) {
+    var cor = c.final ? '#8e24aa' : '#ef6c00';
+    [1, 0.78, 0.56, 0.34].forEach(function (k, i) {
+      var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * k, 64)] } };
+      f.push(ft); if (i === 0) b.push(ft);
+    });
+  });
+  mapa.getSource('zona').setData({ type: 'FeatureCollection', features: f });
+  mapa.getSource('zona-borda').setData({ type: 'FeatureCollection', features: b });
+}
+function spawnAoRedor(lat, lng) {
+  limparInimigos();
+  var chefoes = [], giro = Math.random() * 360;
+  // 3 bases (chefão + 3 zumbis cada) a 50, 75 e 100 m, espalhadas pelos 360 graus; chefão final a 130 m
+  [[50, 0], [75, 120], [100, 240]].forEach(function (b) {
+    var p = deslocar(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
+    chefoes.push({ lat: p.lat, lng: p.lng, final: false });
+    novoInimigo(p.lat, p.lng, 'p-chefao', '👹', 25);
+    [30, 150, 270].forEach(function (g) { var z = deslocar(p.lat, p.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+  });
+  var pf = deslocar(lat, lng, 130, giro + 60);
+  chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
+  novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
+  // zumbis soltos em volta, a 25–45 m, em todas as direções
+  for (var k = 0; k < 8; k++) {
+    var z2 = deslocar(lat, lng, 25 + Math.random() * 20, giro + k * 45 + Math.random() * 30);
+    novoInimigo(z2.lat, z2.lng, 'p-zumbi', '🧟', 5);
+  }
+  atualizarZonas(chefoes);
 }
 
 mapa.on('load', function () {
+  if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng);
   DADOS.pontos.forEach(function (p) { pino('p-ponto', p.n, p.lat, p.lng); });
   DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
   DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), '🪨', p.lat, p.lng); });
@@ -376,7 +427,7 @@ mapa.on('load', function () {
 var GALHO_SVG = '<svg viewBox="0 0 40 110" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-linecap="round"><path d="M21 106 C17 80 25 55 19 8" stroke="#4a2c12" stroke-width="9"/><path d="M21 62 C28 54 31 48 35 38" stroke="#4a2c12" stroke-width="6"/><path d="M18 36 C12 31 10 26 8 18" stroke="#4a2c12" stroke-width="5"/><path d="M21 106 C17 80 25 55 19 8" stroke="#a9753f" stroke-width="6"/><path d="M21 62 C28 54 31 48 35 38" stroke="#a9753f" stroke-width="3.4"/><path d="M18 36 C12 31 10 26 8 18" stroke="#a9753f" stroke-width="3"/><path d="M19 98 C16 78 23 56 18 14" stroke="#cfa56f" stroke-width="1.6" opacity=".75"/></g><ellipse cx="20" cy="82" rx="3" ry="2.2" fill="#6b4220"/><ellipse cx="21" cy="46" rx="2.6" ry="2" fill="#6b4220"/></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="arcoGolpe"></div><div id="galhoMineu">' + GALHO_SVG + '</div>';
+elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="galhoMineu">' + GALHO_SVG + '</div>';
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
 
@@ -432,8 +483,7 @@ var ultimoGolpe = 0, GALHO_ALCANCE_M = 3.5, GALHO_CONE = 90, GALHO_DANO = 10, GA
 function golpeDoGalho() {
   var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
-  var arco = document.getElementById('arcoGolpe');
-  [elGalho, arco].forEach(function (e) { e.classList.remove('bate'); void e.offsetWidth; e.classList.add('bate'); });
+  elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate');
   setTimeout(function () {
     inimigos.forEach(function (i) {
       if (!i.vivo) return;
@@ -457,7 +507,7 @@ document.getElementById('bGps').onclick = function () {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(function (p) {
       ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
-      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; }
+      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng); }
     }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; }, { enableHighAccuracy: true });
   }
   ligarBussola();
