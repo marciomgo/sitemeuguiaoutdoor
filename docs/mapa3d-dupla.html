@@ -120,21 +120,50 @@
   #btnTrocaPedra img{height:38px;width:auto;display:block}
   .pedra-reserva img{height:22px;width:auto;display:block}
   .cxIni{display:flex;flex-direction:column;align-items:center;gap:12px;width:82%;max-width:320px}
-  .cxIni button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
+  .cxIni button,.cxLob button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   .cxIni .ou{color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
   .cxIni input{width:100%;box-sizing:border-box;font-size:22px;text-align:center;letter-spacing:6px;padding:14px;border:3px solid #ffd54f;border-radius:999px;background:#fff8e1;color:#2b2110}
   #msgIni{color:#fff;font-size:14px;min-height:18px;text-shadow:0 1px 3px rgba(0,0,0,.7);text-align:center}
   #chipSala{position:absolute;left:10px;top:10px;z-index:6;background:rgba(40,30,20,.75);color:#ffd54f;border-radius:12px;padding:6px 12px;font-size:13px;font-weight:bold}
+  #lobby{position:absolute;inset:0;z-index:31;display:none;align-items:center;justify-content:center;background:rgba(25,35,18,.72);overflow:auto}
+  .cxLob{background:#fff8e1;border:4px solid #ffd54f;border-radius:24px;padding:16px 18px;width:88%;max-width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5);margin:10px 0}
+  .lobTit{font-size:20px;color:#2b2110}.lobTit b{font-size:34px;letter-spacing:6px}
+  #qrImg{width:180px;height:180px;margin:8px auto;display:block;border-radius:10px;background:#fff}
+  .lobDica{font-size:13px;color:#5a4a2a;margin:6px 0 10px}
+  .lobLin{display:flex;align-items:center;gap:8px;text-align:left;padding:7px 8px;border-radius:12px;background:#fff;margin-bottom:6px;font-size:14px;color:#2b2110;border:2px solid #ffe082}
+  .lobLin i{width:14px;height:14px;border-radius:50%;flex:none}
+  .lobLin span{font-size:12px;color:#7a6a45;margin-left:auto;text-align:right}
+  .lobLin span.ok{color:#2e7d32;font-weight:bold}.lobLin span.ruim{color:#c62828;font-weight:bold}
+  #bComecar:disabled{opacity:.45;box-shadow:none}
+  #contagem{position:absolute;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(20,32,14,.55)}
+  #contNum{font-size:150px;font-weight:bold;color:#ffd54f;text-shadow:0 6px 0 #b57f00,0 10px 24px rgba(0,0,0,.5);animation:popC .5s ease-out}
+  @keyframes popC{0%{transform:scale(2.2);opacity:0}100%{transform:scale(1);opacity:1}}
   .amigo{width:35px;height:100px;pointer-events:none}
   .amigo img{position:absolute;left:0;bottom:0;width:35px;height:95px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4))}
-  .amigo .anelA{position:absolute;left:50%;bottom:-6px;width:56px;height:20px;margin-left:-28px;border-radius:50%;border:3px solid #29b6f6;background:rgba(41,182,246,.25)}
+  .amigo .anelA{position:absolute;left:50%;bottom:-6px;width:56px;height:20px;margin-left:-28px;border-radius:50%;border:3px solid #29b6f6}
   .amigo .nomeA{position:absolute;left:50%;top:-24px;transform:translateX(-50%);font-size:11px;font-weight:bold;color:#fff;background:#0288d1;border-radius:8px;padding:1px 6px;white-space:nowrap}
   .amigo .vida{top:-9px}
 </style>
 </head>
 <body>
 <div id="mapa"></div>
-<div id="inicio"><div class="cxIni"><button id="bCriar">📍 Criar sala</button><div class="ou">ou entre na sala do amigo</div><input id="codSala" inputmode="numeric" maxlength="4" placeholder="Código de 4 números" autocomplete="off"><button id="bEntrar">Entrar na sala</button><div id="msgIni"></div></div></div>
+<div id="inicio"><div class="cxIni">
+  <button id="bEntrarQR" style="display:none">📍 Entrar na sala <span id="codQR"></span></button>
+  <button id="bCriar">📍 Criar sala</button>
+  <button id="bVoltar" style="display:none">↩ Voltar à sala <span id="codVolta"></span></button>
+  <div class="ou" id="ouEntrar">ou entre na sala de um amigo</div>
+  <input id="codSala" inputmode="numeric" maxlength="4" placeholder="Código de 4 números" autocomplete="off">
+  <button id="bEntrar">Entrar na sala</button>
+  <div id="msgIni"></div></div></div>
+<div id="lobby" style="display:none"><div class="cxLob">
+  <div class="lobTit">Sala <b id="lobCod">0000</b></div>
+  <img id="qrImg" alt="QR Code da sala" style="display:none">
+  <div id="lobDica" class="lobDica"></div>
+  <div id="lobLista"></div>
+  <button id="bComecar" style="display:none">Começar</button>
+  <div id="lobEspera" class="lobDica" style="display:none">Aguardando o criador começar...</div>
+</div></div>
+<div id="contagem" style="display:none"><div id="contNum">3</div></div>
 <div id="chipSala" style="display:none"></div>
 <span id="dica" style="display:none"></span>
 <div id="painel">
@@ -151,6 +180,7 @@
 <div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[],"curas":[],"pedras":[],"bombas":[],"chefoes":[],"zumbis":[],"livre":true,"dupla":true};
 
@@ -346,7 +376,7 @@ function tiroDoMineu() {
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
   var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
-  net.enviar({ t: 'atq', k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
+  net.enviar({ t: 'atq', p: net.pid, k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
@@ -388,7 +418,7 @@ function levarDano(v) {
     vidaMineu = 100; pintaVidaMineu();
   }
 }
-// bola de fogo: o voo é visual (aparece nos dois celulares); o dano é decidido só por quem roda o jogo (o anfitrião)
+// bola de fogo: o voo é visual (aparece em todos os celulares); o dano é decidido só pelo anfitrião
 function voarFogo(de, alvo, final, dur, aoChegar) {
   var fora = document.createElement('div'); fora.style.zIndex = 99990;
   var el = document.createElement('div'); el.className = 'fogo' + (final ? ' roxo' : ''); el.textContent = '🔥'; fora.appendChild(el);
@@ -410,11 +440,11 @@ function dispararFogo(i, tp, alvoJ) {
   net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: TEMPO_VOO_FOGO_MS });
   voarFogo(de, alvo, i.final, TEMPO_VOO_FOGO_MS, function () {
     i.balaEmVoo = false;
-    var ref = alvoJ ? amigo : POS; if (!ref) return;
+    var ref = alvoJ || POS; // posição ATUAL de quem foi mirado
     var dl = (alvo.lat - ref.lat) * 111320, dn = (alvo.lng - ref.lng) * 111320 * Math.cos(ref.lat * rad);
     if (Math.sqrt(dl * dl + dn * dn) > RAIO_ACERTO_FOGO_M) return;
     var v = i.final ? DANO_FOGO_FINAL : DANO_FOGO;
-    if (alvoJ) net.enviar({ t: 'dano', v: v, k: 'f' }); else { tocarSomAtingido(); levarDano(v); }
+    if (alvoJ) net.enviarPara(alvoJ.pid, { t: 'dano', v: v, k: 'f' }); else { tocarSomAtingido(); levarDano(v); }
   });
 }
 // contorna construções e água: olha 2,2 m à frente e, se bater, vira pro lado livre mais próximo (e continua do mesmo lado até o caminho direto abrir)
@@ -434,13 +464,13 @@ function direcaoLivre(i, angDireto) {
 var quadroMov = 0;
 var jogoIniciado = false;
 function moverInimigos(dt, agora) {
-  if (!jogoIniciado) return; // parado até escolher criar/entrar na sala
+  if (!jogoIniciado) return; // parado até a partida começar
   if (net.papel === 'convidado') { atualizarComoConvidado(dt, agora); return; } // o convidado só mostra; quem roda o jogo é o anfitrião
   quadroMov++;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
     var eu = metrosAte(i.lat, i.lng), m = eu, anda = false, alvoJ = null, tp = POS;
-    if (amigo) { var da = metrosDe(amigo, i.lat, i.lng); if (da.d < eu.d) { m = da; alvoJ = amigo; tp = amigo; } }
+    for (var pidJ in outros) { var oj = outros[pidJ]; if (!oj.visto) continue; var da = metrosDe(oj, i.lat, i.lng); if (da.d < m.d) { m = da; alvoJ = oj; tp = oj; } }
     var naArea = eu.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, eu.ang)) <= GALHO_CONE;
     if (naArea && !i.naArea) i.tEntrada = agora;
     i.naArea = naArea;
@@ -474,7 +504,7 @@ function moverInimigos(dt, agora) {
     }
     i.el.firstChild.classList.toggle('anda-z', anda);
     if (!i.chefao) {
-      if (alvoJ) { if (m.d <= CONTATO_M && agora - (i._mordAmigo || 0) > INTERVALO_MORDIDA) { i._mordAmigo = agora; net.enviar({ t: 'dano', v: DANO_MORDIDA, k: 'm' }); } }
+      if (alvoJ) { if (m.d <= CONTATO_M && agora - (i._mordAmigo || 0) > INTERVALO_MORDIDA) { i._mordAmigo = agora; net.enviarPara(alvoJ.pid, { t: 'dano', v: DANO_MORDIDA, k: 'm' }); } }
       else if (m.d <= CONTATO_M && agora - ultimaMordida > INTERVALO_MORDIDA) mordida(agora);
     } else if (m.d <= CHEFAO_AGGRO_M) {
       if (!i.proximoFogo) i.proximoFogo = agora + GRACA_PRIMEIRO_FOGO_MS;
@@ -646,7 +676,7 @@ function celulaDe(g, lat, lng) {
 }
 function atualizarCampo() {
   var g = GRADE; if (!g) return;
-  var n = g.n, fontes = [POS]; if (amigo) fontes.push(amigo);
+  var n = g.n, fontes = [POS]; for (var pidC in outros) { if (outros[pidC].visto) fontes.push(outros[pidC]); }
   g.dist.fill(-1); g.ok = false;
   var fila = new Int32Array(n * n), ini = 0, fim = 0;
   fontes.forEach(function (p) {
@@ -870,7 +900,7 @@ function golpeDoGalho() {
   var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
   if (!tocarFramesGolpe()) { elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate'); }
-  net.enviar({ t: 'atq', k: 'pau' });
+  net.enviar({ t: 'atq', p: net.pid, k: 'pau' });
   setTimeout(function () {
     var alvo = null;
     inimigos.forEach(function (i) {
@@ -896,9 +926,9 @@ document.getElementById('bGps').onclick = function () {
   aviso('Procurando o GPS... (permita a localização)');
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(function (p) {
-      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
-      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng); }
-    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; }, { enableHighAccuracy: true });
+      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; ALVO.acc = p.coords.accuracy || 0; aviso(''); gpsStatus = 'ok';
+      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; }
+    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; gpsStatus = 'sem'; }, { enableHighAccuracy: true });
   }
   ligarBussola();
 };
@@ -990,10 +1020,29 @@ mapa.on('load', function () {
   requestAnimationFrame(quadro); if (!DADOS.livre) quandoMapaPronto(ajustarInimigosFixos); });
 
 // =====================================================================
-//  MISSÃO EM DUPLA: um mundo só, dois celulares (PeerJS, direto de um celular pro outro)
-//  anfitrião = roda monstros, fogo e dano; convidado = só mostra e manda seus golpes/posição.
-//  Se o anfitrião sair, o convidado assume do ponto onde parou.
+//  MISSÃO EM DUPLA (até 4): um mundo só, vários celulares (PeerJS: celular a celular, em estrela).
+//  O criador é o anfitrião: roda monstros, fogo e dano e manda o estado a 4 vezes por segundo.
+//  Os outros mostram o mundo e mandam posição, golpes e acertos. Se o anfitrião cair, o convidado de menor
+//  número assume a mesma sala (mesmo código) e os outros reconectam. Quem cai volta com o mesmo código.
 // =====================================================================
+var COR_JOG = ['#29b6f6', '#ef5350', '#66bb6a', '#ffa726'], MAX_JOG = 4, DIST_MAX_M = 50, TETO_ZUMBIS = 30;
+var gpsStatus = 'proc'; // 'proc' (procurando) | 'ok' | 'sem' (sem GPS: modo de teste no computador)
+var net = { papel: null, peer: null, conn: null, pid: null, sala: null, fase: 'menu', timer: null, tPos: null, reconTent: 0, reconectando: false, ultimoJs: [] };
+var eu = { slot: 0, nome: 'Jogador 1', cor: COR_JOG[0] };
+var outros = {}, rodada = 0, rodadaVista = -1, porId = {};
+try { net.pid = sessionStorage.getItem('mgo-pid'); } catch (e) {}
+if (!net.pid) { net.pid = 'p' + Math.random().toString(36).slice(2, 8); try { sessionStorage.setItem('mgo-pid', net.pid); } catch (e) {} }
+net.enviar = function (o) { // anfitrião: manda pra todos; convidado: manda pro anfitrião
+  if (net.papel === 'anfitriao') { for (var k in outros) { var j = outros[k]; if (j.conectado && j.conn && j.conn.open) { try { j.conn.send(o); } catch (e) {} } } }
+  else if (net.conn && net.conn.open) { try { net.conn.send(o); } catch (e) {} }
+};
+net.enviarPara = function (pid, o) { var j = outros[pid]; if (j && j.conectado && j.conn && j.conn.open) { try { j.conn.send(o); } catch (e) {} } };
+function lembrarSala() { try { localStorage.setItem('mgo-ultima', JSON.stringify({ cod: net.sala, pid: net.pid, t: Date.now() })); } catch (e) {} }
+function chip(t) { var c = document.getElementById('chipSala'); c.textContent = t; c.style.display = t ? 'block' : 'none'; }
+function msgIni(t) { document.getElementById('msgIni').textContent = t; }
+function nConectados() { var n = 0; for (var k in outros) { if (outros[k].conectado) n++; } return n; }
+
+// ---- ajustes do jogo pra vários jogadores ----
 function acertou(i, dano) {
   if (net.papel === 'convidado') { // o convidado só avisa; a vida de verdade vem do anfitrião
     net.enviar({ t: 'acerto', id: i.id, d: dano });
@@ -1006,56 +1055,63 @@ function acertou(i, dano) {
 var celebrarOrig = celebrar;
 celebrar = function () { celebrarOrig(); if (net.papel === 'anfitriao') net.enviar({ t: 'fim', z: estat.zumbis, mo: estat.monstros, s: Math.round((performance.now() - estat.t0) / 1000) }); };
 var spawnAoRedorOrig = spawnAoRedor;
-spawnAoRedor = function (lat, lng) { if (net.papel === 'convidado') return; spawnAoRedorOrig(lat, lng); };
+spawnAoRedor = function (lat, lng) { if (net.papel === 'convidado' || net.fase !== 'jogo') return; spawnAoRedorOrig(lat, lng); };
 var spawnBaseOrig = spawnBase;
-spawnBase = function (lat, lng) { rodada++; spawnBaseOrig(lat, lng); };
+spawnBase = function (lat, lng) { // dificuldade: chefão com vida x número de jogadores; mais zumbis (até um teto, pra celular fraco aguentar)
+  rodada++; spawnBaseOrig(lat, lng);
+  var N = 1 + nConectados(); if (N < 2) return;
+  inimigos.forEach(function (i) { if (i.chefao) { i.max *= N; i.vida = i.max; } });
+  var nz = inimigos.filter(function (i) { return !i.chefao; }).length, extra = Math.min(TETO_ZUMBIS - nz, nz * (N - 1));
+  for (var k = 0; k < extra; k++) { var z = pontoLivre(lat, lng, 14 + Math.random() * 16, Math.random() * 360); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); }
+};
 function reiniciarRodada() {
   document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu();
   if (net.papel === 'convidado') net.enviar({ t: 'denovo' }); else spawnAoRedor(POS.lat, POS.lng);
 }
 document.getElementById('bDeNovo').onclick = reiniciarRodada;
 
-var net = { papel: null, peer: null, conn: null, sala: null, timer: null, enviar: function (o) { if (net.conn && net.conn.open) { try { net.conn.send(o); } catch (e) {} } } };
-var amigo = null, rodada = 0, rodadaVista = -1, porId = {};
-function chip(t) { var c = document.getElementById('chipSala'); c.textContent = t; c.style.display = t ? 'block' : 'none'; }
-function msgIni(t) { document.getElementById('msgIni').textContent = t; }
-function criarAmigo() {
-  if (amigo) return;
+// ---- os outros jogadores no mapa ----
+function criarAvatar(j) {
+  if (j.el) return;
   var el = document.createElement('div'); el.className = 'amigo';
-  el.innerHTML = '<span class="nomeA">Amigo</span><div class="vida"><i></i></div><div class="anelA"></div><img src="mineu-costas.png" alt="Amigo">';
-  el._ll = [POS.lng, POS.lat]; marcadores.push(el);
+  el.innerHTML = '<span class="nomeA" style="background:' + j.cor + '">' + j.nome + '</span><div class="vida"><i></i></div><div class="anelA" style="border-color:' + j.cor + ';background:' + j.cor + '40"></div><img src="mineu-costas.png" alt="' + j.nome + '">';
+  el._ll = [j.lng, j.lat]; marcadores.push(el);
   el._mk = new maplibregl.Marker({ element: el, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(el._ll).addTo(mapa);
-  amigo = { lat: POS.lat, lng: POS.lng, alvoLat: POS.lat, alvoLng: POS.lng, vida: 100, el: el, visto: false };
+  j.el = el; j.visto = false; j.timers = [];
 }
-function removerAmigo() {
-  if (!amigo) return;
-  amigo.el._mk.remove(); var k = marcadores.indexOf(amigo.el); if (k >= 0) marcadores.splice(k, 1); amigo = null;
+function removerAvatar(j) {
+  if (!j.el) return;
+  j.el._mk.remove(); var k = marcadores.indexOf(j.el); if (k >= 0) marcadores.splice(k, 1); j.el = null; j.visto = false;
 }
-var amigoTimers = [];
-function pintarAmigo(conj, idx) { // conj: 'p' = pau, 'e' = estilingue; idx = quadro
-  if (!amigo) return;
-  var F = conj === 'p' ? FRAME_GOLPE : FRAME_EST, img = amigo.el.querySelector('img'), cg = 0.3631, e = 0.5;
+function novoOutro(pid, slot, nome, cor) { var j = outros[pid]; if (!j) { j = outros[pid] = { pid: pid, slot: slot, nome: nome, cor: cor, lat: POS.lat, lng: POS.lng, alvoLat: POS.lat, alvoLng: POS.lng, vida: 100, conectado: true }; } return j; }
+function posDoOutro(j, x, y, v, a) {
+  j.alvoLat = x; j.alvoLng = y; j.vida = v; j.arma = a;
+  if (!j.el) criarAvatar(j);
+  if (!j.visto) { j.lat = x; j.lng = y; j.visto = true; }
+}
+function pintarAvatar(j, conj, idx) { // conj: 'p' = pau, 'e' = estilingue
+  if (!j.el) return;
+  var F = conj === 'p' ? FRAME_GOLPE : FRAME_EST, img = j.el.querySelector('img'), cg = 0.3631, e = 0.5;
   if (F.prontos < F.src.length) return;
   img.src = F.src[idx]; img.style.width = (F.w * cg * e) + 'px'; img.style.height = (F.h * cg * e) + 'px';
   img.style.left = (17.5 - F.ax * cg * e) + 'px'; img.style.top = ((100 - 0.65) - F.ay * cg * e) + 'px'; img.style.bottom = 'auto';
 }
-function poseDoAmigo() { // pose parada de acordo com a arma
-  if (!amigo || amigo.anim) return;
-  var conj = amigo.arma === 'galho' ? 'p' : (amigo.arma ? 'e' : null);
-  if (amigo.conjVisto === conj) return;
-  amigo.conjVisto = conj; if (conj) pintarAmigo(conj, 0);
+function poseDoOutro(j) { // pose parada conforme a arma na mão
+  if (!j.el || j.anim) return;
+  var conj = j.arma === 'galho' ? 'p' : (j.arma ? 'e' : null);
+  if (j.conjVisto === conj) return;
+  j.conjVisto = conj; if (conj) pintarAvatar(j, conj, 0);
 }
-function animarAmigo(seq) { // seq: [[ms, conj, quadro], ...]; o último volta à pose parada
-  if (!amigo) return;
-  amigoTimers.forEach(clearTimeout); amigoTimers = []; amigo.anim = true;
-  seq.forEach(function (q) { amigoTimers.push(setTimeout(function () { pintarAmigo(q[1], q[2]); }, q[0])); });
-  amigoTimers.push(setTimeout(function () { if (amigo) { amigo.anim = false; amigo.conjVisto = null; } }, seq[seq.length - 1][0] + 40));
+function animarAvatar(j, seq) { // seq: [[ms, conj, quadro], ...]; no fim volta à pose parada
+  if (!j.el) return;
+  (j.timers || []).forEach(clearTimeout); j.timers = []; j.anim = true;
+  seq.forEach(function (q) { j.timers.push(setTimeout(function () { pintarAvatar(j, q[1], q[2]); }, q[0])); });
+  j.timers.push(setTimeout(function () { j.anim = false; j.conjVisto = null; }, seq[seq.length - 1][0] + 40));
 }
-function atqDoAmigo(m) {
-  if (!amigo) return;
-  if (m.k === 'pau') { animarAmigo([[0, 'p', 1], [130, 'p', 2], [330, 'p', 0]]); tocarTom(700, 180, 110, 'sawtooth', 0.04); return; }
-  animarAmigo([[0, 'e', 1], [280, 'e', 0]]); tocarTom(880, 220, 110, 'square', 0.05);
-  // a pedra do amigo voa da posição dele até o alvo (só visual; o dano vem pelo anfitrião)
+function atqDeOutro(m) { // o que o outro jogador está fazendo: pedra normal, pedra amarela ou paulada
+  var j = outros[m.p]; if (!j || !j.el) return;
+  if (m.k === 'pau') { animarAvatar(j, [[0, 'p', 1], [130, 'p', 2], [330, 'p', 0]]); tocarTom(700, 180, 110, 'sawtooth', 0.04); return; }
+  animarAvatar(j, [[0, 'e', 1], [280, 'e', 0]]); tocarTom(880, 220, 110, 'square', 0.05);
   var de = { lat: m.de[0], lng: m.de[1] }, para = { lat: m.para[0], lng: m.para[1] }, tipo = m.k;
   var fora = document.createElement('div'); fora.style.zIndex = 100001;
   var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
@@ -1072,16 +1128,21 @@ function atqDoAmigo(m) {
     mk.remove();
   })(t0);
 }
-function atualizarAmigo(dt) {
-  if (!amigo) return;
-  poseDoAmigo();
-  var k = amigo.visto ? 1 - Math.exp(-6 * dt) : 1; amigo.visto = true;
-  amigo.lat += (amigo.alvoLat - amigo.lat) * k; amigo.lng += (amigo.alvoLng - amigo.lng) * k;
-  amigo.el._mk.setLngLat([amigo.lng, amigo.lat]); amigo.el._ll = [amigo.lng, amigo.lat];
-  amigo.el.querySelector('.vida i').style.width = Math.max(0, amigo.vida) + '%';
+function atualizarOutros(dt) {
+  var k = 1 - Math.exp(-6 * dt);
+  for (var pid in outros) {
+    var j = outros[pid]; if (!j.el || !j.visto) continue;
+    j.lat += (j.alvoLat - j.lat) * k; j.lng += (j.alvoLng - j.lng) * k;
+    j.el._mk.setLngLat([j.lng, j.lat]); j.el._ll = [j.lng, j.lat];
+    j.el.querySelector('.vida i').style.width = Math.max(0, j.vida) + '%';
+    poseDoOutro(j);
+  }
 }
+mapa.on('load', function () { var u = performance.now(); (function loopOutros(a) { var dt = Math.min(0.05, (a - u) / 1000); u = a; atualizarOutros(dt); requestAnimationFrame(loopOutros); })(u); });
+
+// ---- estado do jogo: anfitrião -> convidados ----
 function aplicarEstado(m) {
-  if (m.r !== rodadaVista) { // rodada nova: reconstrói tudo
+  if (m.r !== rodadaVista) { // rodada nova: reconstrói os monstros
     limparInimigos(); porId = {}; rodadaVista = m.r; estat = { zumbis: 0, monstros: 0, t0: performance.now() }; celebrou = false;
     document.getElementById('parabens').style.display = 'none';
   }
@@ -1093,7 +1154,7 @@ function aplicarEstado(m) {
     }
     i.alvoLat = e[1]; i.alvoLng = e[2];
     if (i.vivo) {
-      if (e[3] < i.vida - 0.05) { var emF = i.el.querySelector('.em'); emF.classList.remove('golpe'); void emF.offsetWidth; emF.classList.add('golpe'); estouro(i.el); } // levou golpe do outro jogador
+      if (e[3] < i.vida - 0.05) { var emF = i.el.querySelector('.em'); emF.classList.remove('golpe'); void emF.offsetWidth; emF.classList.add('golpe'); estouro(i.el); } // levou golpe de outro jogador
       i.vida = e[3]; i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
     }
     if (i.vivo && !e[4]) { // morreu no anfitrião
@@ -1102,7 +1163,14 @@ function aplicarEstado(m) {
       if (i.chefao) estat.monstros++; else estat.zumbis++;
     }
   });
-  criarAmigo(); amigo.alvoLat = m.eu.x; amigo.alvoLng = m.eu.y; amigo.vida = m.eu.v; amigo.arma = m.eu.a;
+  net.ultimoJs = m.js || [];
+  (m.js || []).forEach(function (e) { // [pid, lat, lng, vida, arma, slot, nome, cor]
+    if (e[0] === net.pid) return;
+    var j = novoOutro(e[0], e[5], e[6], e[7]); j.conectado = true; posDoOutro(j, e[1], e[2], e[3], e[4]);
+  });
+  var presentes = {}; (m.js || []).forEach(function (e) { presentes[e[0]] = 1; });
+  for (var kk in outros) { if (!presentes[kk]) { removerAvatar(outros[kk]); delete outros[kk]; } } // quem saiu some do mapa
+  if (net.fase === 'jogo') chip('Sala ' + net.sala + ' · ' + (m.js || []).length + ' jogadores');
 }
 function atualizarComoConvidado(dt, agora) {
   var k = 1 - Math.exp(-8 * dt);
@@ -1113,81 +1181,218 @@ function atualizarComoConvidado(dt, agora) {
       i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
       i.el.firstChild.classList.toggle('anda-z', Math.abs(i.lat + i.lng - antes) > 4e-8);
     }
-    var eu = metrosAte(i.lat, i.lng), naArea = eu.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, eu.ang)) <= GALHO_CONE;
+    var e2 = metrosAte(i.lat, i.lng), naArea = e2.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, e2.ang)) <= GALHO_CONE;
     if (naArea && !i.naArea) i.tEntrada = agora;
     i.naArea = naArea;
   });
 }
-function estadoParaConvidado() {
-  return { t: 'estado', r: rodada, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }), eu: { x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa } };
+function estadoParaConvidados() {
+  var js = [[net.pid, POS.lat, POS.lng, vidaMineu, ativa, eu.slot, eu.nome, eu.cor]];
+  for (var k in outros) { var j = outros[k]; if (j.conectado && j.visto) js.push([j.pid, j.alvoLat, j.alvoLng, j.vida, j.arma, j.slot, j.nome, j.cor]); }
+  return { t: 'estado', r: rodada, js: js, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }) };
 }
-function aoReceber(m) {
-  if (m.t === 'estado') aplicarEstado(m);
-  else if (m.t === 'pos') { if (amigo) { amigo.alvoLat = m.x; amigo.alvoLng = m.y; amigo.vida = m.v; amigo.arma = m.a; } else { criarAmigo(); amigo.lat = amigo.alvoLat = m.x; amigo.lng = amigo.alvoLng = m.y; } }
-  else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
-  else if (m.t === 'atq') atqDoAmigo(m);
-  else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
-  else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
-  else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
-  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); spawnAoRedor(POS.lat, POS.lng); }
+
+// ---- sala de espera ----
+function calcRoster() { // anfitrião: quem está na sala e se está pronto (GPS firme e a até 50 m do criador)
+  var lista = [{ pid: net.pid, nome: eu.nome, cor: eu.cor, st: gpsStatus === 'proc' ? 'proc' : 'ok', dist: 0 }];
+  for (var k in outros) {
+    var j = outros[k]; if (!j.conectado) continue;
+    var st = 'proc', d = 0;
+    if (j.g === 'sem' || gpsStatus === 'sem') st = (!j.g || j.g === 'proc') ? 'proc' : 'ok';
+    else if (j.g === 'ok') { var m = metrosDe(POS, j.alvoLat !== undefined ? j.alvoLat : j.lat, j.alvoLng !== undefined ? j.alvoLng : j.lng); d = Math.round(m.d); st = m.d <= DIST_MAX_M + (j.acc || 0) ? 'ok' : 'longe'; }
+    lista.push({ pid: j.pid, nome: j.nome, cor: j.cor, st: st, dist: d });
+  }
+  return lista;
 }
-function ligarConexao(conn, papel) {
-  net.conn = conn;
-  conn.on('data', aoReceber);
-  conn.on('close', function () { amigoSaiu(); });
-  conn.on('error', function () { amigoSaiu(); });
+function renderLobby(lista) {
+  var h = '';
+  lista.forEach(function (p) {
+    var t = p.st === 'ok' ? '<span class="ok">pronto ✓</span>' : (p.st === 'longe' ? '<span class="ruim">longe: ' + p.dist + ' m (chegue a ' + DIST_MAX_M + ' m)</span>' : '<span>procurando o GPS…</span>');
+    h += '<div class="lobLin"><i style="background:' + p.cor + '"></i>' + p.nome + (p.pid === net.pid ? ' (você)' : '') + t + '</div>';
+  });
+  document.getElementById('lobLista').innerHTML = h;
+  if (net.papel === 'anfitriao') {
+    var pronto = lista.every(function (p) { return p.st === 'ok'; }), b = document.getElementById('bComecar');
+    b.disabled = !pronto; b.textContent = lista.length < 2 ? 'Começar sozinho' : 'Começar (' + lista.length + ' jogadores)';
+  }
+  chip('Sala ' + net.sala + ' · ' + lista.length + ' na sala');
+}
+function mostrarLobby() {
+  document.getElementById('inicio').style.display = 'none'; document.getElementById('lobby').style.display = 'flex';
+  document.getElementById('lobCod').textContent = net.sala;
+  var host = net.papel === 'anfitriao';
+  document.getElementById('bComecar').style.display = host ? 'block' : 'none';
+  document.getElementById('lobEspera').style.display = host ? 'none' : 'block';
+  var qr = document.getElementById('qrImg');
+  if (host && typeof qrcode !== 'undefined') {
+    var q = qrcode(0, 'M'); q.addData(location.href.split('?')[0].split('#')[0] + '?sala=' + net.sala); q.make();
+    qr.src = q.createDataURL(6, 2); qr.style.display = 'block';
+  } else qr.style.display = 'none';
+  document.getElementById('lobDica').textContent = host ? 'Peça pros amigos apontarem a câmera pro QR Code. Todos precisam estar a até ' + DIST_MAX_M + ' m de você, com o GPS ligado.' : 'Fique a até ' + DIST_MAX_M + ' m do criador, com o GPS ligado.';
+}
+function rodarContagem() {
+  net.fase = 'contagem'; document.getElementById('lobby').style.display = 'none';
+  var box = document.getElementById('contagem'), num = document.getElementById('contNum'); box.style.display = 'flex';
+  var n = 3;
+  (function tick() {
+    num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
+    if (n > 0) { num.textContent = n; tocarTom(660, 660, 160, 'square', 0.1); n--; setTimeout(tick, 1000); }
+    else { num.textContent = 'Valendo!'; num.style.fontSize = '64px'; tocarTom(1047, 1047, 420, 'square', 0.12); setTimeout(function () { box.style.display = 'none'; num.style.fontSize = ''; iniciarPartida(); }, 800); }
+  })();
+}
+function iniciarPartida() {
+  net.fase = 'jogo'; jogoIniciado = true; document.getElementById('lobby').style.display = 'none'; document.getElementById('inicio').style.display = 'none';
   clearInterval(net.timer);
-  if (papel === 'anfitriao') net.timer = setInterval(function () { net.enviar(estadoParaConvidado()); }, 250);
-  else net.timer = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa }); }, 330);
+  if (net.papel === 'anfitriao') { net.timer = setInterval(function () { net.enviar(estadoParaConvidados()); }, 250); spawnAoRedor(POS.lat, POS.lng); }
+  chip('Sala ' + net.sala + ' · ' + (1 + nConectados()) + ' jogadores');
 }
-function amigoSaiu() {
-  if (!net.conn) return;
-  clearInterval(net.timer); net.conn = null; removerAmigo();
-  if (net.papel === 'convidado') { // o anfitrião saiu: este celular assume o jogo do ponto onde estava
-    net.papel = 'anfitriao'; aviso('Seu amigo saiu. Você continua o jogo.'); chip('Sala ' + net.sala + ' · jogando sozinho');
-    if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng);
-    setTimeout(verificarFim, 500);
-  } else { aviso('Seu amigo saiu.'); chip('Sala ' + net.sala + ' · jogando sozinho'); }
-  setTimeout(function () { aviso(''); }, 3500);
-}
-function ativarGps() { document.getElementById('bGps').click(); } // precisa rodar dentro do toque (GPS e bússola)
-function iniciarJogo() { jogoIniciado = true; document.getElementById('inicio').style.display = 'none'; }
+document.getElementById('bComecar').onclick = function () {
+  if (net.papel !== 'anfitriao' || net.fase !== 'sala') return;
+  if (!calcRoster().every(function (p) { return p.st === 'ok'; })) return;
+  net.enviar({ t: 'contagem' }); rodarContagem();
+};
+
+// ---- anfitrião ----
+function ativarGps() { if (!modoReal) document.getElementById('bGps').click(); } // precisa rodar dentro do toque (GPS e bússola)
 function criarSala(tent) {
   if (typeof Peer === 'undefined') { msgIni('Sem conexão pra criar a sala. Verifique a internet.'); return; }
   var cod = ('000' + Math.floor(Math.random() * 10000)).slice(-4);
   net.peer = new Peer('mgo-dupla-' + cod);
   net.peer.on('open', function () {
-    net.papel = 'anfitriao'; net.sala = cod; iniciarJogo(); chip('Sala ' + cod + ' · passe o código pro amigo');
-    net.peer.on('connection', function (conn) {
-      if (net.conn) { conn.close(); return; } // sala de 2
-      conn.on('open', function () { ligarConexao(conn, 'anfitriao'); criarAmigo(); chip('Sala ' + cod + ' · 2 jogadores'); aviso('Seu amigo entrou!'); setTimeout(function () { aviso(''); }, 2500); });
-    });
+    net.papel = 'anfitriao'; net.sala = cod; net.fase = 'sala'; eu = { slot: 0, nome: 'Jogador 1', cor: COR_JOG[0] }; lembrarSala();
+    mostrarLobby(); ouvirConexoes();
+    net.timer = setInterval(function () { var l = calcRoster(); renderLobby(l); net.enviar({ t: 'sala', l: l }); }, 500);
   });
-  net.peer.on('error', function (e) {
-    if (e.type === 'unavailable-id' && (tent || 0) < 5) { criarSala((tent || 0) + 1); return; }
-    msgIni('Não consegui criar a sala. Tente de novo.');
+  net.peer.on('error', function (e) { if (e.type === 'unavailable-id' && (tent || 0) < 5) { criarSala((tent || 0) + 1); return; } if (net.papel !== 'anfitriao') msgIni('Não consegui criar a sala. Tente de novo.'); });
+}
+function ouvirConexoes() {
+  net.peer.on('connection', function (conn) {
+    var pidC = null;
+    conn.on('data', function (m) { if (m.t === 'oi') { pidC = m.pid; aceitarJogador(conn, m); } else if (pidC) aoReceberDoJogador(pidC, m); });
+    conn.on('close', function () { if (pidC) jogadorCaiu(pidC, conn); });
+    conn.on('error', function () { if (pidC) jogadorCaiu(pidC, conn); });
   });
 }
-function entrarSala() {
-  var cod = document.getElementById('codSala').value.replace(/[^0-9]/g, '');
-  if (cod.length !== 4) { msgIni('Digite o código de 4 números.'); return; }
+function aceitarJogador(conn, m) {
+  var pid = m.pid, j = outros[pid];
+  if (j) { // quem já estava na sala voltando (caiu a internet, recarregou a página)
+    if (j.conn && j.conn !== conn) { try { j.conn.close(); } catch (e) {} }
+    j.conn = conn; j.conectado = true; j.visto = false;
+  } else {
+    if (net.fase !== 'sala') { try { conn.send({ t: 'recusa', m: 'A missão já começou.' }); } catch (e) {} setTimeout(function () { conn.close(); }, 400); return; }
+    if (1 + nConectados() >= MAX_JOG) { try { conn.send({ t: 'recusa', m: 'A sala está cheia (máximo ' + MAX_JOG + ').' }); } catch (e) {} setTimeout(function () { conn.close(); }, 400); return; }
+    var usados = { 0: 1 }; for (var k in outros) usados[outros[k].slot] = 1;
+    var slot = 1; while (usados[slot]) slot++;
+    j = novoOutro(pid, slot, 'Jogador ' + (slot + 1), COR_JOG[slot]); j.conn = conn;
+  }
+  try { conn.send({ t: 'bemvindo', slot: j.slot, nome: j.nome, cor: j.cor, fase: net.fase, sala: net.sala }); } catch (e) {}
+  if (net.fase === 'jogo') { aviso(j.nome + ' voltou!'); setTimeout(function () { aviso(''); }, 2500); }
+}
+function aoReceberDoJogador(pid, m) {
+  var j = outros[pid]; if (!j) return;
+  if (m.t === 'pos') { j.g = m.g; j.acc = m.acc; posDoOutro(j, m.x, m.y, m.v, m.a); }
+  else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
+  else if (m.t === 'atq') { m.p = pid; atqDeOutro(m); for (var k in outros) { if (k !== pid) net.enviarPara(k, m); } }
+  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); net.enviar({ t: 'denovo' }); spawnAoRedor(POS.lat, POS.lng); }
+}
+function jogadorCaiu(pid, conn) {
+  var j = outros[pid]; if (!j || j.conn !== conn) return; // já voltou por outra conexão
+  j.conectado = false; removerAvatar(j);
+  if (net.fase === 'sala' || net.fase === 'contagem') delete outros[pid]; // na sala de espera, quem sai libera a vaga
+  aviso(j.nome + ' saiu.'); setTimeout(function () { aviso(''); }, 2500);
+}
+
+// ---- convidado ----
+function entrarSala(cod) {
   if (typeof Peer === 'undefined') { msgIni('Sem conexão pra entrar na sala. Verifique a internet.'); return; }
   msgIni('Conectando...');
   net.peer = new Peer();
+  var esperando = setTimeout(function () { msgIni('Não achei a sala ' + cod + '. Confira o código.'); }, 12000);
   net.peer.on('open', function () {
-    var conn = net.peer.connect('mgo-dupla-' + cod);
-    var esperando = setTimeout(function () { msgIni('Não achei a sala ' + cod + '. Confira o código.'); }, 12000);
-    conn.on('open', function () {
-      clearTimeout(esperando);
-      net.papel = 'convidado'; net.sala = cod; limparInimigos(); porId = {}; rodadaVista = -1;
-      ligarConexao(conn, 'convidado'); iniciarJogo(); chip('Sala ' + cod + ' · conectado');
-    });
+    var conn = net.peer.connect('mgo-dupla-' + cod, { reliable: true });
+    conn.on('open', function () { clearTimeout(esperando); net.sala = cod; net.papel = 'convidado'; ligarComoConvidado(conn); try { conn.send({ t: 'oi', pid: net.pid }); } catch (e) {} });
   });
-  net.peer.on('error', function (e) { msgIni(e.type === 'peer-unavailable' ? 'Não achei a sala ' + cod + '. Confira o código.' : 'Falha na conexão. Tente de novo.'); });
+  net.peer.on('error', function (e) {
+    if (net.reconectando) return; // as tentativas de reconexão cuidam disso
+    clearTimeout(esperando); msgIni(e.type === 'peer-unavailable' ? 'Não achei a sala ' + cod + '. Confira o código.' : 'Falha na conexão. Tente de novo.');
+  });
 }
-document.getElementById('bCriar').onclick = function () { ativarGps(); criarSala(0); };
-document.getElementById('bEntrar').onclick = function () { ativarGps(); entrarSala(); };
-mapa.on('load', function () { var u = performance.now(); (function loopAmigo(a) { var dt = Math.min(0.05, (a - u) / 1000); u = a; atualizarAmigo(dt); requestAnimationFrame(loopAmigo); })(u); });
+function ligarComoConvidado(conn) {
+  net.conn = conn;
+  conn.on('data', aoReceberDoAnfitriao);
+  conn.on('close', perdeuAnfitriao);
+  conn.on('error', perdeuAnfitriao);
+  clearInterval(net.tPos);
+  net.tPos = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa, g: gpsStatus, acc: ALVO.acc || 0 }); }, 400);
+}
+function aoReceberDoAnfitriao(m) {
+  if (m.t === 'bemvindo') {
+    eu = { slot: m.slot, nome: m.nome, cor: m.cor }; net.sala = m.sala || net.sala; net.reconectando = false; net.reconTent = 0; lembrarSala();
+    if (m.fase === 'jogo') { net.fase = 'jogo'; jogoIniciado = true; document.getElementById('inicio').style.display = 'none'; document.getElementById('lobby').style.display = 'none'; chip('Sala ' + net.sala + ' · jogando'); }
+    else if (net.fase !== 'contagem') { net.fase = 'sala'; mostrarLobby(); }
+  }
+  else if (m.t === 'recusa') { msgIni(m.m); try { net.conn.close(); } catch (e) {} net.conn = null; clearInterval(net.tPos); net.papel = null; }
+  else if (m.t === 'sala') { if (net.fase === 'sala') renderLobby(m.l); }
+  else if (m.t === 'contagem') rodarContagem();
+  else if (m.t === 'estado') { aplicarEstado(m); if (net.fase === 'sala') { net.fase = 'jogo'; jogoIniciado = true; document.getElementById('lobby').style.display = 'none'; } }
+  else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
+  else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
+  else if (m.t === 'atq') atqDeOutro(m);
+  else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
+  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); }
+}
+function souSucessor() { // o convidado de menor número assume se o criador sair
+  var menor = 99; net.ultimoJs.forEach(function (e) { if (e[5] > 0 && e[5] < menor) menor = e[5]; });
+  return eu.slot > 0 && eu.slot <= menor;
+}
+function perdeuAnfitriao() {
+  if (net.papel !== 'convidado' || net.reconectando) return;
+  net.reconectando = true; net.reconTent = 0; net.conn = null; clearInterval(net.tPos); chip('Reconectando...');
+  tentarReconectar();
+}
+function tentarReconectar() {
+  if (net.papel !== 'convidado' || !net.reconectando) return;
+  net.reconTent++;
+  if (net.reconTent > 5) { // o anfitrião não voltou
+    if (souSucessor()) { assumirAnfitriao(); return; }
+    if (net.reconTent > 28) { net.reconectando = false; chip('Sala ' + net.sala + ' · sem conexão'); aviso('Perdi a conexão com a sala. Recarregue a página e toque em "Voltar à sala".'); return; }
+  }
+  try { if (net.peer.disconnected) net.peer.reconnect(); } catch (e) {}
+  var conn = net.peer.connect('mgo-dupla-' + net.sala, { reliable: true });
+  var tm = setTimeout(function () { try { conn.close(); } catch (e) {} tentarReconectar(); }, 3500);
+  conn.on('open', function () { clearTimeout(tm); net.reconectando = false; net.reconTent = 0; ligarComoConvidado(conn); try { conn.send({ t: 'oi', pid: net.pid }); } catch (e) {} aviso('Reconectado!'); setTimeout(function () { aviso(''); }, 2000); });
+  net.peer.once('error', function () { clearTimeout(tm); setTimeout(tentarReconectar, 900); });
+}
+function assumirAnfitriao() { // o criador saiu: este celular assume a MESMA sala (mesmo código) do ponto onde o jogo parou
+  net.reconectando = false; chip('Assumindo a sala...');
+  var np = new Peer('mgo-dupla-' + net.sala);
+  np.on('open', function () {
+    net.peer = np; net.papel = 'anfitriao'; rodada = rodadaVista; net.fase = 'jogo';
+    for (var k in outros) { removerAvatar(outros[k]); delete outros[k]; }
+    net.ultimoJs.forEach(function (e) { if (e[0] !== net.pid) { var j = novoOutro(e[0], e[5], e[6], e[7]); j.conectado = false; } }); // eles voltam sozinhos
+    ouvirConexoes(); clearInterval(net.timer); net.timer = setInterval(function () { net.enviar(estadoParaConvidados()); }, 250);
+    if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng);
+    aviso('O criador saiu. Você assumiu a sala.'); setTimeout(function () { aviso(''); }, 3500); chip('Sala ' + net.sala + ' · você é o anfitrião');
+    setTimeout(verificarFim, 500);
+  });
+  np.on('error', function (e) { if (e.type === 'unavailable-id') { net.reconectando = true; net.reconTent = 0; tentarReconectar(); } }); // alguém já assumiu: reconecta nele
+}
+
+// ---- menu ----
+(function menu() {
+  var qs = (location.search.match(/[?&]sala=(\d{4})/) || [])[1], ult = null;
+  try { ult = JSON.parse(localStorage.getItem('mgo-ultima') || 'null'); } catch (e) {}
+  if (qs) { document.getElementById('bEntrarQR').style.display = 'block'; document.getElementById('codQR').textContent = qs; document.getElementById('bCriar').style.display = 'none'; document.getElementById('ouEntrar').style.display = 'none'; document.getElementById('codSala').style.display = 'none'; document.getElementById('bEntrar').style.display = 'none'; }
+  else if (ult && ult.cod && Date.now() - ult.t < 3 * 3600 * 1000) { document.getElementById('bVoltar').style.display = 'block'; document.getElementById('codVolta').textContent = ult.cod; }
+  document.getElementById('bCriar').onclick = function () { ativarGps(); criarSala(0); };
+  document.getElementById('bEntrar').onclick = function () {
+    var cod = document.getElementById('codSala').value.replace(/[^0-9]/g, '');
+    if (cod.length !== 4) { msgIni('Digite o código de 4 números.'); return; }
+    ativarGps(); entrarSala(cod);
+  };
+  document.getElementById('bEntrarQR').onclick = function () { ativarGps(); entrarSala(qs); };
+  document.getElementById('bVoltar').onclick = function () { if (ult.pid) { net.pid = ult.pid; try { sessionStorage.setItem('mgo-pid', ult.pid); } catch (e) {} } ativarGps(); entrarSala(ult.cod); };
+})();
 </script>
 </body>
 </html>
