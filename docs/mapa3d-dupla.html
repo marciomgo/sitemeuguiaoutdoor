@@ -128,6 +128,7 @@
   .cxIni input{width:100%;box-sizing:border-box;font-size:22px;text-align:center;letter-spacing:6px;padding:14px;border:3px solid #ffd54f;border-radius:999px;background:#fff8e1;color:#2b2110}
   #msgIni{color:#fff;font-size:14px;min-height:18px;text-shadow:0 1px 3px rgba(0,0,0,.7);text-align:center}
   #chipSala{position:absolute;left:10px;top:10px;z-index:6;background:rgba(40,30,20,.75);color:#ffd54f;border-radius:12px;padding:6px 12px;font-size:13px;font-weight:bold}
+  #chipRede{position:absolute;left:10px;top:44px;z-index:6;background:rgba(40,30,20,.7);color:#fff;border-radius:10px;padding:3px 10px;font-size:11px}
   #lobby{position:absolute;inset:0;z-index:31;display:none;align-items:center;justify-content:center;background:rgba(25,35,18,.72);overflow:auto}
   .cxLob{background:#fff8e1;border:4px solid #ffd54f;border-radius:24px;padding:16px 18px;width:88%;max-width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5);margin:10px 0}
   .lobTit{font-size:20px;color:#2b2110}.lobTit b{font-size:34px;letter-spacing:6px}
@@ -169,6 +170,7 @@
 </div></div>
 <div id="contagem" style="display:none"><div id="contNum">3</div></div>
 <div id="chipSala" style="display:none"></div>
+<div id="chipRede" style="display:none"></div>
 <span id="dica" style="display:none"></span>
 <div id="painel">
   <button id="bGps" title="Usar meu GPS e bússola">📍</button>
@@ -1348,7 +1350,8 @@ function aceitarJogador(conn, m) {
 }
 function aoReceberDoJogador(pid, m) {
   var j = outros[pid]; if (!j) return;
-  if (m.t === 'pos') { j.g = m.g; j.acc = m.acc; posDoOutro(j, m.x, m.y, m.v, m.a); }
+  if (m.t === 'pos') { j.g = m.g; j.acc = m.acc; j.rtt = m.rd; j.via = m.rv; posDoOutro(j, m.x, m.y, m.v, m.a); redeDoAnfitriao(); }
+  else if (m.t === 'ping') net.enviarPara(pid, { t: 'pong', c: m.c });
   else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
   else if (m.t === 'atq') { m.p = pid; atqDeOutro(m); for (var k in outros) { if (k !== pid) net.enviarPara(k, m); } }
   else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); net.enviar({ t: 'denovo' }); spawnAoRedor(POS.lat, POS.lng); }
@@ -1387,13 +1390,38 @@ function entrarSala(cod, tent) {
     else falhar('Falha na conexão (' + e.type + ').', true);
   });
 }
+function atualizarChipRede(ms, via, quem) {
+  var c = document.getElementById('chipRede'); if (!c) return;
+  if (ms == null && !via) { c.style.display = 'none'; return; }
+  c.textContent = 'rede (' + quem + '): ' + (via === 'relay' ? 'via relay' : (via === 'direta' ? 'direta' : '…')) + (ms != null ? ' · ' + ms + ' ms' : '');
+  c.style.display = 'block';
+}
+function redeDoAnfitriao() { // mostra o convidado com o pior atraso
+  var pior = null; for (var k in outros) { var j = outros[k]; if (j.conectado && j.rtt != null && (!pior || j.rtt > pior.rtt)) pior = j; }
+  if (pior) atualizarChipRede(pior.rtt, pior.via, pior.nome);
+}
+function descobrirVia(conn) { // o caminho escolhido: direto entre os aparelhos ou passando por um servidor de apoio (relay)
+  try {
+    conn.peerConnection.getStats().then(function (st) {
+      var via = null;
+      st.forEach(function (r) {
+        if (r.type === 'candidate-pair' && (r.selected || (r.nominated && r.state === 'succeeded'))) {
+          var l = st.get(r.localCandidateId), rm = st.get(r.remoteCandidateId);
+          via = ((l && l.candidateType === 'relay') || (rm && rm.candidateType === 'relay')) ? 'relay' : 'direta';
+        }
+      });
+      if (via) net.via = via;
+    });
+  } catch (e) {}
+}
 function ligarComoConvidado(conn) {
   net.conn = conn;
   conn.on('data', aoReceberDoAnfitriao);
   conn.on('close', perdeuAnfitriao);
   conn.on('error', perdeuAnfitriao);
   clearInterval(net.tPos);
-  net.tPos = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa, g: gpsStatus, acc: ALVO.acc || 0 }); }, 400);
+  net.tPos = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa, g: gpsStatus, acc: ALVO.acc || 0, rd: net.rtt, rv: net.via }); }, 400);
+  clearInterval(net.tPing); net.tPing = setInterval(function () { net.enviar({ t: 'ping', c: performance.now() }); descobrirVia(conn); }, 3000);
 }
 function aoReceberDoAnfitriao(m) {
   if (m.t === 'bemvindo') {
@@ -1404,6 +1432,7 @@ function aoReceberDoAnfitriao(m) {
   else if (m.t === 'recusa') { msgIni(m.m); try { net.conn.close(); } catch (e) {} net.conn = null; clearInterval(net.tPos); net.papel = null; }
   else if (m.t === 'sala') { if (net.fase === 'sala') renderLobby(m.l); }
   else if (m.t === 'contagem') rodarContagem();
+  else if (m.t === 'pong') { net.rtt = Math.round(performance.now() - m.c); atualizarChipRede(net.rtt, net.via, 'Anfitrião'); }
   else if (m.t === 'estado') { aplicarEstado(m); if (net.fase === 'sala') { net.fase = 'jogo'; jogoIniciado = true; document.getElementById('lobby').style.display = 'none'; } }
   else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
   else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
