@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MGO · Protótipo do mapa 3D</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.css">
+<style>
+  html,body{margin:0;height:100%;background:#dff0c9;font-family:Arial,Helvetica,sans-serif;overflow:hidden;touch-action:none}
+  #mapa{position:absolute;inset:0;z-index:0}
+  .chip{position:absolute;left:10px;top:10px;z-index:5;background:rgba(40,30,20,.78);color:#fff;border-radius:14px;padding:7px 12px;font-size:13px;max-width:70%;line-height:1.3}
+  .chip b{color:#ffd54f}
+  #painel{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:6px}
+  #bInc small{display:block;font-size:11px;font-weight:bold;color:#263238;margin-top:1px}
+  #painel button{border:0;border-radius:12px;background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:18px;padding:8px 11px;cursor:pointer}
+  #controles{position:absolute;left:0;right:0;bottom:14px;z-index:5;display:flex;justify-content:center;gap:14px}
+  #controles button{width:62px;height:62px;border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 3px 8px rgba(0,0,0,.4);font-size:26px;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #controles button:active{background:#ffe082}
+  #controles .mid{margin-bottom:34px}
+  #aviso{position:absolute;left:10px;bottom:90px;z-index:5;background:rgba(40,30,20,.7);color:#fff;border-radius:12px;padding:6px 10px;font-size:12px;max-width:60%}
+  /* marcadores em pé (billboard) */
+  .pino{display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));pointer-events:none}
+  .pino .bola{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;color:#fff;font-weight:bold}
+  .pino .haste{width:3px;height:10px;background:rgba(255,255,255,.9)}
+  .p-ponto .bola{width:34px;height:34px;background:#2979ff;font-size:15px}
+  .p-cura .bola{width:30px;height:30px;background:#e53935;font-size:18px}
+  .p-pedra .bola{width:24px;height:24px;background:#eceff1;font-size:14px;border-color:#90a4ae}
+  .p-pedra.esp .bola{background:#fff3c4;border-color:#f9a825}
+  .p-bomba .bola{width:26px;height:26px;background:#212121;font-size:15px;border-color:#fff}
+  .p-zumbi{font-size:34px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.55))}
+  .p-chefao{font-size:54px;filter:drop-shadow(0 4px 3px rgba(0,0,0,.6))}
+  /* o Mineu: aparece inteiro na frente, de costas pra câmera é só uma ideia — aqui ele é um cartaz em pé */
+  #mineu{position:relative;width:70px;height:190px;pointer-events:none}
+  #mineu .sombra{position:absolute;left:50%;bottom:-4px;width:84px;height:22px;margin-left:-42px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(3px)}
+  #mineu .anel{position:absolute;left:50%;bottom:-14px;width:120px;height:120px;margin-left:-60px;border-radius:50%;border:3px solid rgba(255,160,0,.8);background:radial-gradient(circle,rgba(255,213,79,.25),rgba(255,213,79,0) 70%);transform:rotateX(70deg);animation:pulsa 1.6s ease-in-out infinite}
+  @keyframes pulsa{0%,100%{opacity:.5;scale:.9}50%{opacity:1;scale:1.08}}
+  #mineu .corpo{position:absolute;left:0;top:0;width:70px;height:190px;filter:drop-shadow(0 4px 3px rgba(0,0,0,.4))}
+  #mineu img{position:absolute;width:70px;height:190px;left:0;top:0}
+  #mineu.anda .corpo{animation:balanca .42s ease-in-out infinite}
+  @keyframes balanca{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
+  #btnAtirar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:5;width:80px;height:80px;padding:12px;box-sizing:border-box;border:none;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;touch-action:manipulation}
+  #btnAtirar img{width:100%;height:100%;object-fit:contain;display:block}
+  #btnAtirar:active{transform:translateX(-50%) scale(.94)}
+  #trocaPedraWrap{position:absolute;bottom:26px;left:calc(50% - 112px);z-index:5;width:60px;height:60px}
+  #btnTrocaPedra{position:relative;z-index:3;width:60px;height:60px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #90a4ae;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;font-size:26px;line-height:1}
+  #btnTrocaPedra.esp{border-color:#f9a825;background:#fff8e1}
+  #btnTrocaPedra small{font-size:12px;font-weight:bold;color:#37474f}
+  .pedra-reserva{position:absolute;z-index:1;left:-22px;bottom:-12px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #90a4ae;background:#eceff1;box-shadow:0 1px 4px rgba(0,0,0,.45);font-size:18px;cursor:pointer}
+  #pedraReserva2{z-index:0;left:-24px;bottom:25px}
+  .pedra-reserva.esp{border-color:#f9a825;background:#fff3c4}
+  .vida{position:absolute;left:50%;top:-9px;width:32px;height:5px;margin-left:-16px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
+  .vida i{display:block;height:100%;width:100%;background:#43a047}
+  .golpe{animation:golpe .18s linear}
+  @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
+  .pedrada{font-size:34px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+  .pedrada.esp{filter:drop-shadow(0 0 6px #ffca28) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+  .mira-alvo{width:64px;height:64px;margin:0;border-radius:50%;border:4px solid #ff1744;box-shadow:0 0 12px #ff1744,inset 0 0 8px #ff174488;pointer-events:none}
+  #bus{font-weight:bold;color:#ffd54f}
+  #legenda{position:absolute;left:10px;top:78px;z-index:5;background:rgba(40,30,20,.7);color:#ffd54f;border-radius:10px;padding:4px 9px;font-size:11px;max-width:60%}
+  .maplibregl-ctrl-top-left{top:84px;left:4px}
+  .maplibregl-ctrl-bottom-right{top:0;bottom:auto;right:64px}
+  .maplibregl-ctrl-attrib{background:transparent !important;margin:4px !important}
+  .maplibregl-ctrl-attrib-button{width:20px;height:20px;opacity:.5;background-color:rgba(255,255,255,.35) !important;border-radius:50%}
+  .maplibregl-ctrl-attrib.maplibregl-compact-show{background:rgba(255,255,255,.8) !important;font-size:10px}
+  .maplibregl-ctrl-scale{font-size:12px;font-weight:bold;background:rgba(255,255,255,.85);border-color:#37474f;color:#263238}
+  #mineu{transition:height .25s}
+  #mineu .corpo{transition:height .25s;overflow:hidden}
+  #mineu img{transition:height .25s}
+  .mine-vida{top:-12px}
+  .mine-vida i{background:#e53935}
+  .anda-z{display:inline-block;animation:bobz .5s ease-in-out infinite}
+  @keyframes bobz{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-4px) rotate(4deg)}}
+  #sangue{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(229,57,53,0) 45%,rgba(229,57,53,.55) 100%)}
+  #sangue.bate{animation:sangra .45s ease-out}
+  @keyframes sangra{0%{opacity:1}100%{opacity:0}}
+  .rastro{position:fixed;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:rgba(255,255,255,.85);pointer-events:none;z-index:100000;animation:poof .5s forwards}
+  .rastro.esp{background:rgba(255,213,79,.9)}
+  @keyframes poof{to{transform:scale(.2);opacity:0}}
+  .estouro{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:5px solid #fff;pointer-events:none;z-index:100000;animation:bum .45s ease-out forwards}
+  @keyframes bum{to{transform:scale(4.5);opacity:0;border-width:1px}}
+  #mineu .anel{display:none}
+  #btnTrocaPedra.galho{border-color:#8d5a2b;background:#f3e6d2}
+  #btnTrocaPedra svg{width:24px;height:24px;transform:rotate(35deg)}
+  .pedra-reserva svg{width:14px;height:14px;transform:rotate(35deg)}
+  .pedra-reserva.galho{border-color:#8d5a2b;background:#f3e6d2}
+  #btnAtirar svg{width:100%;height:100%;display:block;transform:rotate(35deg)}
+  #galhoMineu{position:absolute;right:-18px;bottom:34px;width:26px;height:112px;transform-origin:50% 94%;transform:rotate(8deg);pointer-events:none;display:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+  #galhoMineu svg{width:100%;height:100%;display:block}
+  #galhoMineu.bate{animation:bate .38s ease-in-out}
+  @keyframes bate{0%{transform:rotate(8deg)}35%{transform:rotate(-72deg)}70%{transform:rotate(48deg)}100%{transform:rotate(8deg)}}
+  #arcoGolpe{position:absolute;left:-42px;top:-62px;width:154px;height:70px;border-radius:50% 50% 0 0 / 100% 100% 0 0;border-top:9px solid rgba(255,255,255,.95);filter:drop-shadow(0 0 6px rgba(255,255,255,.9));opacity:0;pointer-events:none}
+  #arcoGolpe.bate{animation:arco .32s ease-out}
+  @keyframes arco{0%{opacity:0;transform:scale(.55)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+  #mineu,#mineu .corpo,#mineu img{transition:none}
+  #mineu .interno{position:absolute;left:0;top:0;right:0;bottom:0;transform-origin:50% 100%;transform:scale(.5)}
+  .fogo{font-size:34px;pointer-events:none;filter:drop-shadow(0 0 8px #ff6d00)}
+  .fogo.roxo{filter:hue-rotate(255deg) saturate(1.5) drop-shadow(0 0 8px #aa00ff)}
+  .rastro.fogo{background:rgba(255,109,0,.85);filter:none}
+  .rastro.roxo{background:rgba(170,0,255,.85);filter:none}
+  .pe-amarela{display:inline-block;filter:sepia(1) saturate(6) hue-rotate(-10deg) brightness(1.15)}
+  #inicio{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(25,35,18,.5)}
+  #bInicio{font-size:20px;font-weight:bold;padding:20px 28px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
+  #bInicio:active{transform:scale(.97)}
+  #mineu.comPau .corpo:not(#corpoGolpe):not(#corpoEst) img{visibility:hidden}
+  #mineu.comPau #galhoMineu{display:none !important}
+  #parabens{position:absolute;inset:0;z-index:40;align-items:center;justify-content:center;background:rgba(20,32,14,.72)}
+  #confete{position:absolute;inset:0;pointer-events:none}
+  .caixaP{position:relative;background:#fff8e1;border:4px solid #ffd54f;border-radius:26px;padding:0 22px 20px;max-width:330px;width:84%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:pulaP .6s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pulaP{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+  .caixaP img{height:190px;margin-top:-90px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
+  .estrelas{font-size:26px;letter-spacing:6px;color:#ffb300;text-shadow:0 2px 0 #b57f00;margin-top:2px}
+  .caixaP h2{margin:4px 0 4px;font-size:30px;color:#2b2110;font-family:Arial,Helvetica,sans-serif}
+  .caixaP p{margin:0 0 12px;font-size:14px;color:#5a4a2a}
+  .statsP{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+  .statsP div{flex:1;background:#fff;border-radius:14px;padding:8px 4px;border:2px solid #ffe082}
+  .statsP b{display:block;font-size:22px;color:#2b2110}
+  .statsP span{font-size:12px;color:#7a6a45}
+  #bDeNovo{font-size:18px;font-weight:bold;padding:14px 26px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 4px 0 #c99a00;cursor:pointer;touch-action:manipulation}
+  #bDeNovo:active{transform:translateY(2px);box-shadow:0 2px 0 #c99a00}
+  #btnTrocaPedra img{height:38px;width:auto;display:block}
+  .pedra-reserva img{height:22px;width:auto;display:block}
+  .cxIni{display:flex;flex-direction:column;align-items:center;gap:12px;width:82%;max-width:320px}
+  .cxIni button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
+  .cxIni .ou{color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .cxIni input{width:100%;box-sizing:border-box;font-size:22px;text-align:center;letter-spacing:6px;padding:14px;border:3px solid #ffd54f;border-radius:999px;background:#fff8e1;color:#2b2110}
+  #msgIni{color:#fff;font-size:14px;min-height:18px;text-shadow:0 1px 3px rgba(0,0,0,.7);text-align:center}
+  #chipSala{position:absolute;left:10px;top:10px;z-index:6;background:rgba(40,30,20,.75);color:#ffd54f;border-radius:12px;padding:6px 12px;font-size:13px;font-weight:bold}
+  .amigo{width:35px;height:100px;pointer-events:none}
+  .amigo img{position:absolute;left:0;bottom:0;width:35px;height:95px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4))}
+  .amigo .anelA{position:absolute;left:50%;bottom:-6px;width:56px;height:20px;margin-left:-28px;border-radius:50%;border:3px solid #29b6f6;background:rgba(41,182,246,.25)}
+  .amigo .nomeA{position:absolute;left:50%;top:-24px;transform:translateX(-50%);font-size:11px;font-weight:bold;color:#fff;background:#0288d1;border-radius:8px;padding:1px 6px;white-space:nowrap}
+  .amigo .vida{top:-9px}
+</style>
+</head>
+<body>
+<div id="mapa"></div>
+<div id="inicio"><div class="cxIni"><button id="bCriar">📍 Criar sala</button><div class="ou">ou entre na sala do amigo</div><input id="codSala" inputmode="numeric" maxlength="4" placeholder="Código de 4 números" autocomplete="off"><button id="bEntrar">Entrar na sala</button><div id="msgIni"></div></div></div>
+<div id="chipSala" style="display:none"></div>
+<span id="dica" style="display:none"></span>
+<div id="painel">
+  <button id="bGps" title="Usar meu GPS e bússola">📍</button>
+  <button id="bMais" title="Aproximar">＋</button>
+  <button id="bMenos" title="Afastar">－</button>
+  <button id="bSat" title="Mapa de satélite">🛰️</button>
+  <button id="bInc" title="Mudar a inclinação"></button>
+</div>
+<div id="sangue"></div>
+<div id="parabens" style="display:none"><canvas id="confete"></canvas><div class="caixaP"><img src="mineu-comemora.png" alt="Mineu comemorando"><div class="estrelas">★ ★ ★</div><h2>Missão cumprida!</h2><p>Todos os zumbis e monstros foram derrotados.</p><div class="statsP"><div><b id="pZumbis">0</b><span>zumbis</span></div><div><b id="pMonstros">0</b><span>monstros</span></div><div><b id="pTempo">0:00</b><span>tempo</span></div></div><button id="bDeNovo">Jogar de novo</button></div></div>
+<div id="aviso" style="display:none"></div>
+<button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
+<div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[],"curas":[],"pedras":[],"bombas":[],"chefoes":[],"zumbis":[],"livre":true,"dupla":true};
+
+var rad = Math.PI / 180;
+
+// ---------- estilo do mapa (cores originais do MGO) ----------
+var largura = ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 19, 9];
+var ESTILO = {
+  version: 8,
+  sources: { omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' }, sat: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19, attribution: 'Imagens © Esri' } },
+  sky: { 'sky-color': '#bfe6ff', 'horizon-color': '#fff3d1', 'fog-color': '#f1f6dd', 'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.85, 'fog-ground-blend': 0.55 },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#e1f1c9' } },
+    { id: 'sat', type: 'raster', source: 'sat', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
+    { id: 'grama', type: 'fill', source: 'omt', 'source-layer': 'landcover', filter: ['==', ['get', 'class'], 'grass'], paint: { 'fill-color': '#cbe9a6' } },
+    { id: 'mata', type: 'fill', source: 'omt', 'source-layer': 'landcover', filter: ['==', ['get', 'class'], 'wood'], paint: { 'fill-color': '#b4dd8d' } },
+    { id: 'parque', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': '#b9e29c', 'fill-opacity': 0.9 } },
+    { id: 'quadra', type: 'fill', source: 'omt', 'source-layer': 'landuse', filter: ['in', ['get', 'class'], ['literal', ['pitch', 'playground']]], paint: { 'fill-color': '#f3dba5' } },
+    { id: 'agua', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#80cfee' } },
+    { id: 'rio', type: 'line', source: 'omt', 'source-layer': 'waterway', paint: { 'line-color': '#80cfee', 'line-width': largura } },
+    { id: 'rua-borda', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e0cfb0', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.2, 19, 13] } },
+    { id: 'rua', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fffaf0', 'line-width': largura } },
+    { id: 'trilha', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['path', 'track', 'pedestrian']]], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#f2c27a', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 1, 19, 3.5], 'line-dasharray': [2, 1.4] } },
+    { id: 'predio', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: {
+        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8], 0, '#f7e8d2', 40, '#ecd5b5', 90, '#dcbf9a'],
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.97, 'fill-extrusion-vertical-gradient': true } },
+    // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
+    { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
+    { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
+    { id: 'galho-borda', type: 'line', source: 'galho-alc', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
+    { id: 'alcance-fundo', type: 'fill', source: 'alcance-fill', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
+    { id: 'alcance-sombra', type: 'line', source: 'alcance', paint: { 'line-color': '#000', 'line-width': 6, 'line-opacity': 0.35, 'line-blur': 2 } },
+    { id: 'alcance', type: 'line', source: 'alcance', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
+    { id: 'mira-linha', type: 'line', source: 'mira', paint: { 'line-color': '#ff1744', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [2, 1.5] } },
+    { id: 'zona-borda', type: 'line', source: 'zona-borda', paint: { 'line-color': ['get', 'cor'], 'line-opacity': 0.35, 'line-width': 2, 'line-dasharray': [3, 2] } }
+  ]
+};
+
+function circulo(lat, lng, raioM, passos) {
+  var pts = [];
+  for (var i = 0; i <= passos; i++) {
+    var a = (i / passos) * 2 * Math.PI;
+    var dLat = (raioM * Math.cos(a)) / 111320;
+    var dLng = (raioM * Math.sin(a)) / (111320 * Math.cos(lat * rad));
+    pts.push([lng + dLng, lat + dLat]);
+  }
+  return pts;
+}
+var camadasZona = [], bordasZona = [];
+(DADOS.chefoes || []).forEach(function (c) {
+  var cor = c.final ? '#8e24aa' : '#ef6c00';
+  [1, 0.78, 0.56, 0.34].forEach(function (f, i) {
+    var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * f, 64)] } };
+    camadasZona.push(ft); if (i === 0) bordasZona.push(ft);
+  });
+});
+ESTILO.sources['alcance-fill'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
+ESTILO.sources['galho-alc'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
+ESTILO.sources.alcance = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
+ESTILO.sources.mira = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
+ESTILO.sources.zona = { type: 'geojson', data: { type: 'FeatureCollection', features: camadasZona } };
+ESTILO.sources['zona-borda'] = { type: 'geojson', data: { type: 'FeatureCollection', features: bordasZona } };
+
+// ---------- mapa e câmera ----------
+var POS = { lat: DADOS.largada.lat, lng: DADOS.largada.lng };
+var ALVO = { lat: POS.lat, lng: POS.lng };
+var NIVEIS_INC = [0, 30, 40, 50, 60, 70], nivelInc = 4;
+var heading = 30, bearing = 30, inclinacao = NIVEIS_INC[nivelInc], zoom = 19.4;
+var mapa;
+var marcadores = [];
+try {
+  mapa = new maplibregl.Map({ container: 'mapa', style: ESTILO, center: [POS.lng, POS.lat], zoom: zoom, pitch: inclinacao, bearing: bearing, maxPitch: 80, minZoom: 15, maxZoom: 21,
+    interactive: false, attributionControl: { compact: true, customAttribution: 'Mapa © OpenStreetMap · OpenFreeMap' } });
+} catch (e) {
+  document.getElementById('dica').textContent = 'Este navegador não conseguiu abrir o mapa 3D (WebGL).';
+  throw e;
+}
+
+function marcador(lat, lng, classe, html, ancora) {
+  var el = document.createElement('div');
+  el.className = classe;
+  el.innerHTML = html;
+  el._ll = [lng, lat]; marcadores.push(el);
+  el._mk = new maplibregl.Marker({ element: el, anchor: ancora || 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([lng, lat]).addTo(mapa);
+  return el;
+}
+function pino(cls, conteudo, lat, lng) {
+  marcador(lat, lng, 'pino ' + cls, '<div class="bola">' + conteudo + '</div><div class="haste"></div>');
+}
+
+// ---------- inimigos e tiro do Mineu ----------
+var ALCANCE_TIRO_M = 35, CONE_GRAUS = 10, DANO = { normal: 5, esp: 10 };
+var inimigos = [];
+function novoInimigo(lat, lng, classe, emoji, vida) {
+  var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
+  inimigos.push({ vf: 0.85 + Math.random() * 0.3, ang0: Math.random() * 360, lado: Math.random() < 0.5 ? 1 : -1, id: inimigos.length + 1, lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao', final: emoji === '👿' });
+}
+function metrosDe(p, lat, lng) { // distância e direção de um jogador (p) até um ponto
+  var dl = (lat - p.lat) * 111320, dn = (lng - p.lng) * 111320 * Math.cos(p.lat * rad);
+  return { d: Math.sqrt(dl * dl + dn * dn), ang: (Math.atan2(dn, dl) / rad + 360) % 360 };
+}
+function metrosAte(lat, lng) {
+  var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
+  return { d: Math.sqrt(dl * dl + dn * dn), ang: (Math.atan2(dn, dl) / rad + 360) % 360 };
+}
+function escolherAlvo() {
+  if (alvoAtual && alvoAtual.vivo) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
+    var ma = metrosAte(alvoAtual.lat, alvoAtual.lng);
+    if (ma.d <= ALCANCE_TIRO_M && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 2) return alvoAtual;
+  }
+  var melhor = null;
+  inimigos.forEach(function (i) {
+    if (!i.vivo) return;
+    var m = metrosAte(i.lat, i.lng), e = Math.abs(difAng(heading, m.ang));
+    if (m.d > ALCANCE_TIRO_M || e > CONE_GRAUS) return;
+    var nota = e + m.d * 0.12; // vence quem está mais no centro da mira; a distância só desempata
+    if (!melhor || nota < melhor.nota) melhor = { i: i, nota: nota };
+  });
+  return melhor && melhor.i;
+}
+var alvoAtual = null, elMira = document.createElement('div');
+elMira.className = 'mira-alvo'; elMira.style.zIndex = 99999;
+var mkMira = new maplibregl.Marker({ element: elMira, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([0, 0]);
+var miraNoMapa = false;
+function atualizarMira() {
+  alvoAtual = (typeof ativa !== "undefined" && ativa === "galho") ? null : escolherAlvo();
+  var src = mapa.getSource('mira');
+  if (alvoAtual) {
+    if (!miraNoMapa) { mkMira.addTo(mapa); miraNoMapa = true; }
+    mkMira.setLngLat([alvoAtual.lng, alvoAtual.lat]);
+    elMira.style.marginTop = (alvoAtual.el.classList.contains('p-chefao') ? -27 : -17) + 'px';
+    if (src) src.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[POS.lng, POS.lat], [alvoAtual.lng, alvoAtual.lat]] } });
+  } else {
+    if (miraNoMapa) { mkMira.remove(); miraNoMapa = false; }
+    if (src) src.setData({ type: 'FeatureCollection', features: [] });
+  }
+}
+// ---------- sons (os mesmos tons do jogo) ----------
+var audioCtx = null;
+function obterAudio() {
+  try {
+    if (audioCtx && audioCtx.state === 'closed') audioCtx = null;
+    if (!audioCtx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; audioCtx = new AC(); }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch (e) { return null; }
+}
+function tocarTom(fi, ff, ms, tipo, vol) {
+  try {
+    var ctx = obterAudio(); if (!ctx) return;
+    var osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = tipo || 'square';
+    osc.frequency.setValueAtTime(fi, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(ff, 1), ctx.currentTime + ms / 1000);
+    g.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms / 1000);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + ms / 1000);
+  } catch (e) {}
+}
+function tocarSomTiro() { tocarTom(880, 220, 110, 'square', 0.1); }
+function tocarSomImpacto() { tocarTom(300, 80, 100, 'sawtooth', 0.15); }
+function tocarSomMordida() { tocarTom(190, 80, 80, 'square', 0.2); setTimeout(function () { tocarTom(150, 60, 100, 'square', 0.2); }, 120); }
+
+// ---------- o tiro: a pedra voa de verdade até o alvo ----------
+function rastro(el, esp, cor) {
+  var b = el.getBoundingClientRect(), d = document.createElement('div');
+  d.className = 'rastro' + (esp ? ' esp' : '') + (cor ? ' ' + cor : '');
+  d.style.left = (b.left + b.width / 2) + 'px'; d.style.top = (b.top + b.height / 2) + 'px';
+  document.body.appendChild(d); setTimeout(function () { d.remove(); }, 500);
+}
+function estouro(el) {
+  var b = el.getBoundingClientRect(), d = document.createElement('div');
+  d.className = 'estouro'; d.style.left = (b.left + b.width / 2) + 'px'; d.style.top = (b.top + b.height / 2) + 'px';
+  document.body.appendChild(d); setTimeout(function () { d.remove(); }, 450);
+}
+function tiroDoMineu() {
+  if (municao[ativa] <= 0) return;
+  municao[ativa]--; pintaMunicao();
+  atualizarMira(); var alvo = alvoAtual, tipo = ativa;
+  tocarSomTiro(); tocarFramesTiro();
+  var de = { lat: POS.lat, lng: POS.lng };
+  // a pedra começa onde está a bolsinha do estilingue no desenho (mão direita, altura do ombro) e segue pra frente
+  var escM = parseFloat(String(elInterno.style.transform).replace(/[^0-9.]/g, '')) || 1;
+  var iniX = 24 * escM, iniY = 142 * escM * SY_ATUAL;
+  var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
+  var fora = document.createElement('div'); fora.style.zIndex = 100001;
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
+  var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
+  var t0 = performance.now();
+  var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
+  var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
+  var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
+  (function voo(agora) {
+    var t = Math.min(1, (agora - t0) / dur);
+    var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
+    mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
+    var h = altIni + (altFim - altIni) * t + Math.sin(Math.PI * t) * arco;
+    el.style.transform = 'translate(' + (iniX * Math.max(0, 1 - t * 3)) + 'px,' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
+    rastro(el, tipo === 'esp');
+    if (t < 1) { requestAnimationFrame(voo); return; }
+    mk.remove();
+    if (alvo && alvo.vivo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, DANO[tipo]); }
+  })(t0);
+}
+var ZUMBI_VEL = 0.5, ZUMBI_AGGRO_M = 30, ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
+var vidaMineu = 100, ultimaMordida = 0;
+function pintaVidaMineu() { elMineu.querySelector('.mine-vida i').style.width = Math.max(0, vidaMineu) + '%'; }
+function mordida(agora) {
+  ultimaMordida = agora; vidaMineu -= DANO_MORDIDA; pintaVidaMineu(); tocarSomMordida();
+  var sg = document.getElementById('sangue'); sg.classList.remove('bate'); void sg.offsetWidth; sg.classList.add('bate');
+  if (navigator.vibrate) navigator.vibrate(60);
+  if (vidaMineu <= 0) {
+    aviso('Os zumbis te pegaram! Vida restaurada.'); setTimeout(function () { aviso(''); }, 2500);
+    vidaMineu = 100; pintaVidaMineu();
+  }
+}
+var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
+var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
+function tocarSomTiroChefao(final) {
+  var g = final ? 0.75 : 1;
+  tocarTom(150 * g, 45 * g, final ? 520 : 380, 'sawtooth', 0.22);
+  setTimeout(function () { tocarTom(420 * g, 120 * g, 160, 'square', 0.1); }, 40);
+}
+function tocarSomAtingido() { tocarTom(220, 40, 180, 'square', 0.2); }
+function levarDano(v) {
+  vidaMineu -= v; pintaVidaMineu();
+  var sg = document.getElementById('sangue'); sg.classList.remove('bate'); void sg.offsetWidth; sg.classList.add('bate');
+  if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
+  if (vidaMineu <= 0) {
+    aviso('Você foi derrubado! Vida restaurada.'); setTimeout(function () { aviso(''); }, 2500);
+    vidaMineu = 100; pintaVidaMineu();
+  }
+}
+// bola de fogo: o voo é visual (aparece nos dois celulares); o dano é decidido só por quem roda o jogo (o anfitrião)
+function voarFogo(de, alvo, final, dur, aoChegar) {
+  var fora = document.createElement('div'); fora.style.zIndex = 99990;
+  var el = document.createElement('div'); el.className = 'fogo' + (final ? ' roxo' : ''); el.textContent = '🔥'; fora.appendChild(el);
+  var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
+  var t0 = performance.now(), ultRastro = 0;
+  (function voo(agora) {
+    var t = Math.min(1, (agora - t0) / dur);
+    mk.setLngLat([de.lng + (alvo.lng - de.lng) * t, de.lat + (alvo.lat - de.lat) * t]);
+    el.style.transform = 'translateY(' + (-(34 - 22 * t)) + 'px)';
+    if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, final ? 'roxo' : 'fogo'); }
+    if (t < 1) { requestAnimationFrame(voo); return; }
+    mk.remove(); if (aoChegar) aoChegar();
+  })(t0);
+}
+function dispararFogo(i, tp, alvoJ) {
+  i.balaEmVoo = true;
+  tocarSomTiroChefao(i.final);
+  var de = { lat: i.lat, lng: i.lng }, alvo = { lat: tp.lat, lng: tp.lng };
+  net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: TEMPO_VOO_FOGO_MS });
+  voarFogo(de, alvo, i.final, TEMPO_VOO_FOGO_MS, function () {
+    i.balaEmVoo = false;
+    var ref = alvoJ ? amigo : POS; if (!ref) return;
+    var dl = (alvo.lat - ref.lat) * 111320, dn = (alvo.lng - ref.lng) * 111320 * Math.cos(ref.lat * rad);
+    if (Math.sqrt(dl * dl + dn * dn) > RAIO_ACERTO_FOGO_M) return;
+    var v = i.final ? DANO_FOGO_FINAL : DANO_FOGO;
+    if (alvoJ) net.enviar({ t: 'dano', v: v, k: 'f' }); else { tocarSomAtingido(); levarDano(v); }
+  });
+}
+// contorna construções e água: olha 2,2 m à frente e, se bater, vira pro lado livre mais próximo (e continua do mesmo lado até o caminho direto abrir)
+function direcaoLivre(i, angDireto) {
+  if (!obstaculos.length) return angDireto;
+  var L = 2.2, lado = i.lado || 1, tentativas = [0];
+  [25, 50, 80, 110, 140].forEach(function (d) { tentativas.push(lado * d, -lado * d); });
+  for (var k = 0; k < tentativas.length; k++) {
+    var a = angDireto + tentativas[k], p = deslocar(i.lat, i.lng, L, a);
+    if (!emObstaculo(p.lat, p.lng)) {
+      if (tentativas[k] === 0) i.lado = 0; else if (!i.lado) i.lado = tentativas[k] > 0 ? 1 : -1;
+      return a;
+    }
+  }
+  return null;
+}
+var quadroMov = 0;
+var jogoIniciado = false;
+function moverInimigos(dt, agora) {
+  if (!jogoIniciado) return; // parado até escolher criar/entrar na sala
+  if (net.papel === 'convidado') { atualizarComoConvidado(dt, agora); return; } // o convidado só mostra; quem roda o jogo é o anfitrião
+  quadroMov++;
+  inimigos.forEach(function (i) {
+    if (!i.vivo) return;
+    var eu = metrosAte(i.lat, i.lng), m = eu, anda = false, alvoJ = null, tp = POS;
+    if (amigo) { var da = metrosDe(amigo, i.lat, i.lng); if (da.d < eu.d) { m = da; alvoJ = amigo; tp = amigo; } }
+    var naArea = eu.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, eu.ang)) <= GALHO_CONE;
+    if (naArea && !i.naArea) i.tEntrada = agora;
+    i.naArea = naArea;
+    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = i.chefao ? (DADOS.livre ? CHEFAO_PARA_LIVRE_M : CHEFAO_PARA_M) : ZUMBI_PARA_M;
+    var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
+    if (m.d <= aggro && m.d > para) {
+      if (i._ang === undefined || (quadroMov + (i.id || 0)) % 4 === 0) {
+        var mira = m.d > 7 ? deslocar(tp.lat, tp.lng, 2.5, i.ang0) : tp; // de longe, cada um mira um lado diferente em volta de você
+        var dnn = (mira.lng - i.lng) * Math.cos(i.lat * rad), dll = mira.lat - i.lat;
+        var a0 = (m.d > 4) ? passoDoCampo(i) : null; // de longe segue o caminho que contorna prédios; de perto vai direto
+        if (a0 === null) a0 = direcaoLivre(i, (Math.atan2(dnn, dll) / rad + 360) % 360);
+        if (a0 !== null) { // separação: afasta de quem está a menos de 3 m, pra não andarem em fila nem amontoados
+          var vx = Math.sin(a0 * rad), vy = Math.cos(a0 * rad);
+          for (var q = 0; q < inimigos.length; q++) {
+            var o = inimigos[q]; if (o === i || !o.vivo) continue;
+            var el2 = (i.lat - o.lat) * 111320, en2 = (i.lng - o.lng) * 111320 * Math.cos(i.lat * rad), de = Math.sqrt(el2 * el2 + en2 * en2);
+            if (de < 3 && de > 0.01) { var w = (3 - de) / 3 * 1.6; vx += (en2 / de) * w; vy += (el2 / de) * w; }
+          }
+          var a1 = (Math.atan2(vx, vy) / rad + 360) % 360, pp = deslocar(i.lat, i.lng, 2.2, a1);
+          a0 = (obstaculos.length && emObstaculo(pp.lat, pp.lng)) ? a0 : a1;
+        }
+        i._ang = a0;
+      }
+      if (i._ang !== null) {
+        var passo = Math.min(vel * (i.vf || 1) * dt, m.d - para);
+        i.lat += (passo * Math.cos(i._ang * rad)) / 111320;
+        i.lng += (passo * Math.sin(i._ang * rad)) / (111320 * Math.cos(i.lat * rad));
+        anda = true;
+        i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
+      }
+    }
+    i.el.firstChild.classList.toggle('anda-z', anda);
+    if (!i.chefao) {
+      if (alvoJ) { if (m.d <= CONTATO_M && agora - (i._mordAmigo || 0) > INTERVALO_MORDIDA) { i._mordAmigo = agora; net.enviar({ t: 'dano', v: DANO_MORDIDA, k: 'm' }); } }
+      else if (m.d <= CONTATO_M && agora - ultimaMordida > INTERVALO_MORDIDA) mordida(agora);
+    } else if (m.d <= CHEFAO_AGGRO_M) {
+      if (!i.proximoFogo) i.proximoFogo = agora + GRACA_PRIMEIRO_FOGO_MS;
+      if (agora >= i.proximoFogo && !i.balaEmVoo) { i.proximoFogo = agora + RECARGA_FOGO_MS; dispararFogo(i, tp, alvoJ); }
+    }
+  });
+}
+function ordenarProfundidade() {
+  for (var k = 0; k < marcadores.length; k++) {
+    var el = marcadores[k]; if (!el._mk) continue;
+    el.style.zIndex = Math.round(mapa.project(el._ll).y);
+  }
+}
+var estat = { zumbis: 0, monstros: 0, t0: performance.now() }, celebrou = false;
+function verificarFim() {
+  if (!DADOS.livre || celebrou) return;
+  if (inimigos.length && inimigos.every(function (i) { return !i.vivo; })) celebrar();
+}
+function confete() {
+  var cv = document.getElementById('confete'), cx = cv.getContext('2d');
+  cv.width = window.innerWidth; cv.height = window.innerHeight;
+  var cores = ['#ffd54f', '#ff7043', '#66bb6a', '#42a5f5', '#ab47bc', '#ffffff'], ps = [];
+  for (var k = 0; k < 140; k++) ps.push({ x: Math.random() * cv.width, y: -20 - Math.random() * cv.height * 0.6, vx: Math.random() * 2 - 1, vy: 2 + Math.random() * 3, g: 0.04 + Math.random() * 0.04, w: 6 + Math.random() * 7, h: 10 + Math.random() * 8, a: Math.random() * 6, va: Math.random() * 0.3 - 0.15, c: cores[k % cores.length] });
+  var t0 = performance.now();
+  (function anima(agora) {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    ps.forEach(function (p) { p.vy += p.g; p.x += p.vx + Math.sin(p.a) * 0.8; p.y += p.vy; p.a += p.va; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.a); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore(); });
+    if (agora - t0 < 7000 && document.getElementById('parabens').style.display !== 'none') requestAnimationFrame(anima); else cx.clearRect(0, 0, cv.width, cv.height);
+  })(t0);
+}
+function celebrar() {
+  celebrou = true;
+  var seg = Math.round((performance.now() - estat.t0) / 1000), mm = Math.floor(seg / 60), ss = ('0' + (seg % 60)).slice(-2);
+  document.getElementById('pZumbis').textContent = estat.zumbis;
+  document.getElementById('pMonstros').textContent = estat.monstros;
+  document.getElementById('pTempo').textContent = mm + ':' + ss;
+  document.getElementById('parabens').style.display = 'flex';
+  // fanfarra: tan, ta-na-nã, tan, tan, TAAAN
+  [[523, 0, 220, 'square'], [392, 330, 100, 'square'], [523, 450, 100, 'square'], [659, 570, 360, 'square'], [784, 1080, 190, 'square'], [784, 1330, 190, 'square'], [1047, 1580, 1000, 'square'], [659, 1580, 1000, 'triangle'], [784, 1580, 1000, 'triangle'], [523, 1580, 1000, 'triangle']].forEach(function (n) { setTimeout(function () { tocarTom(n[0], n[0], n[2], n[3], n[3] === 'square' ? 0.09 : 0.07); }, n[1]); });
+  if (navigator.vibrate) { try { navigator.vibrate([80, 60, 80, 60, 200]); } catch (e) {} }
+  confete();
+}
+function acertouLocal(i, dano) {
+  i.vida -= dano;
+  var em = i.el.querySelector('.em'); em.classList.remove('golpe'); void em.offsetWidth; em.classList.add('golpe');
+  i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
+  if (i.vida <= 0) {
+    i.vivo = false; i.el.querySelector('.vida').style.display = 'none'; em.textContent = '💥';
+    setTimeout(function () { i.el._mk.remove(); }, 500);
+    if (i.chefao) estat.monstros++; else estat.zumbis++;
+    setTimeout(verificarFim, 900);
+  }
+}
+
+// ---------- satélite, escala e alcance ----------
+var satelite = false;
+var CAMADAS_PLANAS = ['bg', 'grama', 'mata', 'parque', 'quadra', 'agua'];
+function aplicarSatelite() {
+  mapa.setLayoutProperty('sat', 'visibility', satelite ? 'visible' : 'none');
+  CAMADAS_PLANAS.forEach(function (id) { mapa.setLayoutProperty(id, 'visibility', satelite ? 'none' : 'visible'); });
+  mapa.setLayoutProperty('predio', 'visibility', satelite ? 'none' : 'visible');
+  mapa.setPaintProperty('rua', 'line-opacity', satelite ? 0.35 : 1);
+  mapa.setPaintProperty('rua-borda', 'line-opacity', satelite ? 0 : 1);
+}
+document.getElementById('bSat').onclick = function () { satelite = !satelite; aplicarSatelite(); };
+mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'top-left');
+function anelDe(raioM) { var c = circulo(POS.lat, POS.lng, raioM, 72); return { type: 'Feature', geometry: { type: 'LineString', coordinates: c } }; }
+function meiaLua(raioM) {
+  var pts = [[POS.lng, POS.lat]];
+  for (var a = -GALHO_CONE; a <= GALHO_CONE; a += 10) { var p = deslocar(POS.lat, POS.lng, raioM, heading + a); pts.push([p.lng, p.lat]); }
+  pts.push([POS.lng, POS.lat]);
+  return pts;
+}
+function atualizarAlcance() {
+  var src = mapa.getSource('alcance');
+  var comPedra = ativa !== 'galho'; // o círculo de tiro só aparece com o estilingue; com o pau, só a área do pau
+  if (src) src.setData({ type: 'FeatureCollection', features: comPedra ? [anelDe(ALCANCE_TIRO_M)] : [] });
+  var sf = mapa.getSource('alcance-fill');
+  if (sf) sf.setData({ type: 'FeatureCollection', features: comPedra ? [1].map(function (k) { return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circulo(POS.lat, POS.lng, ALCANCE_TIRO_M * k, 64)] } }; }) : [] });
+  var sg = mapa.getSource('galho-alc');
+  if (sg) sg.setData(ativa === 'galho' ? { type: 'Feature', geometry: { type: 'Polygon', coordinates: [meiaLua(GALHO_ALCANCE_M)] } } : { type: 'FeatureCollection', features: [] });
+}
+
+// ---------- modo livre: monstros e zumbis nascem ao redor de quem joga (nada fixo no mapa) ----------
+function deslocar(lat, lng, metros, grau) {
+  return { lat: lat + (metros * Math.cos(grau * rad)) / 111320, lng: lng + (metros * Math.sin(grau * rad)) / (111320 * Math.cos(lat * rad)) };
+}
+function limparInimigos() {
+  inimigos.forEach(function (i) {
+    i.el._mk.remove();
+    var k = marcadores.indexOf(i.el); if (k >= 0) marcadores.splice(k, 1);
+  });
+  inimigos.length = 0; alvoAtual = null;
+}
+function atualizarZonas(lista) {
+  var f = [], b = [];
+  lista.forEach(function (c) {
+    var cor = c.final ? '#8e24aa' : '#ef6c00';
+    [1, 0.78, 0.56, 0.34].forEach(function (k, i) {
+      var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * k, 64)] } };
+      f.push(ft); if (i === 0) b.push(ft);
+    });
+  });
+  mapa.getSource('zona').setData({ type: 'FeatureCollection', features: f });
+  mapa.getSource('zona-borda').setData({ type: 'FeatureCollection', features: b });
+}
+// ---------- construções e água: os monstros não nascem dentro delas ----------
+var obstaculos = [];
+function carregarObstaculos(lat, lng) {
+  obstaculos = [];
+  var fs2 = [];
+  try { fs2 = mapa.querySourceFeatures('omt', { sourceLayer: 'building' }).concat(mapa.querySourceFeatures('omt', { sourceLayer: 'water' })); } catch (e) {}
+  var folga = 0.0045; // ~500 m em volta
+  fs2.forEach(function (f) {
+    var g = f.geometry; if (!g) return;
+    var polis = g.type === 'Polygon' ? [g.coordinates] : (g.type === 'MultiPolygon' ? g.coordinates : []);
+    polis.forEach(function (p) {
+      var minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+      p[0].forEach(function (c) { if (c[0] < minx) minx = c[0]; if (c[0] > maxx) maxx = c[0]; if (c[1] < miny) miny = c[1]; if (c[1] > maxy) maxy = c[1]; });
+      if (maxx < lng - folga || minx > lng + folga || maxy < lat - folga || miny > lat + folga) return;
+      obstaculos.push({ p: p, bb: [minx, miny, maxx, maxy] });
+    });
+  });
+  return obstaculos.length;
+}
+function dentroDoAnel(x, y, anel) {
+  var dentro = false;
+  for (var i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    var xi = anel[i][0], yi = anel[i][1], xj = anel[j][0], yj = anel[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) dentro = !dentro;
+  }
+  return dentro;
+}
+function emObstaculo(lat, lng) {
+  for (var k = 0; k < obstaculos.length; k++) {
+    var o = obstaculos[k];
+    if (lng < o.bb[0] || lng > o.bb[2] || lat < o.bb[1] || lat > o.bb[3]) continue;
+    if (!dentroDoAnel(lng, lat, o.p[0])) continue;
+    var buraco = false;
+    for (var h = 1; h < o.p.length; h++) { if (dentroDoAnel(lng, lat, o.p[h])) { buraco = true; break; } }
+    if (!buraco) return true;
+  }
+  return false;
+}
+function livreDeConstrucao(lat, lng) {
+  if (!obstaculos.length) return true;
+  if (emObstaculo(lat, lng)) return false;
+  for (var a = 0; a < 360; a += 90) { var q = deslocar(lat, lng, 3, a); if (emObstaculo(q.lat, q.lng)) return false; } // folga de 3 m da parede
+  return true;
+}
+// ---------- caminho de verdade: grade de 2 m em volta do jogador, bloqueada nas construções/água; todo mundo desce pelo campo de distância ----------
+var GRADE = null;
+function construirGrade(lat, lng) {
+  var n = 120, cel = 2, cl = Math.cos(lat * rad);
+  var g = { lat0: lat, lng0: lng, n: n, cel: cel, cl: cl, bloq: new Uint8Array(n * n), dist: new Int16Array(n * n), ok: false };
+  for (var iy = 0; iy < n; iy++) for (var ix = 0; ix < n; ix++) {
+    var cx = (ix - n / 2 + 0.5) * cel, cy = (iy - n / 2 + 0.5) * cel, bl = 0;
+    var pts = [[0, 0]];
+    for (var k = 0; k < pts.length && !bl; k++) {
+      if (emObstaculo(lat + (cy + pts[k][1]) / 111320, lng + (cx + pts[k][0]) / (111320 * cl))) bl = 1;
+    }
+    g.bloq[iy * n + ix] = bl;
+  }
+  GRADE = g;
+  atualizarCampo();
+}
+function celulaDe(g, lat, lng) {
+  return [Math.floor(((lng - g.lng0) * 111320 * g.cl) / g.cel + g.n / 2), Math.floor(((lat - g.lat0) * 111320) / g.cel + g.n / 2)];
+}
+function atualizarCampo() {
+  var g = GRADE; if (!g) return;
+  var n = g.n, fontes = [POS]; if (amigo) fontes.push(amigo);
+  g.dist.fill(-1); g.ok = false;
+  var fila = new Int32Array(n * n), ini = 0, fim = 0;
+  fontes.forEach(function (p) {
+    var c = celulaDe(g, p.lat, p.lng);
+    if (c[0] < 1 || c[1] < 1 || c[0] >= n - 1 || c[1] >= n - 1) return;
+    var o = c[1] * n + c[0]; if (g.dist[o] === 0) return; g.dist[o] = 0; fila[fim++] = o;
+  });
+  if (!fim) return;
+  while (ini < fim) {
+    var cur = fila[ini++], cx = cur % n, cy = (cur / n) | 0, d = g.dist[cur];
+    for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      var nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;
+      var id = ny * n + nx; if (g.dist[id] >= 0 || g.bloq[id]) continue;
+      if (dx && dy && (g.bloq[cy * n + nx] || g.bloq[ny * n + cx])) continue;
+      g.dist[id] = d + 1; fila[fim++] = id;
+    }
+  }
+  g.ok = true;
+}
+function passoDoCampo(i) {
+  var g = GRADE; if (!g || !g.ok) return null;
+  var n = g.n, c = celulaDe(g, i.lat, i.lng);
+  if (c[0] < 1 || c[1] < 1 || c[0] >= n - 1 || c[1] >= n - 1) return null;
+  var melhor = -1, mx = 0, my = 0, md = 1e9, atual = g.dist[c[1] * n + c[0]];
+  for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue;
+    var id = (c[1] + dy) * n + (c[0] + dx), d = g.dist[id];
+    if (d < 0 || g.bloq[id]) continue;
+    if (d < md) { md = d; melhor = id; mx = dx; my = dy; }
+  }
+  if (melhor < 0 || (atual >= 0 && md >= atual)) return null;
+  var ex = (i.lng - g.lng0) * 111320 * g.cl, ey = (i.lat - g.lat0) * 111320;
+  var nx2 = (c[0] + mx - n / 2 + 0.5) * g.cel, ny2 = (c[1] + my - n / 2 + 0.5) * g.cel;
+  return (Math.atan2(nx2 - ex, ny2 - ey) / rad + 360) % 360;
+}
+function longeDeInimigos(lat, lng, minimo) {
+  for (var k = 0; k < inimigos.length; k++) {
+    var o = inimigos[k]; if (!o.vivo) continue;
+    var dl = (o.lat - lat) * 111320, dn = (o.lng - lng) * 111320 * Math.cos(lat * rad);
+    if (dl * dl + dn * dn < minimo * minimo) return false;
+  }
+  return true;
+}
+function pontoLivre(lat, lng, dist, ang) {
+  for (var t = 0; t < 60; t++) {
+    var d = dist + (t ? (Math.random() * 16 - 8) : 0), a = ang + (t ? (Math.random() * 70 - 35) : 0);
+    var p = deslocar(lat, lng, Math.max(4, d), a);
+    if (livreDeConstrucao(p.lat, p.lng) && longeDeInimigos(p.lat, p.lng, 3.5)) return p;
+  }
+  var p0 = deslocar(lat, lng, dist, ang);
+  return pontoLivrePerto(p0.lat, p0.lng) || p0;
+}
+function pontoLivrePerto(lat, lng) { // o ponto livre mais próximo, em espiral
+  for (var r = 3; r <= 45; r += 3) for (var a = 0; a < 360; a += 30) {
+    var p = deslocar(lat, lng, r, a + r * 7);
+    if (livreDeConstrucao(p.lat, p.lng) && longeDeInimigos(p.lat, p.lng, 3.5)) return p;
+  }
+  return null;
+}
+function quandoMapaPronto(cb) {
+  var tentativas = 0;
+  (function espera() {
+    tentativas++;
+    if ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25) cb(); else setTimeout(espera, 300);
+  })();
+}
+function ajustarInimigosFixos() {
+  var n = carregarObstaculos(POS.lat, POS.lng), mexidos = 0;
+  if (n) construirGrade(POS.lat, POS.lng);
+  inimigos.forEach(function (i) {
+    if (livreDeConstrucao(i.lat, i.lng)) return;
+    var p = pontoLivrePerto(i.lat, i.lng); if (!p) return;
+    i.lat = p.lat; i.lng = p.lng; i.el._mk.setLngLat([p.lng, p.lat]); i.el._ll = [p.lng, p.lat]; mexidos++;
+  });
+  window.__ajuste = { obstaculos: n, mexidos: mexidos };
+}
+function spawnAoRedor(lat, lng) {
+  quandoMapaPronto(function () { if (carregarObstaculos(lat, lng)) construirGrade(lat, lng); spawnBase(lat, lng); });
+}
+function spawnBase(lat, lng) {
+  estat = { zumbis: 0, monstros: 0, t0: performance.now() }; celebrou = false;
+  limparInimigos();
+  var chefoes = [], giro = Math.random() * 360;
+  // fase 1: só 2 hordas (um chefão + 3 zumbis a 55 m e o chefão final + 3 zumbis a 70 m, em lados opostos) mais os zumbis soltos. Os chefões vêm andando e só atiram dentro da zona de tiro (35 m)
+  [[55, 0]].forEach(function (b) {
+    var p = pontoLivre(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
+    chefoes.push({ lat: p.lat, lng: p.lng, final: false });
+    novoInimigo(p.lat, p.lng, 'p-chefao', '👹', 25);
+    [30, 150, 270].forEach(function (g) { var z = pontoLivre(p.lat, p.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+  });
+  var pf = pontoLivre(lat, lng, 70, giro + 180);
+  chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
+  novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
+  [90, 210, 330].forEach(function (g) { var z = pontoLivre(pf.lat, pf.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+  // zumbis soltos em volta, a 14–28 m (dentro dos 30 m em que eles já te notam), em todas as direções
+  for (var k = 0; k < 8; k++) {
+    var z2, tent = 0;
+    do { z2 = pontoLivre(lat, lng, 14 + Math.random() * 14, giro + k * 45 + Math.random() * 30); tent++; }
+    while (tent < 8 && Math.hypot((z2.lat - lat) * 111320, (z2.lng - lng) * 111320 * Math.cos(lat * rad)) < 10); // nunca nasce em cima de você
+    novoInimigo(z2.lat, z2.lng, 'p-zumbi', '🧟', 5);
+  }
+  atualizarZonas(chefoes);
+}
+
+mapa.on('load', function () {
+  if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng);
+  DADOS.pontos.forEach(function (p) { pino('p-ponto', p.n, p.lat, p.lng); });
+  DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
+  DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), (p.esp ? '<span class="pe-amarela">🪨</span>' : '🪨'), p.lat, p.lng); });
+  DADOS.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
+  DADOS.zumbis.forEach(function (z) { novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+  (DADOS.chefoes || []).forEach(function (c) { novoInimigo(c.lat, c.lng, 'p-chefao', c.final ? '👿' : '👹', c.final ? 200 : 25); });
+});
+
+// o Mineu (cartaz em pé, sempre virado pra câmera)
+var GALHO_SVG = '<svg viewBox="24 8 32 184" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0 200) scale(1 -1)"><path d="M35 16 L45 16 L46 184 L34 184 Z" fill="#8f5d2e" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M38 22 L38 178" stroke="#b98450" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="42" cy="104" rx="2.4" ry="3.6" fill="#5a3718"/><ellipse cx="37" cy="150" rx="2.2" ry="3" fill="#5a3718"/><rect x="33.6" y="22" width="12.8" height="42" rx="2" fill="#b5483a" stroke="#6e241b" stroke-width="1.5"/><path d="M33.8 28 L46.2 25 M33.8 34 L46.2 31 M33.8 40 L46.2 37 M33.8 46 L46.2 43 M33.8 52 L46.2 49 M33.8 58 L46.2 55" stroke="#6e241b" stroke-width="1.6"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#b5483a" stroke-width="3" stroke-linecap="round"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#6e241b" stroke-width=".9" stroke-linecap="round"/><ellipse cx="40" cy="16" rx="5" ry="2.4" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/><ellipse cx="40" cy="184" rx="6" ry="2.6" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/></g></svg>';
+var elMineu = document.createElement('div');
+elMineu.id = 'mineu';
+elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="corpo" id="corpoGolpe" style="display:none"><img id="imgGolpe" alt=""></div><div class="corpo" id="corpoEst" style="display:none"><img id="imgEst" alt=""></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
+var elInterno = elMineu.querySelector('.interno');
+elMineu.style.zIndex = 100000;
+var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
+
+// ---------- controle: teclado e botões ----------
+var tecla = { esq: false, dir: false, anda: false, volta: false };
+var mapaTeclas = { ArrowLeft: 'esq', a: 'esq', A: 'esq', ArrowRight: 'dir', d: 'dir', D: 'dir', ArrowUp: 'anda', w: 'anda', W: 'anda', ArrowDown: 'volta', s: 'volta', S: 'volta' };
+window.addEventListener('keydown', function (e) { if (mapaTeclas[e.key]) { tecla[mapaTeclas[e.key]] = true; e.preventDefault(); } });
+window.addEventListener('keyup', function (e) { if (mapaTeclas[e.key]) { tecla[mapaTeclas[e.key]] = false; } });
+function segurar(id, chave) {
+  var b = document.getElementById(id);
+  var liga = function (e) { tecla[chave] = true; e.preventDefault(); };
+  var desliga = function (e) { tecla[chave] = false; e.preventDefault(); };
+  b.addEventListener('pointerdown', liga); b.addEventListener('pointerup', desliga); b.addEventListener('pointerleave', desliga); b.addEventListener('pointercancel', desliga);
+}
+document.addEventListener('click', function () { ligarBussola(); obterAudio(); });
+document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
+document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
+var FRAME_GOLPE = { w: 361, h: 693, ax: 162.08, ay: 689, src: ['mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png'], prontos: 0 };
+FRAME_GOLPE.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_GOLPE.prontos++; if (FRAME_GOLPE.prontos === 3) aplicarPosePau(); }; im.src = u; });
+var FRAME_EST = { w: 289, h: 519, ax: 146.92, ay: 515, src: ['mineu-estilingue-1.png', 'mineu-estilingue-2.png'], prontos: 0 };
+FRAME_EST.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_EST.prontos++; if (FRAME_EST.prontos === 2) aplicarPosePau(); }; im.src = u; });
+var tiroTimer = null;
+var golpeTimers = [];
+// com o pau selecionado, o Mineu fica SEMPRE na pose 1 (pau levantado); o golpe passa pelas poses 2 e 3 e volta pra 1
+function aplicarPosePau() {
+  var cgG = document.getElementById('corpoGolpe'), igG = document.getElementById('imgGolpe'), cgE = document.getElementById('corpoEst'), igE = document.getElementById('imgEst');
+  if (!cgG || !igG || !cgE || !igE || !elMineu) return;
+  var arma = (typeof ativa !== 'undefined') ? ativa : 'normal';
+  var pau = arma === 'galho' && FRAME_GOLPE.prontos >= 3, est = arma !== 'galho' && FRAME_EST.prontos >= 2;
+  elMineu.classList.toggle('comPau', pau || est);
+  cgG.style.display = pau ? 'block' : 'none'; cgE.style.display = est ? 'block' : 'none';
+  if (pau) igG.src = FRAME_GOLPE.src[0];
+  if (est) igE.src = FRAME_EST.src[0]; // com o estilingue na mão: pose 1 (parado); atirando: pose 2
+}
+function tocarFramesTiro() {
+  if (FRAME_EST.prontos < 2) return;
+  var ig = document.getElementById('imgEst'); clearTimeout(tiroTimer);
+  ig.src = FRAME_EST.src[1];
+  tiroTimer = setTimeout(function () { ig.src = FRAME_EST.src[0]; }, 280);
+}
+function tocarFramesGolpe() {
+  if (FRAME_GOLPE.prontos < 3) return false;
+  var ig = document.getElementById('imgGolpe');
+  golpeTimers.forEach(clearTimeout); golpeTimers = [];
+  [[0, 1], [130, 2]].forEach(function (q) { golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[q[1]]; }, q[0])); });
+  golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[0]; }, 330));
+  return true;
+}
+var SY_ATUAL = 1;
+function posicionarQuadro(F, idImg, idCorpo, sy, hVis) { // mesmo chão (pés) do desenho parado; não corta o que passa da cabeça
+  var cg = 0.3631, ig = document.getElementById(idImg), cgb = document.getElementById(idCorpo);
+  if (!ig || !cgb) return;
+  cgb.style.height = hVis + 'px'; cgb.style.overflow = 'visible'; cgb.style.clipPath = 'inset(-400px -400px 0 -400px)';
+  ig.style.width = (F.w * cg) + 'px'; ig.style.height = (F.h * cg * sy) + 'px';
+  ig.style.left = (35 - F.ax * cg) + 'px'; ig.style.top = (sy * (188.7 - F.ay * cg)) + 'px';
+}
+function ajustarMineu(pitch) {
+  // de cima (0°) só dá pra ver a cabeça e o alto da mochila; inclinando, aparece o resto das costas
+  var p = Math.min(pitch === undefined ? inclinacao : pitch, 60) / 60, H = 190;
+  var v = 0.42 + 0.58 * Math.pow(p, 1.5), sy = 0.8 + 0.2 * p;
+  var hImg = H * sy, hVis = hImg * v; SY_ATUAL = sy;
+  elMineu.style.height = hVis + 'px';
+  var corpo = elMineu.querySelector('.corpo'), img = elMineu.querySelector('img');
+  corpo.style.height = hVis + 'px'; img.style.height = hImg + 'px';
+  posicionarQuadro(FRAME_GOLPE, 'imgGolpe', 'corpoGolpe', sy, hVis);
+  posicionarQuadro(FRAME_EST, 'imgEst', 'corpoEst', sy, hVis);
+  var mask = v < 0.999 ? 'linear-gradient(to bottom,#000 76%,transparent)' : 'none';
+  corpo.style.webkitMaskImage = mask; corpo.style.maskImage = mask;
+}
+function pintaInc() {
+  ajustarMineu(); ultPitchSprite = -99; /* o quadro refaz o Mineu com a inclinação de verdade */ document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°' + (emBatalha ? ' ⚔' : '') + '</small>'; }
+document.getElementById('bInc').onclick = function () { nivelInc = (nivelInc + 1) % NIVEIS_INC.length; inclinacao = NIVEIS_INC[nivelInc]; pintaInc(); };
+pintaInc();
+
+// ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
+var municao = { normal: 150, esp: 12 }, ativa = "normal";
+var ORDEM_ARMAS = ["normal", "esp", "galho"];
+var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
+var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
+var ICONE_PAU = '<img src="icone-pau.png" alt="Pau">';
+function iconeArma(k) { return k === "galho" ? ICONE_PAU : (k === "esp" ? "<span class=\"pe-amarela\">🪨</span>" : "🪨"); }
+function pintaMunicao() {
+  var prox = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length];
+  elTroca.classList.toggle("esp", ativa === "esp"); elTroca.classList.toggle("galho", ativa === "galho");
+  elTroca.firstElementChild.innerHTML = iconeArma(ativa);
+  document.getElementById("qtdPedra").textContent = ativa === "galho" ? "∞" : municao[ativa];
+  var prox2 = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 2) % ORDEM_ARMAS.length];
+  elReserva.className = "pedra-reserva" + (prox === "esp" ? " esp" : "") + (prox === "galho" ? " galho" : "");
+  elReserva.innerHTML = iconeArma(prox); elReserva._arma = prox;
+  elReserva2.className = "pedra-reserva" + (prox2 === "esp" ? " esp" : "") + (prox2 === "galho" ? " galho" : "");
+  elReserva2.innerHTML = iconeArma(prox2); elReserva2._arma = prox2;
+  document.getElementById("btnAtirar").innerHTML = ativa === "galho" ? ICONE_PAU : ESTILINGUE_HTML;
+  document.getElementById("btnAtirar").setAttribute("aria-label", ativa === "galho" ? "Bater com o galho" : "Atirar");
+  elGalho.style.display = ativa === "galho" ? "block" : "none";
+  aplicarPosePau();
+}
+// golpe de perto com o galho: sem munição, pausa curta entre golpes
+var ultimoGolpe = 0, GALHO_ALCANCE_M = 7, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
+function golpeDoGalho() {
+  var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
+  tocarTom(700, 180, 110, 'sawtooth', 0.07);
+  if (!tocarFramesGolpe()) { elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate'); }
+  setTimeout(function () {
+    var alvo = null;
+    inimigos.forEach(function (i) {
+      if (!i.vivo || !i.naArea) return;
+      if (!alvo || i.tEntrada < alvo.tEntrada) alvo = i; // quem chegou primeiro na área
+    });
+    if (alvo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, GALHO_DANO); }
+  }, 140);
+}
+elTroca.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+[elReserva, elReserva2].forEach(function (e) { e.onclick = function () { ativa = e._arma; pintaMunicao(); }; }); // tocar numa bolinha de trás escolhe aquela arma
+document.getElementById("btnAtirar").onclick = function () { if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
+pintaMunicao();
+
+// ---------- GPS e bússola de verdade (no celular) ----------
+var modoReal = false;
+
+
+function aviso(t) { var a = document.getElementById('aviso'); a.textContent = t; a.style.display = t ? 'block' : 'none'; }
+document.getElementById('bGps').onclick = function () {
+  if (modoReal) { modoReal = false; aviso('Voltou para a caminhada simulada.'); setTimeout(function () { aviso(''); }, 2500); return; }
+  modoReal = true;
+  aviso('Procurando o GPS... (permita a localização)');
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(function (p) {
+      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
+      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng); }
+    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; }, { enableHighAccuracy: true });
+  }
+  ligarBussola();
+};
+var bussolaLigada = false, recebeuBussola = false;
+function ligarBussola() {
+  if (bussolaLigada) return;
+  bussolaLigada = true;
+  var ouvir = function () {
+    window.addEventListener('deviceorientationabsolute', orient, true);
+    window.addEventListener('deviceorientation', orient, true);
+    setTimeout(function () { if (!recebeuBussola) { aviso('O celular não mandou a bússola. Confira a permissão de movimento e orientação do navegador.'); } }, 3000);
+  };
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function (r) {
+      if (r === 'granted') ouvir(); else { bussolaLigada = false; aviso('Bússola negada. Toque no 📍 e escolha Permitir.'); }
+    }).catch(function () { bussolaLigada = false; });
+  } else { ouvir(); }
+}
+function orient(e) {
+  var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute && e.alpha != null ? (360 - e.alpha) : null);
+  if (h != null) { heading = h; recebeuBussola = true;  }
+}
+
+// ---------- laço do jogo ----------
+function difAng(a, b) { var d = ((b - a + 540) % 360) - 180; return d; }
+var ultimo = performance.now();
+var contaQuadro = 0;
+// ---------- exploração (Mineu menor, mapa mais aberto) x batalha (Mineu grande, mais inclinado e de perto) ----------
+var BATALHA_AUTO = false; // desligado: inclinação, zoom e tamanho do Mineu só mudam pelos botões
+var ESC_EXPLORA = 0.5, BATALHA_MAIS_INC = 12, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
+var emBatalha = false, fBat = 0, ultimoPerto = 0, ultPitchSprite = -99, ultEsc = -99;
+function atualizarBatalha(dt, agora) {
+  if (!BATALHA_AUTO) return;
+  var perto = false, lim = emBatalha ? BATALHA_SAI_M : BATALHA_ENTRA_M;
+  inimigos.forEach(function (i) { if (i.vivo && metrosAte(i.lat, i.lng).d <= lim) perto = true; });
+  var era = emBatalha;
+  if (perto) { emBatalha = true; ultimoPerto = agora; } else if (emBatalha && agora - ultimoPerto > 1500) emBatalha = false;
+  if (era !== emBatalha) pintaInc();
+  fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
+}
+function quadro(agora) {
+  var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
+  var andando = false;
+  if (!modoReal) {
+    if (tecla.esq) heading -= 110 * dt;
+    if (tecla.dir) heading += 110 * dt;
+    var v = (tecla.anda ? 1 : 0) - (tecla.volta ? 0.6 : 0);
+    if (v !== 0) {
+      andando = true;
+      var m = 6 * v * dt;
+      POS.lat += (m * Math.cos(heading * rad)) / 111320;
+      POS.lng += (m * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad));
+    }
+  } else {
+    var k = 1 - Math.exp(-4 * dt);
+    var antes = POS.lat + POS.lng;
+    POS.lat += (ALVO.lat - POS.lat) * k; POS.lng += (ALVO.lng - POS.lng) * k;
+    andando = Math.abs((POS.lat + POS.lng) - antes) > 1e-8;
+  }
+  heading = (heading + 360) % 360;
+  bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
+  mkMineu.setLngLat([POS.lng, POS.lat]);
+  moverInimigos(dt, agora);
+  atualizarMira();
+  if (++contaQuadro % 3 === 0) atualizarAlcance();
+  if (GRADE && contaQuadro % 20 === 0) {
+    var dgl = (POS.lat - GRADE.lat0) * 111320, dgn = (POS.lng - GRADE.lng0) * 111320 * GRADE.cl;
+    if (dgl * dgl + dgn * dgn > 50 * 50) { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); } else atualizarCampo();
+  }
+  if (contaQuadro % 4 === 0) atualizarZonas(inimigos.filter(function (i) { return i.chefao && i.vivo; }).map(function (i) { return { lat: i.lat, lng: i.lng, final: i.final }; }));
+  elMineu.classList.toggle('anda', andando);
+  ordenarProfundidade();
+  atualizarBatalha(dt, agora);
+  var pitchEf = Math.min(80, inclinacao + BATALHA_MAIS_INC * fBat);
+  var zoomEf = zoom + ZOOM_BATALHA_EXTRA * fBat;
+  var esc = ESC_EXPLORA + (1 - ESC_EXPLORA) * fBat;
+  if (Math.abs(pitchEf - ultPitchSprite) > 0.4 || Math.abs(esc - ultEsc) > 0.004) {
+    ultPitchSprite = pitchEf; ultEsc = esc;
+    ajustarMineu(pitchEf); elInterno.style.transform = 'scale(' + esc.toFixed(3) + ')';
+    // a barra de vida fica fora do desenho reduzido, então o tamanho dela não encolhe junto com o Mineu
+    elMineu.querySelector('.mine-vida').style.top = (parseFloat(elMineu.style.height) * (1 - esc) - 11) + 'px';
+  }
+  mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: pitchEf, zoom: zoomEf, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
+  requestAnimationFrame(quadro);
+}
+mapa.on('load', function () {
+  var at = document.querySelector('.maplibregl-ctrl-attrib'); // créditos do mapa: só o ícone ⓘ, no topo; toque pra abrir
+  if (at) { at.classList.remove('maplibregl-compact-show'); at.removeAttribute('open'); }
+  requestAnimationFrame(quadro); if (!DADOS.livre) quandoMapaPronto(ajustarInimigosFixos); });
+
+// =====================================================================
+//  MISSÃO EM DUPLA: um mundo só, dois celulares (PeerJS, direto de um celular pro outro)
+//  anfitrião = roda monstros, fogo e dano; convidado = só mostra e manda seus golpes/posição.
+//  Se o anfitrião sair, o convidado assume do ponto onde parou.
+// =====================================================================
+function acertou(i, dano) {
+  if (net.papel === 'convidado') { // o convidado só avisa; a vida de verdade vem do anfitrião
+    net.enviar({ t: 'acerto', id: i.id, d: dano });
+    var em = i.el.querySelector('.em'); em.classList.remove('golpe'); void em.offsetWidth; em.classList.add('golpe');
+    i.vida = Math.max(0.01, i.vida - dano); i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
+    return;
+  }
+  acertouLocal(i, dano);
+}
+var celebrarOrig = celebrar;
+celebrar = function () { celebrarOrig(); if (net.papel === 'anfitriao') net.enviar({ t: 'fim', z: estat.zumbis, mo: estat.monstros, s: Math.round((performance.now() - estat.t0) / 1000) }); };
+var spawnAoRedorOrig = spawnAoRedor;
+spawnAoRedor = function (lat, lng) { if (net.papel === 'convidado') return; spawnAoRedorOrig(lat, lng); };
+var spawnBaseOrig = spawnBase;
+spawnBase = function (lat, lng) { rodada++; spawnBaseOrig(lat, lng); };
+function reiniciarRodada() {
+  document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu();
+  if (net.papel === 'convidado') net.enviar({ t: 'denovo' }); else spawnAoRedor(POS.lat, POS.lng);
+}
+document.getElementById('bDeNovo').onclick = reiniciarRodada;
+
+var net = { papel: null, peer: null, conn: null, sala: null, timer: null, enviar: function (o) { if (net.conn && net.conn.open) { try { net.conn.send(o); } catch (e) {} } } };
+var amigo = null, rodada = 0, rodadaVista = -1, porId = {};
+function chip(t) { var c = document.getElementById('chipSala'); c.textContent = t; c.style.display = t ? 'block' : 'none'; }
+function msgIni(t) { document.getElementById('msgIni').textContent = t; }
+function criarAmigo() {
+  if (amigo) return;
+  var el = document.createElement('div'); el.className = 'amigo';
+  el.innerHTML = '<span class="nomeA">Amigo</span><div class="vida"><i></i></div><div class="anelA"></div><img src="mineu-costas.png" alt="Amigo">';
+  el._ll = [POS.lng, POS.lat]; marcadores.push(el);
+  el._mk = new maplibregl.Marker({ element: el, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat(el._ll).addTo(mapa);
+  amigo = { lat: POS.lat, lng: POS.lng, alvoLat: POS.lat, alvoLng: POS.lng, vida: 100, el: el, visto: false };
+}
+function removerAmigo() {
+  if (!amigo) return;
+  amigo.el._mk.remove(); var k = marcadores.indexOf(amigo.el); if (k >= 0) marcadores.splice(k, 1); amigo = null;
+}
+function atualizarAmigo(dt) {
+  if (!amigo) return;
+  var k = amigo.visto ? 1 - Math.exp(-6 * dt) : 1; amigo.visto = true;
+  amigo.lat += (amigo.alvoLat - amigo.lat) * k; amigo.lng += (amigo.alvoLng - amigo.lng) * k;
+  amigo.el._mk.setLngLat([amigo.lng, amigo.lat]); amigo.el._ll = [amigo.lng, amigo.lat];
+  amigo.el.querySelector('.vida i').style.width = Math.max(0, amigo.vida) + '%';
+}
+function aplicarEstado(m) {
+  if (m.r !== rodadaVista) { // rodada nova: reconstrói tudo
+    limparInimigos(); porId = {}; rodadaVista = m.r; estat = { zumbis: 0, monstros: 0, t0: performance.now() }; celebrou = false;
+    document.getElementById('parabens').style.display = 'none';
+  }
+  m.m.forEach(function (e) {
+    var i = porId[e[0]];
+    if (!i) {
+      novoInimigo(e[1], e[2], e[5] ? 'p-chefao' : 'p-zumbi', e[6] ? '👿' : (e[5] ? '👹' : '🧟'), e[7]);
+      i = inimigos[inimigos.length - 1]; i.id = e[0]; porId[e[0]] = i;
+    }
+    i.alvoLat = e[1]; i.alvoLng = e[2];
+    if (i.vivo) { i.vida = e[3]; i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%'; }
+    if (i.vivo && !e[4]) { // morreu no anfitrião
+      i.vivo = false; var em = i.el.querySelector('.em'); i.el.querySelector('.vida').style.display = 'none'; em.textContent = '💥';
+      setTimeout(function () { i.el._mk.remove(); }, 500);
+      if (i.chefao) estat.monstros++; else estat.zumbis++;
+    }
+  });
+  criarAmigo(); amigo.alvoLat = m.eu.x; amigo.alvoLng = m.eu.y; amigo.vida = m.eu.v;
+}
+function atualizarComoConvidado(dt, agora) {
+  var k = 1 - Math.exp(-8 * dt);
+  inimigos.forEach(function (i) {
+    if (!i.vivo) return;
+    if (i.alvoLat !== undefined) {
+      var antes = i.lat + i.lng; i.lat += (i.alvoLat - i.lat) * k; i.lng += (i.alvoLng - i.lng) * k;
+      i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
+      i.el.firstChild.classList.toggle('anda-z', Math.abs(i.lat + i.lng - antes) > 4e-8);
+    }
+    var eu = metrosAte(i.lat, i.lng), naArea = eu.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, eu.ang)) <= GALHO_CONE;
+    if (naArea && !i.naArea) i.tEntrada = agora;
+    i.naArea = naArea;
+  });
+}
+function estadoParaConvidado() {
+  return { t: 'estado', r: rodada, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }), eu: { x: POS.lat, y: POS.lng, v: vidaMineu } };
+}
+function aoReceber(m) {
+  if (m.t === 'estado') aplicarEstado(m);
+  else if (m.t === 'pos') { if (amigo) { amigo.alvoLat = m.x; amigo.alvoLng = m.y; amigo.vida = m.v; } else { criarAmigo(); amigo.lat = amigo.alvoLat = m.x; amigo.lng = amigo.alvoLng = m.y; } }
+  else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) acertouLocal(i, m.d); }
+  else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
+  else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
+  else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
+  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); spawnAoRedor(POS.lat, POS.lng); }
+}
+function ligarConexao(conn, papel) {
+  net.conn = conn;
+  conn.on('data', aoReceber);
+  conn.on('close', function () { amigoSaiu(); });
+  conn.on('error', function () { amigoSaiu(); });
+  clearInterval(net.timer);
+  if (papel === 'anfitriao') net.timer = setInterval(function () { net.enviar(estadoParaConvidado()); }, 250);
+  else net.timer = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu }); }, 330);
+}
+function amigoSaiu() {
+  if (!net.conn) return;
+  clearInterval(net.timer); net.conn = null; removerAmigo();
+  if (net.papel === 'convidado') { // o anfitrião saiu: este celular assume o jogo do ponto onde estava
+    net.papel = 'anfitriao'; aviso('Seu amigo saiu. Você continua o jogo.'); chip('Sala ' + net.sala + ' · jogando sozinho');
+    if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng);
+    setTimeout(verificarFim, 500);
+  } else { aviso('Seu amigo saiu.'); chip('Sala ' + net.sala + ' · jogando sozinho'); }
+  setTimeout(function () { aviso(''); }, 3500);
+}
+function ativarGps() { document.getElementById('bGps').click(); } // precisa rodar dentro do toque (GPS e bússola)
+function iniciarJogo() { jogoIniciado = true; document.getElementById('inicio').style.display = 'none'; }
+function criarSala(tent) {
+  if (typeof Peer === 'undefined') { msgIni('Sem conexão pra criar a sala. Verifique a internet.'); return; }
+  var cod = ('000' + Math.floor(Math.random() * 10000)).slice(-4);
+  net.peer = new Peer('mgo-dupla-' + cod);
+  net.peer.on('open', function () {
+    net.papel = 'anfitriao'; net.sala = cod; iniciarJogo(); chip('Sala ' + cod + ' · passe o código pro amigo');
+    net.peer.on('connection', function (conn) {
+      if (net.conn) { conn.close(); return; } // sala de 2
+      conn.on('open', function () { ligarConexao(conn, 'anfitriao'); criarAmigo(); chip('Sala ' + cod + ' · 2 jogadores'); aviso('Seu amigo entrou!'); setTimeout(function () { aviso(''); }, 2500); });
+    });
+  });
+  net.peer.on('error', function (e) {
+    if (e.type === 'unavailable-id' && (tent || 0) < 5) { criarSala((tent || 0) + 1); return; }
+    msgIni('Não consegui criar a sala. Tente de novo.');
+  });
+}
+function entrarSala() {
+  var cod = document.getElementById('codSala').value.replace(/[^0-9]/g, '');
+  if (cod.length !== 4) { msgIni('Digite o código de 4 números.'); return; }
+  if (typeof Peer === 'undefined') { msgIni('Sem conexão pra entrar na sala. Verifique a internet.'); return; }
+  msgIni('Conectando...');
+  net.peer = new Peer();
+  net.peer.on('open', function () {
+    var conn = net.peer.connect('mgo-dupla-' + cod);
+    var esperando = setTimeout(function () { msgIni('Não achei a sala ' + cod + '. Confira o código.'); }, 12000);
+    conn.on('open', function () {
+      clearTimeout(esperando);
+      net.papel = 'convidado'; net.sala = cod; limparInimigos(); porId = {}; rodadaVista = -1;
+      ligarConexao(conn, 'convidado'); iniciarJogo(); chip('Sala ' + cod + ' · conectado');
+    });
+  });
+  net.peer.on('error', function (e) { msgIni(e.type === 'peer-unavailable' ? 'Não achei a sala ' + cod + '. Confira o código.' : 'Falha na conexão. Tente de novo.'); });
+}
+document.getElementById('bCriar').onclick = function () { ativarGps(); criarSala(0); };
+document.getElementById('bEntrar').onclick = function () { ativarGps(); entrarSala(); };
+mapa.on('load', function () { var u = performance.now(); (function loopAmigo(a) { var dt = Math.min(0.05, (a - u) / 1000); u = a; atualizarAmigo(dt); requestAnimationFrame(loopAmigo); })(u); });
+</script>
+</body>
+</html>
