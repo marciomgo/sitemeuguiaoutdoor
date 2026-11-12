@@ -541,7 +541,7 @@ var ultimo = performance.now();
 var contaQuadro = 0;
 // ---------- exploração (Mineu menor, mapa mais aberto) x batalha (Mineu grande, mais inclinado e de perto) ----------
 var BATALHA_AUTO = false; // desligado: inclinação, zoom e tamanho do Mineu só mudam pelos botões
-var ESC_EXPLORA = 1, BATALHA_MAIS_INC = 12, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
+var ESC_EXPLORA = 0.5, BATALHA_MAIS_INC = 12, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
 var emBatalha = false, fBat = 0, ultimoPerto = 0, ultPitchSprite = -99, ultEsc = -99;
 function atualizarBatalha(dt, agora) {
   if (!BATALHA_AUTO) return;
