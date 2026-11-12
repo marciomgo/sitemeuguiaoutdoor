@@ -443,22 +443,101 @@ function atualizarZonas(lista) {
   mapa.getSource('zona').setData({ type: 'FeatureCollection', features: f });
   mapa.getSource('zona-borda').setData({ type: 'FeatureCollection', features: b });
 }
+// ---------- construções e água: os monstros não nascem dentro delas ----------
+var obstaculos = [];
+function carregarObstaculos(lat, lng) {
+  obstaculos = [];
+  var fs2 = [];
+  try { fs2 = mapa.querySourceFeatures('omt', { sourceLayer: 'building' }).concat(mapa.querySourceFeatures('omt', { sourceLayer: 'water' })); } catch (e) {}
+  var folga = 0.0045; // ~500 m em volta
+  fs2.forEach(function (f) {
+    var g = f.geometry; if (!g) return;
+    var polis = g.type === 'Polygon' ? [g.coordinates] : (g.type === 'MultiPolygon' ? g.coordinates : []);
+    polis.forEach(function (p) {
+      var minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+      p[0].forEach(function (c) { if (c[0] < minx) minx = c[0]; if (c[0] > maxx) maxx = c[0]; if (c[1] < miny) miny = c[1]; if (c[1] > maxy) maxy = c[1]; });
+      if (maxx < lng - folga || minx > lng + folga || maxy < lat - folga || miny > lat + folga) return;
+      obstaculos.push({ p: p, bb: [minx, miny, maxx, maxy] });
+    });
+  });
+  return obstaculos.length;
+}
+function dentroDoAnel(x, y, anel) {
+  var dentro = false;
+  for (var i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    var xi = anel[i][0], yi = anel[i][1], xj = anel[j][0], yj = anel[j][1];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) dentro = !dentro;
+  }
+  return dentro;
+}
+function emObstaculo(lat, lng) {
+  for (var k = 0; k < obstaculos.length; k++) {
+    var o = obstaculos[k];
+    if (lng < o.bb[0] || lng > o.bb[2] || lat < o.bb[1] || lat > o.bb[3]) continue;
+    if (!dentroDoAnel(lng, lat, o.p[0])) continue;
+    var buraco = false;
+    for (var h = 1; h < o.p.length; h++) { if (dentroDoAnel(lng, lat, o.p[h])) { buraco = true; break; } }
+    if (!buraco) return true;
+  }
+  return false;
+}
+function livreDeConstrucao(lat, lng) {
+  if (!obstaculos.length) return true;
+  if (emObstaculo(lat, lng)) return false;
+  for (var a = 0; a < 360; a += 90) { var q = deslocar(lat, lng, 3, a); if (emObstaculo(q.lat, q.lng)) return false; } // folga de 3 m da parede
+  return true;
+}
+function pontoLivre(lat, lng, dist, ang) {
+  for (var t = 0; t < 60; t++) {
+    var d = dist + (t ? (Math.random() * 16 - 8) : 0), a = ang + (t ? (Math.random() * 70 - 35) : 0);
+    var p = deslocar(lat, lng, Math.max(4, d), a);
+    if (livreDeConstrucao(p.lat, p.lng)) return p;
+  }
+  var p0 = deslocar(lat, lng, dist, ang);
+  return pontoLivrePerto(p0.lat, p0.lng) || p0;
+}
+function pontoLivrePerto(lat, lng) { // o ponto livre mais próximo, em espiral
+  for (var r = 3; r <= 45; r += 3) for (var a = 0; a < 360; a += 30) {
+    var p = deslocar(lat, lng, r, a + r * 7);
+    if (livreDeConstrucao(p.lat, p.lng)) return p;
+  }
+  return null;
+}
+function quandoMapaPronto(cb) {
+  var tentativas = 0;
+  (function espera() {
+    tentativas++;
+    if ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25) cb(); else setTimeout(espera, 300);
+  })();
+}
+function ajustarInimigosFixos() {
+  var n = carregarObstaculos(POS.lat, POS.lng), mexidos = 0;
+  inimigos.forEach(function (i) {
+    if (livreDeConstrucao(i.lat, i.lng)) return;
+    var p = pontoLivrePerto(i.lat, i.lng); if (!p) return;
+    i.lat = p.lat; i.lng = p.lng; i.el._mk.setLngLat([p.lng, p.lat]); i.el._ll = [p.lng, p.lat]; mexidos++;
+  });
+  window.__ajuste = { obstaculos: n, mexidos: mexidos };
+}
 function spawnAoRedor(lat, lng) {
+  quandoMapaPronto(function () { carregarObstaculos(lat, lng); spawnBase(lat, lng); });
+}
+function spawnBase(lat, lng) {
   limparInimigos();
   var chefoes = [], giro = Math.random() * 360;
   // 3 bases (chefão + 3 zumbis cada) a 50, 75 e 100 m, espalhadas pelos 360 graus; chefão final a 130 m
   [[50, 0], [75, 120], [100, 240]].forEach(function (b) {
-    var p = deslocar(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
+    var p = pontoLivre(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
     chefoes.push({ lat: p.lat, lng: p.lng, final: false });
     novoInimigo(p.lat, p.lng, 'p-chefao', '👹', 25);
-    [30, 150, 270].forEach(function (g) { var z = deslocar(p.lat, p.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+    [30, 150, 270].forEach(function (g) { var z = pontoLivre(p.lat, p.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
   });
-  var pf = deslocar(lat, lng, 130, giro + 60);
+  var pf = pontoLivre(lat, lng, 130, giro + 60);
   chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
   novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
   // zumbis soltos em volta, a 25–45 m, em todas as direções
   for (var k = 0; k < 8; k++) {
-    var z2 = deslocar(lat, lng, 25 + Math.random() * 20, giro + k * 45 + Math.random() * 30);
+    var z2 = pontoLivre(lat, lng, 25 + Math.random() * 20, giro + k * 45 + Math.random() * 30);
     novoInimigo(z2.lat, z2.lng, 'p-zumbi', '🧟', 5);
   }
   atualizarZonas(chefoes);
@@ -640,7 +719,7 @@ function quadro(agora) {
   mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: pitchEf, zoom: zoomEf, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
   requestAnimationFrame(quadro);
 }
-mapa.on('load', function () { requestAnimationFrame(quadro); });
+mapa.on('load', function () { requestAnimationFrame(quadro); if (!DADOS.livre) quandoMapaPronto(ajustarInimigosFixos); });
 </script>
 </body>
 </html>
