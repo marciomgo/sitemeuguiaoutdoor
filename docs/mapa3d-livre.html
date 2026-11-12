@@ -100,7 +100,7 @@
   #inicio{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(25,35,18,.5)}
   #bInicio{font-size:20px;font-weight:bold;padding:20px 28px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   #bInicio:active{transform:scale(.97)}
-  #mineu.comPau .corpo:not(#corpoGolpe) img{visibility:hidden}
+  #mineu.comPau .corpo:not(#corpoGolpe):not(#corpoEst) img{visibility:hidden}
   #mineu.comPau #galhoMineu{display:none !important}
 </style>
 </head>
@@ -296,8 +296,8 @@ function tiroDoMineu() {
   if (municao[ativa] <= 0) return;
   municao[ativa]--; pintaMunicao();
   atualizarMira(); var alvo = alvoAtual, tipo = ativa;
-  tocarSomTiro();
-  var de = { lat: POS.lat, lng: POS.lng };
+  tocarSomTiro(); tocarFramesTiro();
+  var de = deslocar(POS.lat, POS.lng, 1.6, heading); // a pedra sai da frente dele, da mão do estilingue, não das costas
   var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
   var fora = document.createElement('div'); fora.style.zIndex = 100001;
   var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
@@ -305,7 +305,7 @@ function tiroDoMineu() {
   var t0 = performance.now();
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
-  var altIni = 80, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
+  var altIni = 52, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
@@ -673,7 +673,7 @@ mapa.on('load', function () {
 var GALHO_SVG = '<svg viewBox="24 8 32 184" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0 200) scale(1 -1)"><path d="M35 16 L45 16 L46 184 L34 184 Z" fill="#8f5d2e" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M38 22 L38 178" stroke="#b98450" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="42" cy="104" rx="2.4" ry="3.6" fill="#5a3718"/><ellipse cx="37" cy="150" rx="2.2" ry="3" fill="#5a3718"/><rect x="33.6" y="22" width="12.8" height="42" rx="2" fill="#b5483a" stroke="#6e241b" stroke-width="1.5"/><path d="M33.8 28 L46.2 25 M33.8 34 L46.2 31 M33.8 40 L46.2 37 M33.8 46 L46.2 43 M33.8 52 L46.2 49 M33.8 58 L46.2 55" stroke="#6e241b" stroke-width="1.6"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#b5483a" stroke-width="3" stroke-linecap="round"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#6e241b" stroke-width=".9" stroke-linecap="round"/><ellipse cx="40" cy="16" rx="5" ry="2.4" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/><ellipse cx="40" cy="184" rx="6" ry="2.6" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/></g></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="corpo" id="corpoGolpe" style="display:none"><img id="imgGolpe" alt=""></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
+elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="corpo" id="corpoGolpe" style="display:none"><img id="imgGolpe" alt=""></div><div class="corpo" id="corpoEst" style="display:none"><img id="imgEst" alt=""></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
 var elInterno = elMineu.querySelector('.interno');
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
@@ -694,15 +694,26 @@ document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoo
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
 var FRAME_GOLPE = { w: 361, h: 693, ax: 162.08, ay: 689, src: ['mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png'], prontos: 0 };
 FRAME_GOLPE.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_GOLPE.prontos++; if (FRAME_GOLPE.prontos === 3) aplicarPosePau(); }; im.src = u; });
+var FRAME_EST = { w: 289, h: 519, ax: 146.92, ay: 515, src: ['mineu-estilingue-1.png', 'mineu-estilingue-2.png'], prontos: 0 };
+FRAME_EST.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_EST.prontos++; if (FRAME_EST.prontos === 2) aplicarPosePau(); }; im.src = u; });
+var tiroTimer = null;
 var golpeTimers = [];
 // com o pau selecionado, o Mineu fica SEMPRE na pose 1 (pau levantado); o golpe passa pelas poses 2 e 3 e volta pra 1
 function aplicarPosePau() {
-  var cg = document.getElementById('corpoGolpe'), ig = document.getElementById('imgGolpe');
-  if (!cg || !ig || !elMineu) return;
-  var quer = (typeof ativa !== 'undefined' && ativa === 'galho') && FRAME_GOLPE.prontos >= 3;
-  elMineu.classList.toggle('comPau', quer);
-  cg.style.display = quer ? 'block' : 'none';
-  if (quer) ig.src = FRAME_GOLPE.src[0];
+  var cgG = document.getElementById('corpoGolpe'), igG = document.getElementById('imgGolpe'), cgE = document.getElementById('corpoEst'), igE = document.getElementById('imgEst');
+  if (!cgG || !igG || !cgE || !igE || !elMineu) return;
+  var arma = (typeof ativa !== 'undefined') ? ativa : 'normal';
+  var pau = arma === 'galho' && FRAME_GOLPE.prontos >= 3, est = arma !== 'galho' && FRAME_EST.prontos >= 2;
+  elMineu.classList.toggle('comPau', pau || est);
+  cgG.style.display = pau ? 'block' : 'none'; cgE.style.display = est ? 'block' : 'none';
+  if (pau) igG.src = FRAME_GOLPE.src[0];
+  if (est) igE.src = FRAME_EST.src[0]; // com o estilingue na mão: pose 1 (parado); atirando: pose 2
+}
+function tocarFramesTiro() {
+  if (FRAME_EST.prontos < 2) return;
+  var ig = document.getElementById('imgEst'); clearTimeout(tiroTimer);
+  ig.src = FRAME_EST.src[1];
+  tiroTimer = setTimeout(function () { ig.src = FRAME_EST.src[0]; }, 280);
 }
 function tocarFramesGolpe() {
   if (FRAME_GOLPE.prontos < 3) return false;
@@ -712,6 +723,13 @@ function tocarFramesGolpe() {
   golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[0]; }, 330));
   return true;
 }
+function posicionarQuadro(F, idImg, idCorpo, sy, hVis) { // mesmo chão (pés) do desenho parado; não corta o que passa da cabeça
+  var cg = 0.3631, ig = document.getElementById(idImg), cgb = document.getElementById(idCorpo);
+  if (!ig || !cgb) return;
+  cgb.style.height = hVis + 'px'; cgb.style.overflow = 'visible'; cgb.style.clipPath = 'inset(-400px -400px 0 -400px)';
+  ig.style.width = (F.w * cg) + 'px'; ig.style.height = (F.h * cg * sy) + 'px';
+  ig.style.left = (35 - F.ax * cg) + 'px'; ig.style.top = (sy * (188.7 - F.ay * cg)) + 'px';
+}
 function ajustarMineu(pitch) {
   // de cima (0°) só dá pra ver a cabeça e o alto da mochila; inclinando, aparece o resto das costas
   var p = Math.min(pitch === undefined ? inclinacao : pitch, 60) / 60, H = 190;
@@ -720,12 +738,8 @@ function ajustarMineu(pitch) {
   elMineu.style.height = hVis + 'px';
   var corpo = elMineu.querySelector('.corpo'), img = elMineu.querySelector('img');
   corpo.style.height = hVis + 'px'; img.style.height = hImg + 'px';
-  var cg = 0.3631, ig = document.getElementById('imgGolpe'), cgb = document.getElementById('corpoGolpe');
-  if (ig && cgb) { // quadros do golpe: mesmo chão (pés) do desenho parado, sem cortar o pau levantado acima da cabeça
-    cgb.style.height = hVis + 'px'; cgb.style.overflow = 'visible'; cgb.style.clipPath = 'inset(-400px -400px 0 -400px)';
-    ig.style.width = (FRAME_GOLPE.w * cg) + 'px'; ig.style.height = (FRAME_GOLPE.h * cg * sy) + 'px';
-    ig.style.left = (35 - FRAME_GOLPE.ax * cg) + 'px'; ig.style.top = (sy * (188.7 - FRAME_GOLPE.ay * cg)) + 'px';
-  }
+  posicionarQuadro(FRAME_GOLPE, 'imgGolpe', 'corpoGolpe', sy, hVis);
+  posicionarQuadro(FRAME_EST, 'imgEst', 'corpoEst', sy, hVis);
   var mask = v < 0.999 ? 'linear-gradient(to bottom,#000 76%,transparent)' : 'none';
   corpo.style.webkitMaskImage = mask; corpo.style.maskImage = mask;
 }
