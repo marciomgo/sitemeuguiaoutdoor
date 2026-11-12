@@ -188,6 +188,7 @@
 const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[],"curas":[],"pedras":[],"bombas":[],"chefoes":[],"zumbis":[],"livre":true,"dupla":true};
 
 var rad = Math.PI / 180;
+var MOSTRAR_ZONAS = false; // círculos/nuvens de alcance dos monstros: desligados; só o círculo do Mineu aparece (true = volta a mostrar)
 
 // ---------- estilo do mapa (cores originais do MGO) ----------
 var largura = ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 19, 9];
@@ -235,7 +236,7 @@ function circulo(lat, lng, raioM, passos) {
   return pts;
 }
 var camadasZona = [], bordasZona = [];
-(DADOS.chefoes || []).forEach(function (c) {
+(MOSTRAR_ZONAS ? (DADOS.chefoes || []) : []).forEach(function (c) {
   var cor = c.final ? '#8e24aa' : '#ef6c00';
   [1, 0.78, 0.56, 0.34].forEach(function (f, i) {
     var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * f, 64)] } };
@@ -604,7 +605,7 @@ function limparInimigos() {
 }
 function atualizarZonas(lista) {
   var f = [], b = [];
-  lista.forEach(function (c) {
+  (MOSTRAR_ZONAS ? lista : []).forEach(function (c) {
     var cor = c.final ? '#8e24aa' : '#ef6c00';
     [1, 0.78, 0.56, 0.34].forEach(function (k, i) {
       var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * k, 64)] } };

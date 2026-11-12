@@ -145,6 +145,7 @@
 const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[{"n":1,"lat":-30.0595556,"lng":-51.1684267},{"n":2,"lat":-30.059922,"lng":-51.168164},{"n":3,"lat":-30.0597871,"lng":-51.1688498},{"n":4,"lat":-30.0601378,"lng":-51.1686004}],"curas":[{"lat":-30.0602458,"lng":-51.1682575},{"lat":-30.0594903,"lng":-51.1687563}],"pedras":[{"lat":-30.0597871,"lng":-51.1683511,"esp":false},{"lat":-30.0602458,"lng":-51.1684758,"esp":false},{"lat":-30.0597871,"lng":-51.167977,"esp":false},{"lat":-30.0597062,"lng":-51.1682264,"esp":false},{"lat":-30.0594364,"lng":-51.1685381,"esp":false},{"lat":-30.0597331,"lng":-51.1684758,"esp":false},{"lat":-30.059895,"lng":-51.1680082,"esp":false},{"lat":-30.0602458,"lng":-51.1687251,"esp":false},{"lat":-30.059976,"lng":-51.1688498,"esp":true},{"lat":-30.0595173,"lng":-51.168164,"esp":true},{"lat":-30.0601109,"lng":-51.1681017,"esp":true}],"bombas":[{"lat":-30.05970285,"lng":-51.1684564,"e":"🍌"},{"lat":-30.059738799999998,"lng":-51.168295349999994,"e":"🐝"},{"lat":-30.05985455,"lng":-51.1685069,"e":"🐍"},{"lat":-30.05996245,"lng":-51.1687251,"e":"🐶"}],"chefoes":[{"lat":-30.059546240594088,"lng":-51.16836537185588,"final":false},{"lat":-30.059956645397577,"lng":-51.16811629499591,"final":false},{"lat":-30.059840998670502,"lng":-51.1688498,"final":false},{"lat":-30.060172445397576,"lng":-51.168648105108076,"final":true}],"zumbis":[{"lat":-30.059488069089415,"lng":-51.168398301278756},{"lat":-30.0596106517027,"lng":-51.16837332786241},{"lat":-30.05956807920788,"lng":-51.168508470858825},{"lat":-30.059880779990202,"lng":-51.16809598366496},{"lat":-30.05999359142638,"lng":-51.168156763230904},{"lat":-30.05989162858342,"lng":-51.168239253104126},{"lat":-30.0597871,"lng":-51.16876676749971},{"lat":-30.059849336823845,"lng":-51.16889131625014},{"lat":-30.059724863176157,"lng":-51.16889131625014},{"lat":-30.060179020009798,"lng":-51.168532383516705},{"lat":-30.06016817141658,"lng":-51.16867565326817},{"lat":-30.06006620857362,"lng":-51.168593163215135}]};
 
 var rad = Math.PI / 180;
+var MOSTRAR_ZONAS = false; // círculos/nuvens de alcance dos monstros: desligados; só o círculo do Mineu aparece (true = volta a mostrar)
 
 // ---------- estilo do mapa (cores originais do MGO) ----------
 var largura = ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 19, 9];
@@ -192,7 +193,7 @@ function circulo(lat, lng, raioM, passos) {
   return pts;
 }
 var camadasZona = [], bordasZona = [];
-(DADOS.chefoes || []).forEach(function (c) {
+(MOSTRAR_ZONAS ? (DADOS.chefoes || []) : []).forEach(function (c) {
   var cor = c.final ? '#8e24aa' : '#ef6c00';
   [1, 0.78, 0.56, 0.34].forEach(function (f, i) {
     var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * f, 64)] } };
@@ -544,7 +545,7 @@ function limparInimigos() {
 }
 function atualizarZonas(lista) {
   var f = [], b = [];
-  lista.forEach(function (c) {
+  (MOSTRAR_ZONAS ? lista : []).forEach(function (c) {
     var cor = c.final ? '#8e24aa' : '#ef6c00';
     [1, 0.78, 0.56, 0.34].forEach(function (k, i) {
       var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * k, 64)] } };
