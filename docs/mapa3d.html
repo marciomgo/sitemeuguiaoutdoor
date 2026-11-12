@@ -426,7 +426,7 @@ mapa.on('load', function () {
 });
 
 // o Mineu (cartaz em pé, sempre virado pra câmera)
-var GALHO_SVG = '<svg viewBox="0 0 40 110" xmlns="http://www.w3.org/2000/svg"><g stroke-linecap="round" fill="none"><path d="M20 104 L20 10" stroke="#4a2c12" stroke-width="8.5"/><path d="M20 104 L20 10" stroke="#b47d45" stroke-width="5.6"/><path d="M18.4 102 L18.4 14" stroke="#d7a96c" stroke-width="1.4" opacity=".8"/></g><ellipse cx="21.2" cy="62" rx="2.3" ry="3" fill="#6b4220"/><ellipse cx="18.8" cy="84" rx="2" ry="2.6" fill="#6b4220"/><rect x="15.2" y="14" width="9.6" height="28" rx="3.2" fill="#3f6b3a" stroke="#27451f" stroke-width="1"/><g stroke="#27451f" stroke-width="1.2"><path d="M15.5 20 L24.5 17"/><path d="M15.5 26 L24.5 23"/><path d="M15.5 32 L24.5 29"/><path d="M15.5 38 L24.5 35"/></g><circle cx="20" cy="9" r="6.2" fill="#8d5a2b" stroke="#4a2c12" stroke-width="1.6"/><ellipse cx="18.2" cy="7" rx="2" ry="1.4" fill="#c99a62" opacity=".8"/><path d="M24.6 24 C34 26 34 40 24.6 42" stroke="#3a2412" stroke-width="2.2" fill="none" stroke-linecap="round"/><rect x="17.2" y="98" width="5.6" height="9" rx="1.6" fill="#9aa3a8" stroke="#5f686d" stroke-width="1"/></svg>';
+var GALHO_SVG = '<svg viewBox="24 8 32 184" xmlns="http://www.w3.org/2000/svg"><path d="M35 16 L45 16 L46 184 L34 184 Z" fill="#8f5d2e" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M38 22 L38 178" stroke="#b98450" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="42" cy="104" rx="2.4" ry="3.6" fill="#5a3718"/><ellipse cx="37" cy="150" rx="2.2" ry="3" fill="#5a3718"/><rect x="33.6" y="22" width="12.8" height="42" rx="2" fill="#b5483a" stroke="#6e241b" stroke-width="1.5"/><path d="M33.8 28 L46.2 25 M33.8 34 L46.2 31 M33.8 40 L46.2 37 M33.8 46 L46.2 43 M33.8 52 L46.2 49 M33.8 58 L46.2 55" stroke="#6e241b" stroke-width="1.6"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#b5483a" stroke-width="3" stroke-linecap="round"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#6e241b" stroke-width=".9" stroke-linecap="round"/><ellipse cx="40" cy="16" rx="5" ry="2.4" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/><ellipse cx="40" cy="184" rx="6" ry="2.6" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
 elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="galhoMineu">' + GALHO_SVG + '</div></div>';
@@ -482,7 +482,7 @@ function pintaMunicao() {
   elGalho.style.display = ativa === "galho" ? "block" : "none";
 }
 // golpe de perto com o galho: sem munição, pausa curta entre golpes
-var ultimoGolpe = 0, GALHO_ALCANCE_M = 3.5, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
+var ultimoGolpe = 0, GALHO_ALCANCE_M = 7, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
 function golpeDoGalho() {
   var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
