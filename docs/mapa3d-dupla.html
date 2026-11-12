@@ -101,7 +101,10 @@
   #inicio{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(25,35,18,.5)}
   #bInicio{font-size:20px;font-weight:bold;padding:20px 28px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   #bInicio:active{transform:scale(.97)}
-  #mineu.comPau .corpo:not(#corpoGolpe):not(#corpoEst) img{visibility:hidden}
+  #mineu.comPau .corpo:not(#corpoGolpe):not(#corpoEst):not(#corpoAndar) img{visibility:hidden}
+  #mineu.andandoF .corpo{display:none !important}
+  #mineu.andandoF #corpoAndar{display:block !important}
+  #mineu.andandoF #galhoMineu{display:none !important}
   #mineu.comPau #galhoMineu{display:none !important}
   #parabens{position:absolute;inset:0;z-index:40;align-items:center;justify-content:center;background:rgba(20,32,14,.72)}
   #confete{position:absolute;inset:0;pointer-events:none}
@@ -376,7 +379,7 @@ function tiroDoMineu() {
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
   var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
-  net.enviar({ t: 'atq', p: net.pid, k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
+  atacandoAte = performance.now() + 450; net.enviar({ t: 'atq', p: net.pid, k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
@@ -796,7 +799,7 @@ mapa.on('load', function () {
 var GALHO_SVG = '<svg viewBox="24 8 32 184" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0 200) scale(1 -1)"><path d="M35 16 L45 16 L46 184 L34 184 Z" fill="#8f5d2e" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M38 22 L38 178" stroke="#b98450" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="42" cy="104" rx="2.4" ry="3.6" fill="#5a3718"/><ellipse cx="37" cy="150" rx="2.2" ry="3" fill="#5a3718"/><rect x="33.6" y="22" width="12.8" height="42" rx="2" fill="#b5483a" stroke="#6e241b" stroke-width="1.5"/><path d="M33.8 28 L46.2 25 M33.8 34 L46.2 31 M33.8 40 L46.2 37 M33.8 46 L46.2 43 M33.8 52 L46.2 49 M33.8 58 L46.2 55" stroke="#6e241b" stroke-width="1.6"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#b5483a" stroke-width="3" stroke-linecap="round"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#6e241b" stroke-width=".9" stroke-linecap="round"/><ellipse cx="40" cy="16" rx="5" ry="2.4" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/><ellipse cx="40" cy="184" rx="6" ry="2.6" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/></g></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="corpo" id="corpoGolpe" style="display:none"><img id="imgGolpe" alt=""></div><div class="corpo" id="corpoEst" style="display:none"><img id="imgEst" alt=""></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
+elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="corpo" id="corpoGolpe" style="display:none"><img id="imgGolpe" alt=""></div><div class="corpo" id="corpoEst" style="display:none"><img id="imgEst" alt=""></div><div class="corpo" id="corpoAndar" style="display:none"><img id="imgAndar" alt=""></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
 var elInterno = elMineu.querySelector('.interno');
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
@@ -847,6 +850,27 @@ function tocarFramesGolpe() {
   return true;
 }
 var SY_ATUAL = 1;
+var FRAME_ANDAR = { w: 178, h: 524, ax: 92.35, ay: 520, src: ['mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png'], prontos: 0 };
+FRAME_ANDAR.src.forEach(function (u) { var im = new Image(); im.onload = function () { FRAME_ANDAR.prontos++; }; im.src = u; });
+var SEQ_ANDAR = [0, 1, 2, 1]; // direita à frente, neutra, esquerda à frente, neutra
+var atacandoAte = 0, andandoF = false, idxAndarVisto = -1, rastroEu = { p: [] };
+function velRastro(r, lat, lng, t) { // velocidade (m/s) pelo deslocamento nos últimos 1,5 s: tira o balanço do GPS parado
+  r.p.push([t, lat, lng]); while (r.p.length > 2 && t - r.p[0][0] > 1500) r.p.shift();
+  var a = r.p[0], dt = (t - a[0]) / 1000; if (dt < 0.4) return r.v || 0;
+  var dl = (lat - a[1]) * 111320, dn = (lng - a[2]) * 111320 * Math.cos(lat * rad);
+  r.v = Math.sqrt(dl * dl + dn * dn) / dt; r.mov = r.mov ? r.v > 0.35 : r.v > 0.6; return r.v;
+}
+function idxPassada(r, agora, v) { // fase acumulada: trocar a velocidade não embaralha a ordem das imagens
+  var dt = r.tp ? agora - r.tp : 0; if (dt > 300) dt = 0; r.tp = agora; r.fase = (r.fase || 0) + dt / msPassada(v);
+  return SEQ_ANDAR[Math.floor(r.fase) % 4];
+}
+function msPassada(v) { return Math.max(140, Math.min(350, 300 / Math.max(v, 0.3))); } // mais rápido a pé, passada mais rápida
+function atualizarAndar(agora) {
+  var v = velRastro(rastroEu, POS.lat, POS.lng, agora);
+  var quer = !!rastroEu.mov && FRAME_ANDAR.prontos >= 3 && agora > atacandoAte;
+  if (quer !== andandoF) { andandoF = quer; elMineu.classList.toggle('andandoF', quer); idxAndarVisto = -1; }
+  if (quer) { var idx = idxPassada(rastroEu, agora, v); if (idx !== idxAndarVisto) { idxAndarVisto = idx; document.getElementById('imgAndar').src = FRAME_ANDAR.src[idx]; } }
+}
 function posicionarQuadro(F, idImg, idCorpo, sy, hVis) { // mesmo chão (pés) do desenho parado; não corta o que passa da cabeça
   var cg = 0.3631, ig = document.getElementById(idImg), cgb = document.getElementById(idCorpo);
   if (!ig || !cgb) return;
@@ -864,6 +888,7 @@ function ajustarMineu(pitch) {
   corpo.style.height = hVis + 'px'; img.style.height = hImg + 'px';
   posicionarQuadro(FRAME_GOLPE, 'imgGolpe', 'corpoGolpe', sy, hVis);
   posicionarQuadro(FRAME_EST, 'imgEst', 'corpoEst', sy, hVis);
+  posicionarQuadro(FRAME_ANDAR, 'imgAndar', 'corpoAndar', sy, hVis);
   var mask = v < 0.999 ? 'linear-gradient(to bottom,#000 76%,transparent)' : 'none';
   corpo.style.webkitMaskImage = mask; corpo.style.maskImage = mask;
 }
@@ -900,7 +925,7 @@ function golpeDoGalho() {
   var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
   if (!tocarFramesGolpe()) { elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate'); }
-  net.enviar({ t: 'atq', p: net.pid, k: 'pau' });
+  atacandoAte = performance.now() + 450; net.enviar({ t: 'atq', p: net.pid, k: 'pau' });
   setTimeout(function () {
     var alvo = null;
     inimigos.forEach(function (i) {
@@ -1000,6 +1025,7 @@ function quadro(agora) {
   }
   if (contaQuadro % 4 === 0) atualizarZonas(inimigos.filter(function (i) { return i.chefao && i.vivo; }).map(function (i) { return { lat: i.lat, lng: i.lng, final: i.final }; }));
   elMineu.classList.toggle('anda', andando);
+  atualizarAndar(agora);
   ordenarProfundidade();
   atualizarBatalha(dt, agora);
   var pitchEf = Math.min(80, inclinacao + BATALHA_MAIS_INC * fBat);
@@ -1091,13 +1117,13 @@ function posDoOutro(j, x, y, v, a) {
 }
 function pintarAvatar(j, conj, idx) { // conj: 'p' = pau, 'e' = estilingue
   if (!j.el) return;
-  var F = conj === 'p' ? FRAME_GOLPE : FRAME_EST, img = j.el.querySelector('img'), cg = 0.3631, e = 0.5;
+  var F = conj === 'p' ? FRAME_GOLPE : (conj === 'a' ? FRAME_ANDAR : FRAME_EST), img = j.el.querySelector('img'), cg = 0.3631, e = 0.5;
   if (F.prontos < F.src.length) return;
   img.src = F.src[idx]; img.style.width = (F.w * cg * e) + 'px'; img.style.height = (F.h * cg * e) + 'px';
   img.style.left = (17.5 - F.ax * cg * e) + 'px'; img.style.top = ((100 - 0.65) - F.ay * cg * e) + 'px'; img.style.bottom = 'auto';
 }
 function poseDoOutro(j) { // pose parada conforme a arma na mão
-  if (!j.el || j.anim) return;
+  if (!j.el || j.anim || j.andando) return;
   var conj = j.arma === 'galho' ? 'p' : (j.arma ? 'e' : null);
   if (j.conjVisto === conj) return;
   j.conjVisto = conj; if (conj) pintarAvatar(j, conj, 0);
@@ -1135,6 +1161,11 @@ function atualizarOutros(dt) {
     j.lat += (j.alvoLat - j.lat) * k; j.lng += (j.alvoLng - j.lng) * k;
     j.el._mk.setLngLat([j.lng, j.lat]); j.el._ll = [j.lng, j.lat];
     j.el.querySelector('.vida i').style.width = Math.max(0, j.vida) + '%';
+    var agoraMs = performance.now(), vj = velRastro(j.rastro || (j.rastro = { p: [] }), j.lat, j.lng, agoraMs);
+    if (j.rastro.mov && !j.anim && FRAME_ANDAR.prontos >= 3) { // o amigo está andando: passada
+      j.andando = true; var ix = idxPassada(j.rastro, agoraMs, vj);
+      if (ix !== j.idxA) { j.idxA = ix; pintarAvatar(j, 'a', ix); }
+    } else if (j.andando) { j.andando = false; j.conjVisto = null; j.idxA = -1; }
     poseDoOutro(j);
   }
 }
