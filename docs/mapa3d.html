@@ -559,9 +559,11 @@ function spawnBase(lat, lng) {
   var pf = pontoLivre(lat, lng, 70, giro + 180);
   chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
   novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
-  // zumbis soltos em volta, a 25–45 m, em todas as direções
+  // zumbis soltos em volta, a 14–28 m (dentro dos 30 m em que eles já te notam), em todas as direções
   for (var k = 0; k < 8; k++) {
-    var z2 = pontoLivre(lat, lng, 25 + Math.random() * 20, giro + k * 45 + Math.random() * 30);
+    var z2, tent = 0;
+    do { z2 = pontoLivre(lat, lng, 14 + Math.random() * 14, giro + k * 45 + Math.random() * 30); tent++; }
+    while (tent < 8 && Math.hypot((z2.lat - lat) * 111320, (z2.lng - lng) * 111320 * Math.cos(lat * rad)) < 10); // nunca nasce em cima de você
     novoInimigo(z2.lat, z2.lng, 'p-zumbi', '🧟', 5);
   }
   atualizarZonas(chefoes);
