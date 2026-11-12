@@ -74,6 +74,18 @@
   .estouro{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:5px solid #fff;pointer-events:none;z-index:100000;animation:bum .45s ease-out forwards}
   @keyframes bum{to{transform:scale(4.5);opacity:0;border-width:1px}}
   #mineu .anel{display:none}
+  #btnTrocaPedra.galho{border-color:#8d5a2b;background:#f3e6d2}
+  #btnTrocaPedra svg{width:24px;height:24px;transform:rotate(35deg)}
+  .pedra-reserva svg{width:14px;height:14px;transform:rotate(35deg)}
+  .pedra-reserva.galho{border-color:#8d5a2b;background:#f3e6d2}
+  #btnAtirar svg{width:100%;height:100%;display:block;transform:rotate(35deg)}
+  #galhoMineu{position:absolute;right:-18px;bottom:34px;width:26px;height:112px;transform-origin:50% 94%;transform:rotate(8deg);pointer-events:none;display:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+  #galhoMineu svg{width:100%;height:100%;display:block}
+  #galhoMineu.bate{animation:bate .38s ease-in-out}
+  @keyframes bate{0%{transform:rotate(8deg)}35%{transform:rotate(-72deg)}70%{transform:rotate(48deg)}100%{transform:rotate(8deg)}}
+  #arcoGolpe{position:absolute;left:-42px;top:-62px;width:154px;height:70px;border-radius:50% 50% 0 0 / 100% 100% 0 0;border-top:9px solid rgba(255,255,255,.95);filter:drop-shadow(0 0 6px rgba(255,255,255,.9));opacity:0;pointer-events:none}
+  #arcoGolpe.bate{animation:arco .32s ease-out}
+  @keyframes arco{0%{opacity:0;transform:scale(.55)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
 </style>
 </head>
 <body>
@@ -180,7 +192,7 @@ function pino(cls, conteudo, lat, lng) {
 }
 
 // ---------- inimigos e tiro do Mineu ----------
-var ALCANCE_TIRO_M = 40, CONE_GRAUS = 18, DANO = { normal: 5, esp: 10 };
+var ALCANCE_TIRO_M = 40, CONE_GRAUS = 10, DANO = { normal: 5, esp: 10 };
 var inimigos = [];
 function novoInimigo(lat, lng, classe, emoji, vida) {
   var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
@@ -193,7 +205,7 @@ function metrosAte(lat, lng) {
 function escolherAlvo() {
   if (alvoAtual && alvoAtual.vivo) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
     var ma = metrosAte(alvoAtual.lat, alvoAtual.lng);
-    if (ma.d <= ALCANCE_TIRO_M + 5 && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 8) return alvoAtual;
+    if (ma.d <= ALCANCE_TIRO_M && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 2) return alvoAtual;
   }
   var melhor = null;
   inimigos.forEach(function (i) {
@@ -210,7 +222,7 @@ elMira.className = 'mira-alvo'; elMira.style.zIndex = 99999;
 var mkMira = new maplibregl.Marker({ element: elMira, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([0, 0]);
 var miraNoMapa = false;
 function atualizarMira() {
-  alvoAtual = escolherAlvo();
+  alvoAtual = (typeof ativa !== "undefined" && ativa === "galho") ? null : escolherAlvo();
   var src = mapa.getSource('mira');
   if (alvoAtual) {
     if (!miraNoMapa) { mkMira.addTo(mapa); miraNoMapa = true; }
@@ -268,8 +280,9 @@ function tiroDoMineu() {
   tocarSomTiro();
   var de = { lat: POS.lat, lng: POS.lng };
   var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
-  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨'; el.style.zIndex = 100001;
-  var mk = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
+  var fora = document.createElement('div'); fora.style.zIndex = 100001;
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨'; fora.appendChild(el);
+  var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now();
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
@@ -355,9 +368,10 @@ mapa.on('load', function () {
 });
 
 // o Mineu (cartaz em pé, sempre virado pra câmera)
+var GALHO_SVG = '<svg viewBox="0 0 40 110" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-linecap="round"><path d="M21 106 C17 80 25 55 19 8" stroke="#4a2c12" stroke-width="9"/><path d="M21 62 C28 54 31 48 35 38" stroke="#4a2c12" stroke-width="6"/><path d="M18 36 C12 31 10 26 8 18" stroke="#4a2c12" stroke-width="5"/><path d="M21 106 C17 80 25 55 19 8" stroke="#a9753f" stroke-width="6"/><path d="M21 62 C28 54 31 48 35 38" stroke="#a9753f" stroke-width="3.4"/><path d="M18 36 C12 31 10 26 8 18" stroke="#a9753f" stroke-width="3"/><path d="M19 98 C16 78 23 56 18 14" stroke="#cfa56f" stroke-width="1.6" opacity=".75"/></g><ellipse cx="20" cy="82" rx="3" ry="2.2" fill="#6b4220"/><ellipse cx="21" cy="46" rx="2.6" ry="2" fill="#6b4220"/></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div>';
+elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="arcoGolpe"></div><div id="galhoMineu">' + GALHO_SVG + '</div>';
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
 
@@ -393,13 +407,39 @@ pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
 var municao = { normal: 150, esp: 12 }, ativa = "normal";
+var ORDEM_ARMAS = ["normal", "esp", "galho"];
+var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
+var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva");
+function iconeArma(k) { return k === "galho" ? GALHO_SVG : "🪨"; }
 function pintaMunicao() {
-  var b = document.getElementById("btnTrocaPedra"), rv = document.getElementById("pedraReserva");
-  b.classList.toggle("esp", ativa === "esp"); rv.classList.toggle("esp", ativa !== "esp");
-  document.getElementById("qtdPedra").textContent = municao[ativa];
+  var prox = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length];
+  elTroca.classList.toggle("esp", ativa === "esp"); elTroca.classList.toggle("galho", ativa === "galho");
+  elTroca.firstElementChild.innerHTML = iconeArma(ativa);
+  document.getElementById("qtdPedra").textContent = ativa === "galho" ? "∞" : municao[ativa];
+  elReserva.className = "pedra-reserva" + (prox === "esp" ? " esp" : "") + (prox === "galho" ? " galho" : "");
+  elReserva.innerHTML = iconeArma(prox);
+  document.getElementById("btnAtirar").innerHTML = ativa === "galho" ? GALHO_SVG : ESTILINGUE_HTML;
+  document.getElementById("btnAtirar").setAttribute("aria-label", ativa === "galho" ? "Bater com o galho" : "Atirar");
+  elGalho.style.display = ativa === "galho" ? "block" : "none";
 }
-document.getElementById("btnTrocaPedra").onclick = document.getElementById("pedraReserva").onclick = function () { ativa = ativa === "normal" ? "esp" : "normal"; pintaMunicao(); };
-document.getElementById("btnAtirar").onclick = function () { tiroDoMineu(); };
+// golpe de perto com o galho: sem munição, pausa curta entre golpes
+var ultimoGolpe = 0, GALHO_ALCANCE_M = 3.5, GALHO_CONE = 90, GALHO_DANO = 10, GALHO_PAUSA = 800;
+function golpeDoGalho() {
+  var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
+  tocarTom(700, 180, 110, 'sawtooth', 0.07);
+  var arco = document.getElementById('arcoGolpe');
+  [elGalho, arco].forEach(function (e) { e.classList.remove('bate'); void e.offsetWidth; e.classList.add('bate'); });
+  setTimeout(function () {
+    inimigos.forEach(function (i) {
+      if (!i.vivo) return;
+      var m = metrosAte(i.lat, i.lng);
+      if (m.d > GALHO_ALCANCE_M || Math.abs(difAng(heading, m.ang)) > GALHO_CONE) return;
+      tocarSomImpacto(); estouro(i.el); acertou(i, GALHO_DANO);
+    });
+  }, 140);
+}
+elTroca.onclick = elReserva.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+document.getElementById("btnAtirar").onclick = function () { if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
 pintaMunicao();
 
 // ---------- GPS e bússola de verdade (no celular) ----------
