@@ -50,8 +50,11 @@
   .vida i{display:block;height:100%;width:100%;background:#43a047}
   .golpe{animation:golpe .18s linear}
   @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
-  .pedrada{font-size:22px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+  .pedrada{font-size:34px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
   .pedrada.esp{filter:drop-shadow(0 0 6px #ffca28) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+  .mira-alvo{width:64px;height:64px;margin:0;border-radius:50%;border:4px solid #ff1744;box-shadow:0 0 12px #ff1744,inset 0 0 8px #ff174488;pointer-events:none;animation:mirando .7s ease-in-out infinite}
+  @keyframes mirando{0%,100%{scale:1}50%{scale:1.18}}
+  #bus{font-weight:bold;color:#ffd54f}
 </style>
 </head>
 <body>
@@ -96,6 +99,7 @@ var ESTILO = {
         'fill-extrusion-opacity': 0.97, 'fill-extrusion-vertical-gradient': true } },
     // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
+    { id: 'mira-linha', type: 'line', source: 'mira', paint: { 'line-color': '#ff1744', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [2, 1.5] } },
     { id: 'zona-borda', type: 'line', source: 'zona-borda', paint: { 'line-color': ['get', 'cor'], 'line-opacity': 0.35, 'line-width': 2, 'line-dasharray': [3, 2] } }
   ]
 };
@@ -118,6 +122,7 @@ var camadasZona = [], bordasZona = [];
     camadasZona.push(ft); if (i === 0) bordasZona.push(ft);
   });
 });
+ESTILO.sources.mira = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources.zona = { type: 'geojson', data: { type: 'FeatureCollection', features: camadasZona } };
 ESTILO.sources['zona-borda'] = { type: 'geojson', data: { type: 'FeatureCollection', features: bordasZona } };
 
@@ -160,25 +165,43 @@ function escolherAlvo() {
   var melhor = null;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
-    var m = metrosAte(i.lat, i.lng);
-    if (m.d > ALCANCE_TIRO_M || Math.abs(difAng(heading, m.ang)) > CONE_GRAUS) return;
-    if (!melhor || m.d < melhor.d) melhor = { i: i, d: m.d };
+    var m = metrosAte(i.lat, i.lng), e = Math.abs(difAng(heading, m.ang));
+    if (m.d > ALCANCE_TIRO_M || e > CONE_GRAUS) return;
+    var nota = e + m.d * 0.12; // vence quem está mais no centro da mira; a distância só desempata
+    if (!melhor || nota < melhor.nota) melhor = { i: i, nota: nota };
   });
   return melhor && melhor.i;
+}
+var alvoAtual = null, elMira = document.createElement('div');
+elMira.className = 'mira-alvo';
+var mkMira = new maplibregl.Marker({ element: elMira, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([0, 0]);
+var miraNoMapa = false;
+function atualizarMira() {
+  alvoAtual = escolherAlvo();
+  var src = mapa.getSource('mira');
+  if (alvoAtual) {
+    if (!miraNoMapa) { mkMira.addTo(mapa); miraNoMapa = true; }
+    mkMira.setLngLat([alvoAtual.lng, alvoAtual.lat]);
+    elMira.style.marginTop = (alvoAtual.el.classList.contains('p-chefao') ? -27 : -17) + 'px';
+    if (src) src.setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[POS.lng, POS.lat], [alvoAtual.lng, alvoAtual.lat]] } });
+  } else {
+    if (miraNoMapa) { mkMira.remove(); miraNoMapa = false; }
+    if (src) src.setData({ type: 'FeatureCollection', features: [] });
+  }
 }
 function tiroDoMineu() {
   if (municao[ativa] <= 0) return;
   municao[ativa]--; pintaMunicao();
-  var alvo = escolherAlvo(), tipo = ativa;
+  atualizarMira(); var alvo = alvoAtual, tipo = ativa;
   var de = { lat: POS.lat, lng: POS.lng };
   var para = alvo ? { lat: alvo.lat, lng: alvo.lng } : { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
   var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨';
   var mk = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
-  var t0 = performance.now(), dur = 380;
+  var t0 = performance.now(), dur = 480;
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
-    el.style.transform = 'translateY(' + (-70 + 70 * t - Math.sin(Math.PI * t) * 40) + 'px)';
+    el.style.transform = 'translateY(' + (-70 + 70 * t - Math.sin(Math.PI * t) * 55) + 'px)';
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove();
     if (alvo && alvo.vivo) acertou(alvo, DANO[tipo]);
@@ -220,7 +243,7 @@ function segurar(id, chave) {
   var desliga = function (e) { tecla[chave] = false; e.preventDefault(); };
   b.addEventListener('pointerdown', liga); b.addEventListener('pointerup', desliga); b.addEventListener('pointerleave', desliga); b.addEventListener('pointercancel', desliga);
 }
-document.addEventListener('pointerdown', function () { ligarBussola(); }, { once: true });
+document.addEventListener('click', function () { ligarBussola(); });
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
 document.getElementById('bInc').onclick = function () { inclinacao = inclinacao >= 70 ? 35 : inclinacao + 9; };
@@ -251,21 +274,24 @@ document.getElementById('bGps').onclick = function () {
   }
   ligarBussola();
 };
-var bussolaLigada = false;
+var bussolaLigada = false, recebeuBussola = false;
 function ligarBussola() {
   if (bussolaLigada) return;
   bussolaLigada = true;
   var ouvir = function () {
     window.addEventListener('deviceorientationabsolute', orient, true);
     window.addEventListener('deviceorientation', orient, true);
+    setTimeout(function () { if (!recebeuBussola) { document.getElementById('dica').innerHTML = 'O celular não mandou a bússola. Confira se o navegador tem permissão de <b>movimento e orientação</b>.'; } }, 3000);
   };
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(function (r) { if (r === 'granted') ouvir(); else bussolaLigada = false; });
+    DeviceOrientationEvent.requestPermission().then(function (r) {
+      if (r === 'granted') ouvir(); else { bussolaLigada = false; document.getElementById('dica').textContent = 'Bússola negada. Toque de novo e escolha Permitir.'; }
+    }).catch(function () { bussolaLigada = false; });
   } else { ouvir(); }
 }
 function orient(e) {
   var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute && e.alpha != null ? (360 - e.alpha) : null);
-  if (h != null) heading = h;
+  if (h != null) { heading = h; recebeuBussola = true; document.getElementById('dica').innerHTML = 'Bússola: <span id="bus">' + Math.round(h) + '°</span> · gire o celular. 📍 liga o GPS.'; }
 }
 
 // ---------- laço do jogo ----------
@@ -293,6 +319,7 @@ function quadro(agora) {
   heading = (heading + 360) % 360;
   bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
   mkMineu.setLngLat([POS.lng, POS.lat]);
+  atualizarMira();
   elMineu.classList.toggle('anda', andando);
   mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: inclinacao, zoom: zoom, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
   requestAnimationFrame(quadro);
