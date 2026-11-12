@@ -86,6 +86,8 @@
   #arcoGolpe{position:absolute;left:-42px;top:-62px;width:154px;height:70px;border-radius:50% 50% 0 0 / 100% 100% 0 0;border-top:9px solid rgba(255,255,255,.95);filter:drop-shadow(0 0 6px rgba(255,255,255,.9));opacity:0;pointer-events:none}
   #arcoGolpe.bate{animation:arco .32s ease-out}
   @keyframes arco{0%{opacity:0;transform:scale(.55)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+  #mineu,#mineu .corpo,#mineu img{transition:none}
+  #mineu .interno{position:absolute;left:0;top:0;right:0;bottom:0;transform-origin:50% 100%;transform:scale(.5)}
 </style>
 </head>
 <body>
@@ -427,7 +429,8 @@ mapa.on('load', function () {
 var GALHO_SVG = '<svg viewBox="0 0 40 110" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke-linecap="round"><path d="M21 106 C17 80 25 55 19 8" stroke="#4a2c12" stroke-width="9"/><path d="M21 62 C28 54 31 48 35 38" stroke="#4a2c12" stroke-width="6"/><path d="M18 36 C12 31 10 26 8 18" stroke="#4a2c12" stroke-width="5"/><path d="M21 106 C17 80 25 55 19 8" stroke="#a9753f" stroke-width="6"/><path d="M21 62 C28 54 31 48 35 38" stroke="#a9753f" stroke-width="3.4"/><path d="M18 36 C12 31 10 26 8 18" stroke="#a9753f" stroke-width="3"/><path d="M19 98 C16 78 23 56 18 14" stroke="#cfa56f" stroke-width="1.6" opacity=".75"/></g><ellipse cx="20" cy="82" rx="3" ry="2.2" fill="#6b4220"/><ellipse cx="21" cy="46" rx="2.6" ry="2" fill="#6b4220"/></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="galhoMineu">' + GALHO_SVG + '</div>';
+elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="galhoMineu">' + GALHO_SVG + '</div></div>';
+var elInterno = elMineu.querySelector('.interno');
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
 
@@ -445,9 +448,9 @@ function segurar(id, chave) {
 document.addEventListener('click', function () { ligarBussola(); obterAudio(); });
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
-function ajustarMineu() {
+function ajustarMineu(pitch) {
   // de cima (0°) só dá pra ver a cabeça e o alto da mochila; inclinando, aparece o resto das costas
-  var p = Math.min(inclinacao, 60) / 60, H = 190;
+  var p = Math.min(pitch === undefined ? inclinacao : pitch, 60) / 60, H = 190;
   var v = 0.42 + 0.58 * Math.pow(p, 1.5), sy = 0.8 + 0.2 * p;
   var hImg = H * sy, hVis = hImg * v;
   elMineu.style.height = hVis + 'px';
@@ -536,6 +539,15 @@ function orient(e) {
 function difAng(a, b) { var d = ((b - a + 540) % 360) - 180; return d; }
 var ultimo = performance.now();
 var contaQuadro = 0;
+// ---------- exploração (Mineu menor, mapa mais aberto) x batalha (Mineu grande, mais inclinado e de perto) ----------
+var ESC_EXPLORA = 0.5, PITCH_BATALHA = 72, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
+var emBatalha = false, fBat = 0, ultimoPerto = 0, ultPitchSprite = -99, ultEsc = -99;
+function atualizarBatalha(dt, agora) {
+  var perto = false, lim = emBatalha ? BATALHA_SAI_M : BATALHA_ENTRA_M;
+  inimigos.forEach(function (i) { if (i.vivo && metrosAte(i.lat, i.lng).d <= lim) perto = true; });
+  if (perto) { emBatalha = true; ultimoPerto = agora; } else if (emBatalha && agora - ultimoPerto > 1500) emBatalha = false;
+  fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
+}
 function quadro(agora) {
   var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
   var andando = false;
@@ -563,7 +575,15 @@ function quadro(agora) {
   if (++contaQuadro % 3 === 0) atualizarAlcance();
   elMineu.classList.toggle('anda', andando);
   ordenarProfundidade();
-  mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: inclinacao, zoom: zoom, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
+  atualizarBatalha(dt, agora);
+  var pitchEf = inclinacao + (Math.max(inclinacao, PITCH_BATALHA) - inclinacao) * fBat;
+  var zoomEf = zoom + ZOOM_BATALHA_EXTRA * fBat;
+  var esc = ESC_EXPLORA + (1 - ESC_EXPLORA) * fBat;
+  if (Math.abs(pitchEf - ultPitchSprite) > 0.4 || Math.abs(esc - ultEsc) > 0.004) {
+    ultPitchSprite = pitchEf; ultEsc = esc;
+    ajustarMineu(pitchEf); elInterno.style.transform = 'scale(' + esc.toFixed(3) + ')';
+  }
+  mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: pitchEf, zoom: zoomEf, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
   requestAnimationFrame(quadro);
 }
 mapa.on('load', function () { requestAnimationFrame(quadro); });
