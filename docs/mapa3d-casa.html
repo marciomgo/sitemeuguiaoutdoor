@@ -68,6 +68,12 @@
   #sangue{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(229,57,53,0) 45%,rgba(229,57,53,.55) 100%)}
   #sangue.bate{animation:sangra .45s ease-out}
   @keyframes sangra{0%{opacity:1}100%{opacity:0}}
+  .rastro{position:fixed;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:rgba(255,255,255,.85);pointer-events:none;z-index:100000;animation:poof .5s forwards}
+  .rastro.esp{background:rgba(255,213,79,.9)}
+  @keyframes poof{to{transform:scale(.2);opacity:0}}
+  .estouro{position:fixed;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:5px solid #fff;pointer-events:none;z-index:100000;animation:bum .45s ease-out forwards}
+  @keyframes bum{to{transform:scale(4.5);opacity:0;border-width:1px}}
+  #mineu .anel{display:none}
 </style>
 </head>
 <body>
@@ -174,7 +180,7 @@ function pino(cls, conteudo, lat, lng) {
 }
 
 // ---------- inimigos e tiro do Mineu ----------
-var ALCANCE_TIRO_M = 40, CONE_GRAUS = 50, DANO = { normal: 5, esp: 10 };
+var ALCANCE_TIRO_M = 40, CONE_GRAUS = 18, DANO = { normal: 5, esp: 10 };
 var inimigos = [];
 function novoInimigo(lat, lng, classe, emoji, vida) {
   var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
@@ -187,7 +193,7 @@ function metrosAte(lat, lng) {
 function escolherAlvo() {
   if (alvoAtual && alvoAtual.vivo) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
     var ma = metrosAte(alvoAtual.lat, alvoAtual.lng);
-    if (ma.d <= ALCANCE_TIRO_M + 5 && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 15) return alvoAtual;
+    if (ma.d <= ALCANCE_TIRO_M + 5 && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 8) return alvoAtual;
   }
   var melhor = null;
   inimigos.forEach(function (i) {
@@ -216,29 +222,75 @@ function atualizarMira() {
     if (src) src.setData({ type: 'FeatureCollection', features: [] });
   }
 }
+// ---------- sons (os mesmos tons do jogo) ----------
+var audioCtx = null;
+function obterAudio() {
+  try {
+    if (audioCtx && audioCtx.state === 'closed') audioCtx = null;
+    if (!audioCtx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; audioCtx = new AC(); }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  } catch (e) { return null; }
+}
+function tocarTom(fi, ff, ms, tipo, vol) {
+  try {
+    var ctx = obterAudio(); if (!ctx) return;
+    var osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = tipo || 'square';
+    osc.frequency.setValueAtTime(fi, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(ff, 1), ctx.currentTime + ms / 1000);
+    g.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms / 1000);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + ms / 1000);
+  } catch (e) {}
+}
+function tocarSomTiro() { tocarTom(880, 220, 110, 'square', 0.1); }
+function tocarSomImpacto() { tocarTom(300, 80, 100, 'sawtooth', 0.15); }
+function tocarSomMordida() { tocarTom(190, 80, 80, 'square', 0.2); setTimeout(function () { tocarTom(150, 60, 100, 'square', 0.2); }, 120); }
+
+// ---------- o tiro: a pedra voa de verdade até o alvo ----------
+function rastro(el, esp) {
+  var b = el.getBoundingClientRect(), d = document.createElement('div');
+  d.className = 'rastro' + (esp ? ' esp' : '');
+  d.style.left = (b.left + b.width / 2) + 'px'; d.style.top = (b.top + b.height / 2) + 'px';
+  document.body.appendChild(d); setTimeout(function () { d.remove(); }, 500);
+}
+function estouro(el) {
+  var b = el.getBoundingClientRect(), d = document.createElement('div');
+  d.className = 'estouro'; d.style.left = (b.left + b.width / 2) + 'px'; d.style.top = (b.top + b.height / 2) + 'px';
+  document.body.appendChild(d); setTimeout(function () { d.remove(); }, 450);
+}
 function tiroDoMineu() {
   if (municao[ativa] <= 0) return;
   municao[ativa]--; pintaMunicao();
   atualizarMira(); var alvo = alvoAtual, tipo = ativa;
+  tocarSomTiro();
   var de = { lat: POS.lat, lng: POS.lng };
-  var para = alvo ? { lat: alvo.lat, lng: alvo.lng } : { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
-  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.style.zIndex = 100001; el.textContent = '🪨';
+  var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨'; el.style.zIndex = 100001;
   var mk = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
-  var t0 = performance.now(), dur = 480;
+  var t0 = performance.now();
+  var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
+  var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
+  var altIni = 80, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
+    var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
     mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
-    el.style.transform = 'translateY(' + (-70 + 70 * t - Math.sin(Math.PI * t) * 55) + 'px)';
+    var h = altIni + (altFim - altIni) * t + Math.sin(Math.PI * t) * arco;
+    el.style.transform = 'translateY(' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
+    rastro(el, tipo === 'esp');
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove();
-    if (alvo && alvo.vivo) acertou(alvo, DANO[tipo]);
+    if (alvo && alvo.vivo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, DANO[tipo]); }
   })(t0);
 }
 var ZUMBI_VEL = 1.0, ZUMBI_AGGRO_M = 30, ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
 var vidaMineu = 100, ultimaMordida = 0;
 function pintaVidaMineu() { elMineu.querySelector('.mine-vida i').style.width = Math.max(0, vidaMineu) + '%'; }
 function mordida(agora) {
-  ultimaMordida = agora; vidaMineu -= DANO_MORDIDA; pintaVidaMineu();
+  ultimaMordida = agora; vidaMineu -= DANO_MORDIDA; pintaVidaMineu(); tocarSomMordida();
   var sg = document.getElementById('sangue'); sg.classList.remove('bate'); void sg.offsetWidth; sg.classList.add('bate');
   if (navigator.vibrate) navigator.vibrate(60);
   if (vidaMineu <= 0) {
@@ -320,7 +372,7 @@ function segurar(id, chave) {
   var desliga = function (e) { tecla[chave] = false; e.preventDefault(); };
   b.addEventListener('pointerdown', liga); b.addEventListener('pointerup', desliga); b.addEventListener('pointerleave', desliga); b.addEventListener('pointercancel', desliga);
 }
-document.addEventListener('click', function () { ligarBussola(); });
+document.addEventListener('click', function () { ligarBussola(); obterAudio(); });
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
 function ajustarMineu() {
