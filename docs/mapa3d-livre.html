@@ -205,11 +205,11 @@ function pino(cls, conteudo, lat, lng) {
 }
 
 // ---------- inimigos e tiro do Mineu ----------
-var ALCANCE_TIRO_M = 40, CONE_GRAUS = 10, DANO = { normal: 5, esp: 10 };
+var ALCANCE_TIRO_M = 35, CONE_GRAUS = 10, DANO = { normal: 5, esp: 10 };
 var inimigos = [];
 function novoInimigo(lat, lng, classe, emoji, vida) {
   var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
-  inimigos.push({ id: inimigos.length + 1, lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao', final: emoji === '👿' });
+  inimigos.push({ vf: 0.85 + Math.random() * 0.3, ang0: Math.random() * 360, lado: Math.random() < 0.5 ? 1 : -1, id: inimigos.length + 1, lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao', final: emoji === '👿' });
 }
 function metrosAte(lat, lng) {
   var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
@@ -324,7 +324,7 @@ function mordida(agora) {
     vidaMineu = 100; pintaVidaMineu();
   }
 }
-var CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
+var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
 var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
@@ -381,15 +381,31 @@ function moverInimigos(dt, agora) {
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
     var m = metrosAte(i.lat, i.lng), anda = false;
-    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = i.chefao ? CHEFAO_PARA_M : ZUMBI_PARA_M;
+    var naArea = m.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, m.ang)) <= GALHO_CONE;
+    if (naArea && !i.naArea) i.tEntrada = agora;
+    i.naArea = naArea;
+    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = i.chefao ? (DADOS.livre ? CHEFAO_PARA_LIVRE_M : CHEFAO_PARA_M) : ZUMBI_PARA_M;
     var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
     if (m.d <= aggro && m.d > para) {
       if (i._ang === undefined || (quadroMov + (i.id || 0)) % 4 === 0) {
-        var dnn = (POS.lng - i.lng) * Math.cos(i.lat * rad), dll = POS.lat - i.lat;
-        i._ang = direcaoLivre(i, (Math.atan2(dnn, dll) / rad + 360) % 360);
+        var mira = m.d > 7 ? deslocar(POS.lat, POS.lng, 2.5, i.ang0) : POS; // de longe, cada um mira um lado diferente em volta de você
+        var dnn = (mira.lng - i.lng) * Math.cos(i.lat * rad), dll = mira.lat - i.lat;
+        var a0 = (m.d > 4) ? passoDoCampo(i) : null; // de longe segue o caminho que contorna prédios; de perto vai direto
+        if (a0 === null) a0 = direcaoLivre(i, (Math.atan2(dnn, dll) / rad + 360) % 360);
+        if (a0 !== null) { // separação: afasta de quem está a menos de 3 m, pra não andarem em fila nem amontoados
+          var vx = Math.sin(a0 * rad), vy = Math.cos(a0 * rad);
+          for (var q = 0; q < inimigos.length; q++) {
+            var o = inimigos[q]; if (o === i || !o.vivo) continue;
+            var el2 = (i.lat - o.lat) * 111320, en2 = (i.lng - o.lng) * 111320 * Math.cos(i.lat * rad), de = Math.sqrt(el2 * el2 + en2 * en2);
+            if (de < 3 && de > 0.01) { var w = (3 - de) / 3 * 1.6; vx += (en2 / de) * w; vy += (el2 / de) * w; }
+          }
+          var a1 = (Math.atan2(vx, vy) / rad + 360) % 360, pp = deslocar(i.lat, i.lng, 2.2, a1);
+          a0 = (obstaculos.length && emObstaculo(pp.lat, pp.lng)) ? a0 : a1;
+        }
+        i._ang = a0;
       }
       if (i._ang !== null) {
-        var passo = Math.min(vel * dt, m.d - para);
+        var passo = Math.min(vel * (i.vf || 1) * dt, m.d - para);
         i.lat += (passo * Math.cos(i._ang * rad)) / 111320;
         i.lng += (passo * Math.sin(i._ang * rad)) / (111320 * Math.cos(i.lat * rad));
         anda = true;
@@ -514,11 +530,73 @@ function livreDeConstrucao(lat, lng) {
   for (var a = 0; a < 360; a += 90) { var q = deslocar(lat, lng, 3, a); if (emObstaculo(q.lat, q.lng)) return false; } // folga de 3 m da parede
   return true;
 }
+// ---------- caminho de verdade: grade de 2 m em volta do jogador, bloqueada nas construções/água; todo mundo desce pelo campo de distância ----------
+var GRADE = null;
+function construirGrade(lat, lng) {
+  var n = 120, cel = 2, cl = Math.cos(lat * rad);
+  var g = { lat0: lat, lng0: lng, n: n, cel: cel, cl: cl, bloq: new Uint8Array(n * n), dist: new Int16Array(n * n), ok: false };
+  for (var iy = 0; iy < n; iy++) for (var ix = 0; ix < n; ix++) {
+    var cx = (ix - n / 2 + 0.5) * cel, cy = (iy - n / 2 + 0.5) * cel, bl = 0;
+    var pts = [[0, 0]];
+    for (var k = 0; k < pts.length && !bl; k++) {
+      if (emObstaculo(lat + (cy + pts[k][1]) / 111320, lng + (cx + pts[k][0]) / (111320 * cl))) bl = 1;
+    }
+    g.bloq[iy * n + ix] = bl;
+  }
+  GRADE = g;
+  atualizarCampo();
+}
+function celulaDe(g, lat, lng) {
+  return [Math.floor(((lng - g.lng0) * 111320 * g.cl) / g.cel + g.n / 2), Math.floor(((lat - g.lat0) * 111320) / g.cel + g.n / 2)];
+}
+function atualizarCampo() {
+  var g = GRADE; if (!g) return;
+  var n = g.n, c = celulaDe(g, POS.lat, POS.lng);
+  g.dist.fill(-1); g.ok = false;
+  if (c[0] < 1 || c[1] < 1 || c[0] >= n - 1 || c[1] >= n - 1) return;
+  var fila = new Int32Array(n * n), ini = 0, fim = 0, o = c[1] * n + c[0];
+  g.dist[o] = 0; fila[fim++] = o;
+  while (ini < fim) {
+    var cur = fila[ini++], cx = cur % n, cy = (cur / n) | 0, d = g.dist[cur];
+    for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      var nx = cx + dx, ny = cy + dy; if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;
+      var id = ny * n + nx; if (g.dist[id] >= 0 || g.bloq[id]) continue;
+      if (dx && dy && (g.bloq[cy * n + nx] || g.bloq[ny * n + cx])) continue; // não corta quina de parede
+      g.dist[id] = d + 1; fila[fim++] = id;
+    }
+  }
+  g.ok = true;
+}
+function passoDoCampo(i) {
+  var g = GRADE; if (!g || !g.ok) return null;
+  var n = g.n, c = celulaDe(g, i.lat, i.lng);
+  if (c[0] < 1 || c[1] < 1 || c[0] >= n - 1 || c[1] >= n - 1) return null;
+  var melhor = -1, mx = 0, my = 0, md = 1e9, atual = g.dist[c[1] * n + c[0]];
+  for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue;
+    var id = (c[1] + dy) * n + (c[0] + dx), d = g.dist[id];
+    if (d < 0 || g.bloq[id]) continue;
+    if (d < md) { md = d; melhor = id; mx = dx; my = dy; }
+  }
+  if (melhor < 0 || (atual >= 0 && md >= atual)) return null;
+  var ex = (i.lng - g.lng0) * 111320 * g.cl, ey = (i.lat - g.lat0) * 111320;
+  var nx2 = (c[0] + mx - n / 2 + 0.5) * g.cel, ny2 = (c[1] + my - n / 2 + 0.5) * g.cel;
+  return (Math.atan2(nx2 - ex, ny2 - ey) / rad + 360) % 360;
+}
+function longeDeInimigos(lat, lng, minimo) {
+  for (var k = 0; k < inimigos.length; k++) {
+    var o = inimigos[k]; if (!o.vivo) continue;
+    var dl = (o.lat - lat) * 111320, dn = (o.lng - lng) * 111320 * Math.cos(lat * rad);
+    if (dl * dl + dn * dn < minimo * minimo) return false;
+  }
+  return true;
+}
 function pontoLivre(lat, lng, dist, ang) {
   for (var t = 0; t < 60; t++) {
     var d = dist + (t ? (Math.random() * 16 - 8) : 0), a = ang + (t ? (Math.random() * 70 - 35) : 0);
     var p = deslocar(lat, lng, Math.max(4, d), a);
-    if (livreDeConstrucao(p.lat, p.lng)) return p;
+    if (livreDeConstrucao(p.lat, p.lng) && longeDeInimigos(p.lat, p.lng, 3.5)) return p;
   }
   var p0 = deslocar(lat, lng, dist, ang);
   return pontoLivrePerto(p0.lat, p0.lng) || p0;
@@ -526,7 +604,7 @@ function pontoLivre(lat, lng, dist, ang) {
 function pontoLivrePerto(lat, lng) { // o ponto livre mais próximo, em espiral
   for (var r = 3; r <= 45; r += 3) for (var a = 0; a < 360; a += 30) {
     var p = deslocar(lat, lng, r, a + r * 7);
-    if (livreDeConstrucao(p.lat, p.lng)) return p;
+    if (livreDeConstrucao(p.lat, p.lng) && longeDeInimigos(p.lat, p.lng, 3.5)) return p;
   }
   return null;
 }
@@ -539,6 +617,7 @@ function quandoMapaPronto(cb) {
 }
 function ajustarInimigosFixos() {
   var n = carregarObstaculos(POS.lat, POS.lng), mexidos = 0;
+  if (n) construirGrade(POS.lat, POS.lng);
   inimigos.forEach(function (i) {
     if (livreDeConstrucao(i.lat, i.lng)) return;
     var p = pontoLivrePerto(i.lat, i.lng); if (!p) return;
@@ -547,7 +626,7 @@ function ajustarInimigosFixos() {
   window.__ajuste = { obstaculos: n, mexidos: mexidos };
 }
 function spawnAoRedor(lat, lng) {
-  quandoMapaPronto(function () { carregarObstaculos(lat, lng); spawnBase(lat, lng); });
+  quandoMapaPronto(function () { if (carregarObstaculos(lat, lng)) construirGrade(lat, lng); spawnBase(lat, lng); });
 }
 function spawnBase(lat, lng) {
   limparInimigos();
@@ -645,12 +724,12 @@ function golpeDoGalho() {
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
   elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate');
   setTimeout(function () {
+    var alvo = null;
     inimigos.forEach(function (i) {
-      if (!i.vivo) return;
-      var m = metrosAte(i.lat, i.lng);
-      if (m.d > GALHO_ALCANCE_M || Math.abs(difAng(heading, m.ang)) > GALHO_CONE) return;
-      tocarSomImpacto(); estouro(i.el); acertou(i, GALHO_DANO);
+      if (!i.vivo || !i.naArea) return;
+      if (!alvo || i.tEntrada < alvo.tEntrada) alvo = i; // quem chegou primeiro na área
     });
+    if (alvo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, GALHO_DANO); }
   }, 140);
 }
 elTroca.onclick = elReserva.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
@@ -734,6 +813,10 @@ function quadro(agora) {
   moverInimigos(dt, agora);
   atualizarMira();
   if (++contaQuadro % 3 === 0) atualizarAlcance();
+  if (GRADE && contaQuadro % 20 === 0) {
+    var dgl = (POS.lat - GRADE.lat0) * 111320, dgn = (POS.lng - GRADE.lng0) * 111320 * GRADE.cl;
+    if (dgl * dgl + dgn * dgn > 50 * 50) { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); } else atualizarCampo();
+  }
   if (contaQuadro % 4 === 0) atualizarZonas(inimigos.filter(function (i) { return i.chefao && i.vivo; }).map(function (i) { return { lat: i.lat, lng: i.lng, final: i.final }; }));
   elMineu.classList.toggle('anda', andando);
   ordenarProfundidade();
