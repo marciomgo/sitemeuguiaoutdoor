@@ -321,7 +321,7 @@ function mordida(agora) {
     vidaMineu = 100; pintaVidaMineu();
   }
 }
-var CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
+var CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
 var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
@@ -378,7 +378,7 @@ function moverInimigos(dt, agora) {
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
     var m = metrosAte(i.lat, i.lng), anda = false;
-    var aggro = i.chefao ? CHEFAO_AGGRO_M : ZUMBI_AGGRO_M, para = i.chefao ? CHEFAO_PARA_M : ZUMBI_PARA_M;
+    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : ZUMBI_AGGRO_M, para = i.chefao ? CHEFAO_PARA_M : ZUMBI_PARA_M;
     var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
     if (m.d <= aggro && m.d > para) {
       if (i._ang === undefined || (quadroMov + (i.id || 0)) % 4 === 0) {
@@ -549,14 +549,14 @@ function spawnAoRedor(lat, lng) {
 function spawnBase(lat, lng) {
   limparInimigos();
   var chefoes = [], giro = Math.random() * 360;
-  // 3 bases (chefão + 3 zumbis cada) a 50, 75 e 100 m, espalhadas pelos 360 graus; chefão final a 130 m
-  [[50, 0], [75, 120], [100, 240]].forEach(function (b) {
+  // 3 bases (chefão + 3 zumbis cada) a 55, 75 e 100 m, espalhadas pelos 360 graus; chefão final a 70 m. No modo livre os chefões vêm andando até você e só atiram quando entram na zona de tiro (35 m)
+  [[55, 0], [75, 120], [100, 240]].forEach(function (b) {
     var p = pontoLivre(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
     chefoes.push({ lat: p.lat, lng: p.lng, final: false });
     novoInimigo(p.lat, p.lng, 'p-chefao', '👹', 25);
     [30, 150, 270].forEach(function (g) { var z = pontoLivre(p.lat, p.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
   });
-  var pf = pontoLivre(lat, lng, 130, giro + 60);
+  var pf = pontoLivre(lat, lng, 70, giro + 180);
   chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
   novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
   // zumbis soltos em volta, a 25–45 m, em todas as direções
