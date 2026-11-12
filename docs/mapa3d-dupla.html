@@ -392,7 +392,7 @@ function tiroDoMineu() {
     if (alvo && alvo.vivo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, DANO[tipo]); }
   })(t0);
 }
-var ZUMBI_VEL = 0.5, ZUMBI_AGGRO_M = 30, ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
+var ZUMBI_VEL = 0.5, ZUMBI_AGGRO_M = ALCANCE_TIRO_M, /* nas missões de parque os monstros só se mexem dentro do raio do Mineu (o mesmo do tiro); no modo livre todos vêm */ ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
 var vidaMineu = 100, ultimaMordida = 0;
 function pintaVidaMineu() { elMineu.querySelector('.mine-vida i').style.width = Math.max(0, vidaMineu) + '%'; }
 function mordida(agora) {
@@ -404,7 +404,7 @@ function mordida(agora) {
     vidaMineu = 100; pintaVidaMineu();
   }
 }
-var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = 35, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
+var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = 5, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
 var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
