@@ -152,7 +152,7 @@ var ESTILO = {
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
     { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
     { id: 'galho-borda', type: 'line', source: 'galho-alc', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
-    { id: 'alcance-fundo', type: 'fill', source: 'alcance-fill', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.09 } },
+    { id: 'alcance-fundo', type: 'fill', source: 'alcance-fill', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
     { id: 'alcance-sombra', type: 'line', source: 'alcance', paint: { 'line-color': '#000', 'line-width': 6, 'line-opacity': 0.35, 'line-blur': 2 } },
     { id: 'alcance', type: 'line', source: 'alcance', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
     { id: 'mira-linha', type: 'line', source: 'mira', paint: { 'line-color': '#ff1744', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [2, 1.5] } },
@@ -474,7 +474,7 @@ function atualizarAlcance() {
   var comPedra = ativa !== 'galho'; // o círculo de tiro só aparece com o estilingue; com o pau, só a área do pau
   if (src) src.setData({ type: 'FeatureCollection', features: comPedra ? [anelDe(ALCANCE_TIRO_M)] : [] });
   var sf = mapa.getSource('alcance-fill');
-  if (sf) sf.setData({ type: 'FeatureCollection', features: comPedra ? [1, 0.78, 0.56, 0.34].map(function (k) { return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circulo(POS.lat, POS.lng, ALCANCE_TIRO_M * k, 64)] } }; }) : [] });
+  if (sf) sf.setData({ type: 'FeatureCollection', features: comPedra ? [1].map(function (k) { return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circulo(POS.lat, POS.lng, ALCANCE_TIRO_M * k, 64)] } }; }) : [] });
   var sg = mapa.getSource('galho-alc');
   if (sg) sg.setData(ativa === 'galho' ? { type: 'Feature', geometry: { type: 'Polygon', coordinates: [meiaLua(GALHO_ALCANCE_M)] } } : { type: 'FeatureCollection', features: [] });
 }
