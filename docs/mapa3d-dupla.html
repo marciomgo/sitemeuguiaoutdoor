@@ -122,6 +122,7 @@
   #bDeNovo:active{transform:translateY(2px);box-shadow:0 2px 0 #c99a00}
   #btnTrocaPedra img{height:38px;width:auto;display:block}
   .pedra-reserva img{height:22px;width:auto;display:block}
+  .fantasma .em{opacity:.6}
   .cxIni{display:flex;flex-direction:column;align-items:center;gap:12px;width:82%;max-width:320px}
   .cxIni button,.cxLob button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   .cxIni .ou{color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -483,8 +484,19 @@ function moverInimigos(dt, agora) {
     i.naArea = naArea;
     var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = i.chefao ? (DADOS.livre ? CHEFAO_PARA_LIVRE_M : CHEFAO_PARA_M) : ZUMBI_PARA_M;
     var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
+    // destravar: se ele deveria estar andando e não saiu do lugar em 3 s (preso atrás de parede ou dentro de construção), vira "fantasma" por 8 s e vai reto até o jogador
+    if (m.d <= aggro && m.d > para + 0.5) {
+      if (!i._tChk) { i._tChk = agora; i._pLat = i.lat; i._pLng = i.lng; }
+      else if (agora - i._tChk > 3000) {
+        var dlP = (i.lat - i._pLat) * 111320, dnP = (i.lng - i._pLng) * 111320 * Math.cos(i.lat * rad);
+        if (!i.fantasma && Math.sqrt(dlP * dlP + dnP * dnP) < 0.6) { i.fantasma = true; i.tFant = agora; }
+        else if (i.fantasma && agora - i.tFant > 8000) i.fantasma = false;
+        i._tChk = agora; i._pLat = i.lat; i._pLng = i.lng;
+      }
+    } else { i._tChk = 0; if (i.fantasma) i.fantasma = false; }
+    i.el.classList.toggle('fantasma', !!i.fantasma);
     if (m.d <= aggro && m.d > para) {
-      if (i._ang === undefined || (quadroMov + (i.id || 0)) % 4 === 0) {
+      if (i._ang === undefined || i.fantasma || (quadroMov + (i.id || 0)) % 4 === 0) {
         var mira = m.d > 7 ? deslocar(tp.lat, tp.lng, 2.5, i.ang0) : tp; // de longe, cada um mira um lado diferente em volta de você
         var dnn = (mira.lng - i.lng) * Math.cos(i.lat * rad), dll = mira.lat - i.lat;
         var a0 = (m.d > 4) ? passoDoCampo(i) : null; // de longe segue o caminho que contorna prédios; de perto vai direto
@@ -499,7 +511,7 @@ function moverInimigos(dt, agora) {
           var a1 = (Math.atan2(vx, vy) / rad + 360) % 360, pp = deslocar(i.lat, i.lng, 2.2, a1);
           a0 = (obstaculos.length && emObstaculo(pp.lat, pp.lng)) ? a0 : a1;
         }
-        i._ang = a0;
+        i._ang = i.fantasma ? ((Math.atan2(dnn, dll) / rad + 360) % 360) : a0;
       }
       if (i._ang !== null) {
         var passo = Math.min(vel * (i.vf || 1) * dt, m.d - para);
@@ -665,7 +677,7 @@ function livreDeConstrucao(lat, lng) {
 // ---------- caminho de verdade: grade de 2 m em volta do jogador, bloqueada nas construções/água; todo mundo desce pelo campo de distância ----------
 var GRADE = null;
 function construirGrade(lat, lng) {
-  var n = 120, cel = 2, cl = Math.cos(lat * rad);
+  var n = 150, cel = 2, cl = Math.cos(lat * rad);
   var g = { lat0: lat, lng0: lng, n: n, cel: cel, cl: cl, bloq: new Uint8Array(n * n), dist: new Int16Array(n * n), ok: false };
   for (var iy = 0; iy < n; iy++) for (var ix = 0; ix < n; ix++) {
     var cx = (ix - n / 2 + 0.5) * cel, cy = (iy - n / 2 + 0.5) * cel, bl = 0;
