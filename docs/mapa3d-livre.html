@@ -460,7 +460,7 @@ function ajustarMineu(pitch) {
   corpo.style.webkitMaskImage = mask; corpo.style.maskImage = mask;
 }
 function pintaInc() {
-  ajustarMineu(); document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°</small>'; }
+  ajustarMineu(); ultPitchSprite = -99; // o quadro refaz o Mineu com a inclinação de verdade document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°' + (emBatalha ? ' ⚔' : '') + '</small>'; }
 document.getElementById('bInc').onclick = function () { nivelInc = (nivelInc + 1) % NIVEIS_INC.length; inclinacao = NIVEIS_INC[nivelInc]; pintaInc(); };
 pintaInc();
 
@@ -540,12 +540,14 @@ function difAng(a, b) { var d = ((b - a + 540) % 360) - 180; return d; }
 var ultimo = performance.now();
 var contaQuadro = 0;
 // ---------- exploração (Mineu menor, mapa mais aberto) x batalha (Mineu grande, mais inclinado e de perto) ----------
-var ESC_EXPLORA = 0.5, PITCH_BATALHA = 72, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
+var ESC_EXPLORA = 0.5, BATALHA_MAIS_INC = 12, ZOOM_BATALHA_EXTRA = 0.7, BATALHA_ENTRA_M = 35, BATALHA_SAI_M = 45;
 var emBatalha = false, fBat = 0, ultimoPerto = 0, ultPitchSprite = -99, ultEsc = -99;
 function atualizarBatalha(dt, agora) {
   var perto = false, lim = emBatalha ? BATALHA_SAI_M : BATALHA_ENTRA_M;
   inimigos.forEach(function (i) { if (i.vivo && metrosAte(i.lat, i.lng).d <= lim) perto = true; });
+  var era = emBatalha;
   if (perto) { emBatalha = true; ultimoPerto = agora; } else if (emBatalha && agora - ultimoPerto > 1500) emBatalha = false;
+  if (era !== emBatalha) pintaInc();
   fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
 }
 function quadro(agora) {
@@ -576,7 +578,7 @@ function quadro(agora) {
   elMineu.classList.toggle('anda', andando);
   ordenarProfundidade();
   atualizarBatalha(dt, agora);
-  var pitchEf = inclinacao + (Math.max(inclinacao, PITCH_BATALHA) - inclinacao) * fBat;
+  var pitchEf = Math.min(80, inclinacao + BATALHA_MAIS_INC * fBat);
   var zoomEf = zoom + ZOOM_BATALHA_EXTRA * fBat;
   var esc = ESC_EXPLORA + (1 - ESC_EXPLORA) * fBat;
   if (Math.abs(pitchEf - ultPitchSprite) > 0.4 || Math.abs(esc - ultEsc) > 0.004) {
