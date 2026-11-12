@@ -206,7 +206,7 @@ var ALCANCE_TIRO_M = 40, CONE_GRAUS = 10, DANO = { normal: 5, esp: 10 };
 var inimigos = [];
 function novoInimigo(lat, lng, classe, emoji, vida) {
   var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
-  inimigos.push({ lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao', final: emoji === '👿' });
+  inimigos.push({ id: inimigos.length + 1, lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao', final: emoji === '👿' });
 }
 function metrosAte(lat, lng) {
   var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
@@ -358,16 +358,40 @@ function dispararFogo(i) {
     if (Math.sqrt(dl * dl + dn * dn) <= RAIO_ACERTO_FOGO_M) { tocarSomAtingido(); levarDano(i.final ? DANO_FOGO_FINAL : DANO_FOGO); }
   })(t0);
 }
+// contorna construções e água: olha 2,2 m à frente e, se bater, vira pro lado livre mais próximo (e continua do mesmo lado até o caminho direto abrir)
+function direcaoLivre(i, angDireto) {
+  if (!obstaculos.length) return angDireto;
+  var L = 2.2, lado = i.lado || 1, tentativas = [0];
+  [25, 50, 80, 110, 140].forEach(function (d) { tentativas.push(lado * d, -lado * d); });
+  for (var k = 0; k < tentativas.length; k++) {
+    var a = angDireto + tentativas[k], p = deslocar(i.lat, i.lng, L, a);
+    if (!emObstaculo(p.lat, p.lng)) {
+      if (tentativas[k] === 0) i.lado = 0; else if (!i.lado) i.lado = tentativas[k] > 0 ? 1 : -1;
+      return a;
+    }
+  }
+  return null;
+}
+var quadroMov = 0;
 function moverInimigos(dt, agora) {
+  quadroMov++;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
     var m = metrosAte(i.lat, i.lng), anda = false;
     var aggro = i.chefao ? CHEFAO_AGGRO_M : ZUMBI_AGGRO_M, para = i.chefao ? CHEFAO_PARA_M : ZUMBI_PARA_M;
     var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
     if (m.d <= aggro && m.d > para) {
-      var f = Math.min(vel * dt, m.d - para) / m.d;
-      i.lat += (POS.lat - i.lat) * f; i.lng += (POS.lng - i.lng) * f; anda = true;
-      i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
+      if (i._ang === undefined || (quadroMov + (i.id || 0)) % 4 === 0) {
+        var dnn = (POS.lng - i.lng) * Math.cos(i.lat * rad), dll = POS.lat - i.lat;
+        i._ang = direcaoLivre(i, (Math.atan2(dnn, dll) / rad + 360) % 360);
+      }
+      if (i._ang !== null) {
+        var passo = Math.min(vel * dt, m.d - para);
+        i.lat += (passo * Math.cos(i._ang * rad)) / 111320;
+        i.lng += (passo * Math.sin(i._ang * rad)) / (111320 * Math.cos(i.lat * rad));
+        anda = true;
+        i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
+      }
     }
     i.el.firstChild.classList.toggle('anda-z', anda);
     if (!i.chefao) {
