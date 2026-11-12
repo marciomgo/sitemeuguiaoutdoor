@@ -38,14 +38,15 @@
   #mineu img{position:absolute;width:70px;height:190px;left:0;top:0}
   #mineu.anda .corpo{animation:balanca .42s ease-in-out infinite}
   @keyframes balanca{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
-  #btnAtirar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:5;width:70px;height:70px;padding:11px;box-sizing:border-box;border:none;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;touch-action:manipulation}
+  #btnAtirar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:5;width:80px;height:80px;padding:12px;box-sizing:border-box;border:none;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;touch-action:manipulation}
   #btnAtirar img{width:100%;height:100%;object-fit:contain;display:block}
   #btnAtirar:active{transform:translateX(-50%) scale(.94)}
-  #trocaPedraWrap{position:absolute;bottom:8px;left:calc(50% - 90px);z-index:5;width:46px;height:46px}
-  #btnTrocaPedra{position:relative;z-index:2;width:46px;height:46px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #90a4ae;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;font-size:20px;line-height:1}
+  #trocaPedraWrap{position:absolute;bottom:26px;left:calc(50% - 112px);z-index:5;width:60px;height:60px}
+  #btnTrocaPedra{position:relative;z-index:3;width:60px;height:60px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #90a4ae;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;font-size:26px;line-height:1}
   #btnTrocaPedra.esp{border-color:#f9a825;background:#fff8e1}
-  #btnTrocaPedra small{font-size:11px;font-weight:bold;color:#37474f}
-  .pedra-reserva{position:absolute;z-index:1;left:-15px;bottom:-9px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #90a4ae;background:#eceff1;box-shadow:0 1px 4px rgba(0,0,0,.45);font-size:13px;cursor:pointer}
+  #btnTrocaPedra small{font-size:12px;font-weight:bold;color:#37474f}
+  .pedra-reserva{position:absolute;z-index:1;left:-22px;bottom:-12px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #90a4ae;background:#eceff1;box-shadow:0 1px 4px rgba(0,0,0,.45);font-size:18px;cursor:pointer}
+  #pedraReserva2{z-index:0;left:-38px;bottom:24px}
   .pedra-reserva.esp{border-color:#f9a825;background:#fff3c4}
   .vida{position:absolute;left:50%;top:-9px;width:32px;height:5px;margin-left:-16px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
   .vida i{display:block;height:100%;width:100%;background:#43a047}
@@ -116,8 +117,8 @@
   .statsP span{font-size:12px;color:#7a6a45}
   #bDeNovo{font-size:18px;font-weight:bold;padding:14px 26px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 4px 0 #c99a00;cursor:pointer;touch-action:manipulation}
   #bDeNovo:active{transform:translateY(2px);box-shadow:0 2px 0 #c99a00}
-  #btnTrocaPedra img{height:28px;width:auto;display:block}
-  .pedra-reserva img{height:15px;width:auto;display:block}
+  #btnTrocaPedra img{height:38px;width:auto;display:block}
+  .pedra-reserva img{height:22px;width:auto;display:block}
 </style>
 </head>
 <body>
@@ -135,7 +136,7 @@
 <div id="parabens" style="display:none"><canvas id="confete"></canvas><div class="caixaP"><img src="mineu-comemora.png" alt="Mineu comemorando"><div class="estrelas">★ ★ ★</div><h2>Missão cumprida!</h2><p>Todos os zumbis e monstros foram derrotados.</p><div class="statsP"><div><b id="pZumbis">0</b><span>zumbis</span></div><div><b id="pMonstros">0</b><span>monstros</span></div><div><b id="pTempo">0:00</b><span>tempo</span></div></div><button id="bDeNovo">Jogar de novo</button></div></div>
 <div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
-<div id="trocaPedraWrap"><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
+<div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
 <script>
 const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[],"curas":[],"pedras":[],"bombas":[],"chefoes":[],"zumbis":[],"livre":true};
@@ -696,8 +697,8 @@ function spawnBase(lat, lng) {
   estat = { zumbis: 0, monstros: 0, t0: performance.now() }; celebrou = false;
   limparInimigos();
   var chefoes = [], giro = Math.random() * 360;
-  // 3 bases (chefão + 3 zumbis cada) a 55, 75 e 100 m, espalhadas pelos 360 graus; chefão final a 70 m. No modo livre os chefões vêm andando até você e só atiram quando entram na zona de tiro (35 m)
-  [[55, 0], [75, 120], [100, 240]].forEach(function (b) {
+  // fase 1: só 2 hordas (um chefão + 3 zumbis a 55 m e o chefão final + 3 zumbis a 70 m, em lados opostos) mais os zumbis soltos. Os chefões vêm andando e só atiram dentro da zona de tiro (35 m)
+  [[55, 0]].forEach(function (b) {
     var p = pontoLivre(lat, lng, b[0], giro + b[1] + (Math.random() * 30 - 15));
     chefoes.push({ lat: p.lat, lng: p.lng, final: false });
     novoInimigo(p.lat, p.lng, 'p-chefao', '👹', 25);
@@ -706,6 +707,7 @@ function spawnBase(lat, lng) {
   var pf = pontoLivre(lat, lng, 70, giro + 180);
   chefoes.push({ lat: pf.lat, lng: pf.lng, final: true });
   novoInimigo(pf.lat, pf.lng, 'p-chefao', '👿', 200);
+  [90, 210, 330].forEach(function (g) { var z = pontoLivre(pf.lat, pf.lng, 8, g + Math.random() * 40); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
   // zumbis soltos em volta, a 14–28 m (dentro dos 30 m em que eles já te notam), em todas as direções
   for (var k = 0; k < 8; k++) {
     var z2, tent = 0;
@@ -810,7 +812,7 @@ pintaInc();
 var municao = { normal: 150, esp: 12 }, ativa = "normal";
 var ORDEM_ARMAS = ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
-var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva");
+var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
 var ICONE_PAU = '<img src="icone-pau.png" alt="Pau">';
 function iconeArma(k) { return k === "galho" ? ICONE_PAU : (k === "esp" ? "<span class=\"pe-amarela\">🪨</span>" : "🪨"); }
 function pintaMunicao() {
@@ -818,8 +820,11 @@ function pintaMunicao() {
   elTroca.classList.toggle("esp", ativa === "esp"); elTroca.classList.toggle("galho", ativa === "galho");
   elTroca.firstElementChild.innerHTML = iconeArma(ativa);
   document.getElementById("qtdPedra").textContent = ativa === "galho" ? "∞" : municao[ativa];
+  var prox2 = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 2) % ORDEM_ARMAS.length];
   elReserva.className = "pedra-reserva" + (prox === "esp" ? " esp" : "") + (prox === "galho" ? " galho" : "");
-  elReserva.innerHTML = iconeArma(prox);
+  elReserva.innerHTML = iconeArma(prox); elReserva._arma = prox;
+  elReserva2.className = "pedra-reserva" + (prox2 === "esp" ? " esp" : "") + (prox2 === "galho" ? " galho" : "");
+  elReserva2.innerHTML = iconeArma(prox2); elReserva2._arma = prox2;
   document.getElementById("btnAtirar").innerHTML = ativa === "galho" ? ICONE_PAU : ESTILINGUE_HTML;
   document.getElementById("btnAtirar").setAttribute("aria-label", ativa === "galho" ? "Bater com o galho" : "Atirar");
   elGalho.style.display = ativa === "galho" ? "block" : "none";
@@ -840,7 +845,8 @@ function golpeDoGalho() {
     if (alvo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, GALHO_DANO); }
   }, 140);
 }
-elTroca.onclick = elReserva.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+elTroca.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+[elReserva, elReserva2].forEach(function (e) { e.onclick = function () { ativa = e._arma; pintaMunicao(); }; }); // tocar numa bolinha de trás escolhe aquela arma
 document.getElementById("btnAtirar").onclick = function () { if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
 pintaMunicao();
 
