@@ -53,12 +53,21 @@
   @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
   .pedrada{font-size:34px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
   .pedrada.esp{filter:drop-shadow(0 0 6px #ffca28) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
-  .mira-alvo{width:64px;height:64px;margin:0;border-radius:50%;border:4px solid #ff1744;box-shadow:0 0 12px #ff1744,inset 0 0 8px #ff174488;pointer-events:none;animation:mirando .7s ease-in-out infinite}
-  @keyframes mirando{0%,100%{scale:1}50%{scale:1.18}}
+  .mira-alvo{width:64px;height:64px;margin:0;border-radius:50%;border:4px solid #ff1744;box-shadow:0 0 12px #ff1744,inset 0 0 8px #ff174488;pointer-events:none}
   #bus{font-weight:bold;color:#ffd54f}
   #legenda{position:absolute;left:10px;top:78px;z-index:5;background:rgba(40,30,20,.7);color:#ffd54f;border-radius:10px;padding:4px 9px;font-size:11px;max-width:60%}
   .maplibregl-ctrl-top-left{top:118px;left:4px}
   .maplibregl-ctrl-scale{font-size:12px;font-weight:bold;background:rgba(255,255,255,.85);border-color:#37474f;color:#263238}
+  #mineu{transition:height .25s}
+  #mineu .corpo{transition:height .25s;overflow:hidden}
+  #mineu img{transition:height .25s}
+  .mine-vida{top:-12px}
+  .mine-vida i{background:#e53935}
+  .anda-z{display:inline-block;animation:bobz .5s ease-in-out infinite}
+  @keyframes bobz{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-4px) rotate(4deg)}}
+  #sangue{position:absolute;inset:0;z-index:6;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(229,57,53,0) 45%,rgba(229,57,53,.55) 100%)}
+  #sangue.bate{animation:sangra .45s ease-out}
+  @keyframes sangra{0%{opacity:1}100%{opacity:0}}
 </style>
 </head>
 <body>
@@ -72,6 +81,7 @@
   <button id="bInc" title="Mudar a inclinação"></button>
 </div>
 <div id="legenda">Círculo amarelo = alcance do tiro do Mineu (40 m) · nuvem colorida = alcance do chefão</div>
+<div id="sangue"></div>
 <div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
 <div id="trocaPedraWrap"><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
@@ -142,6 +152,7 @@ var ALVO = { lat: POS.lat, lng: POS.lng };
 var NIVEIS_INC = [0, 30, 40, 50, 60, 70], nivelInc = 4;
 var heading = 30, bearing = 30, inclinacao = NIVEIS_INC[nivelInc], zoom = 19.4;
 var mapa;
+var marcadores = [];
 try {
   mapa = new maplibregl.Map({ container: 'mapa', style: ESTILO, center: [POS.lng, POS.lat], zoom: zoom, pitch: inclinacao, bearing: bearing, maxPitch: 80, minZoom: 15, maxZoom: 21,
     interactive: false, attributionControl: { compact: true, customAttribution: 'Mapa © OpenStreetMap · OpenFreeMap' } });
@@ -154,6 +165,7 @@ function marcador(lat, lng, classe, html, ancora) {
   var el = document.createElement('div');
   el.className = classe;
   el.innerHTML = html;
+  el._ll = [lng, lat]; marcadores.push(el);
   el._mk = new maplibregl.Marker({ element: el, anchor: ancora || 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([lng, lat]).addTo(mapa);
   return el;
 }
@@ -166,13 +178,17 @@ var ALCANCE_TIRO_M = 40, CONE_GRAUS = 50, DANO = { normal: 5, esp: 10 };
 var inimigos = [];
 function novoInimigo(lat, lng, classe, emoji, vida) {
   var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
-  inimigos.push({ lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true });
+  inimigos.push({ lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true, chefao: classe === 'p-chefao' });
 }
 function metrosAte(lat, lng) {
   var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
   return { d: Math.sqrt(dl * dl + dn * dn), ang: (Math.atan2(dn, dl) / rad + 360) % 360 };
 }
 function escolherAlvo() {
+  if (alvoAtual && alvoAtual.vivo) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
+    var ma = metrosAte(alvoAtual.lat, alvoAtual.lng);
+    if (ma.d <= ALCANCE_TIRO_M + 5 && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 15) return alvoAtual;
+  }
   var melhor = null;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
@@ -184,7 +200,7 @@ function escolherAlvo() {
   return melhor && melhor.i;
 }
 var alvoAtual = null, elMira = document.createElement('div');
-elMira.className = 'mira-alvo';
+elMira.className = 'mira-alvo'; elMira.style.zIndex = 99999;
 var mkMira = new maplibregl.Marker({ element: elMira, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([0, 0]);
 var miraNoMapa = false;
 function atualizarMira() {
@@ -203,11 +219,10 @@ function atualizarMira() {
 function tiroDoMineu() {
   if (municao[ativa] <= 0) return;
   municao[ativa]--; pintaMunicao();
-  atualizarMira();
-  if (++contaQuadro % 3 === 0) atualizarAlcance(); var alvo = alvoAtual, tipo = ativa;
+  atualizarMira(); var alvo = alvoAtual, tipo = ativa;
   var de = { lat: POS.lat, lng: POS.lng };
   var para = alvo ? { lat: alvo.lat, lng: alvo.lng } : { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
-  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨';
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.style.zIndex = 100001; el.textContent = '🪨';
   var mk = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now(), dur = 480;
   (function voo(agora) {
@@ -218,6 +233,37 @@ function tiroDoMineu() {
     mk.remove();
     if (alvo && alvo.vivo) acertou(alvo, DANO[tipo]);
   })(t0);
+}
+var ZUMBI_VEL = 1.0, ZUMBI_AGGRO_M = 30, ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
+var vidaMineu = 100, ultimaMordida = 0;
+function pintaVidaMineu() { elMineu.querySelector('.mine-vida i').style.width = Math.max(0, vidaMineu) + '%'; }
+function mordida(agora) {
+  ultimaMordida = agora; vidaMineu -= DANO_MORDIDA; pintaVidaMineu();
+  var sg = document.getElementById('sangue'); sg.classList.remove('bate'); void sg.offsetWidth; sg.classList.add('bate');
+  if (navigator.vibrate) navigator.vibrate(60);
+  if (vidaMineu <= 0) {
+    aviso('Os zumbis te pegaram! Vida restaurada.'); setTimeout(function () { aviso(''); }, 2500);
+    vidaMineu = 100; pintaVidaMineu();
+  }
+}
+function moverInimigos(dt, agora) {
+  inimigos.forEach(function (i) {
+    if (!i.vivo || i.chefao) return;
+    var m = metrosAte(i.lat, i.lng), anda = false;
+    if (m.d <= ZUMBI_AGGRO_M && m.d > ZUMBI_PARA_M) {
+      var f = Math.min(ZUMBI_VEL * dt, m.d - ZUMBI_PARA_M) / m.d;
+      i.lat += (POS.lat - i.lat) * f; i.lng += (POS.lng - i.lng) * f; anda = true;
+      i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
+    }
+    i.el.firstChild.classList.toggle('anda-z', anda);
+    if (m.d <= CONTATO_M && agora - ultimaMordida > INTERVALO_MORDIDA) mordida(agora);
+  });
+}
+function ordenarProfundidade() {
+  for (var k = 0; k < marcadores.length; k++) {
+    var el = marcadores[k]; if (!el._mk) continue;
+    el.style.zIndex = Math.round(mapa.project(el._ll).y);
+  }
 }
 function acertou(i, dano) {
   i.vida -= dano;
@@ -259,7 +305,8 @@ mapa.on('load', function () {
 // o Mineu (cartaz em pé, sempre virado pra câmera)
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div>';
+elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div>';
+elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
 
 // ---------- controle: teclado e botões ----------
@@ -276,7 +323,19 @@ function segurar(id, chave) {
 document.addEventListener('click', function () { ligarBussola(); });
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
-function pintaInc() { document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°</small>'; }
+function ajustarMineu() {
+  // de cima (0°) só dá pra ver a cabeça e o alto da mochila; inclinando, aparece o resto das costas
+  var p = Math.min(inclinacao, 60) / 60, H = 190;
+  var v = 0.42 + 0.58 * Math.pow(p, 1.5), sy = 0.8 + 0.2 * p;
+  var hImg = H * sy, hVis = hImg * v;
+  elMineu.style.height = hVis + 'px';
+  var corpo = elMineu.querySelector('.corpo'), img = elMineu.querySelector('img');
+  corpo.style.height = hVis + 'px'; img.style.height = hImg + 'px';
+  var mask = v < 0.999 ? 'linear-gradient(to bottom,#000 76%,transparent)' : 'none';
+  corpo.style.webkitMaskImage = mask; corpo.style.maskImage = mask;
+}
+function pintaInc() {
+  ajustarMineu(); document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°</small>'; }
 document.getElementById('bInc').onclick = function () { nivelInc = (nivelInc + 1) % NIVEIS_INC.length; inclinacao = NIVEIS_INC[nivelInc]; pintaInc(); };
 pintaInc();
 
@@ -352,8 +411,11 @@ function quadro(agora) {
   heading = (heading + 360) % 360;
   bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
   mkMineu.setLngLat([POS.lng, POS.lat]);
+  moverInimigos(dt, agora);
   atualizarMira();
+  if (++contaQuadro % 3 === 0) atualizarAlcance();
   elMineu.classList.toggle('anda', andando);
+  ordenarProfundidade();
   mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: inclinacao, zoom: zoom, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
   requestAnimationFrame(quadro);
 }
