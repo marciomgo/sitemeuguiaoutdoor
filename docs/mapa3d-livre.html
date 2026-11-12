@@ -47,7 +47,7 @@
   #btnTrocaPedra small{font-size:11px;font-weight:bold;color:#37474f}
   .pedra-reserva{position:absolute;z-index:1;left:-15px;bottom:-9px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #90a4ae;background:#eceff1;box-shadow:0 1px 4px rgba(0,0,0,.45);font-size:13px;cursor:pointer}
   .pedra-reserva.esp{border-color:#f9a825;background:#fff3c4}
-  .vida{position:absolute;left:50%;top:-9px;width:40px;height:6px;margin-left:-20px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
+  .vida{position:absolute;left:50%;top:-9px;width:32px;height:5px;margin-left:-16px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
   .vida i{display:block;height:100%;width:100%;background:#43a047}
   .golpe{animation:golpe .18s linear}
   @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
@@ -581,7 +581,7 @@ mapa.on('load', function () {
 var GALHO_SVG = '<svg viewBox="24 8 32 184" xmlns="http://www.w3.org/2000/svg"><g transform="translate(0 200) scale(1 -1)"><path d="M35 16 L45 16 L46 184 L34 184 Z" fill="#8f5d2e" stroke="#4a2c12" stroke-width="2" stroke-linejoin="round"/><path d="M38 22 L38 178" stroke="#b98450" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="42" cy="104" rx="2.4" ry="3.6" fill="#5a3718"/><ellipse cx="37" cy="150" rx="2.2" ry="3" fill="#5a3718"/><rect x="33.6" y="22" width="12.8" height="42" rx="2" fill="#b5483a" stroke="#6e241b" stroke-width="1.5"/><path d="M33.8 28 L46.2 25 M33.8 34 L46.2 31 M33.8 40 L46.2 37 M33.8 46 L46.2 43 M33.8 52 L46.2 49 M33.8 58 L46.2 55" stroke="#6e241b" stroke-width="1.6"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#b5483a" stroke-width="3" stroke-linecap="round"/><path d="M46 62 C54 66 52 78 48 84" fill="none" stroke="#6e241b" stroke-width=".9" stroke-linecap="round"/><ellipse cx="40" cy="16" rx="5" ry="2.4" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/><ellipse cx="40" cy="184" rx="6" ry="2.6" fill="#e0c08f" stroke="#4a2c12" stroke-width="1.5"/></g></svg>';
 var elMineu = document.createElement('div');
 elMineu.id = 'mineu';
-elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div class="vida mine-vida"><i></i></div><div id="galhoMineu">' + GALHO_SVG + '</div></div>';
+elMineu.innerHTML = '<div class="interno"><div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div><div id="galhoMineu">' + GALHO_SVG + '</div></div><div class="vida mine-vida"><i></i></div>';
 var elInterno = elMineu.querySelector('.interno');
 elMineu.style.zIndex = 100000;
 var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
@@ -739,6 +739,8 @@ function quadro(agora) {
   if (Math.abs(pitchEf - ultPitchSprite) > 0.4 || Math.abs(esc - ultEsc) > 0.004) {
     ultPitchSprite = pitchEf; ultEsc = esc;
     ajustarMineu(pitchEf); elInterno.style.transform = 'scale(' + esc.toFixed(3) + ')';
+    // a barra de vida fica fora do desenho reduzido, então o tamanho dela não encolhe junto com o Mineu
+    elMineu.querySelector('.mine-vida').style.top = (parseFloat(elMineu.style.height) * (1 - esc) - 11) + 'px';
   }
   mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: pitchEf, zoom: zoomEf, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
   requestAnimationFrame(quadro);
