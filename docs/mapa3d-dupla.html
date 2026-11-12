@@ -346,6 +346,7 @@ function tiroDoMineu() {
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
   var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
+  net.enviar({ t: 'atq', k: tipo, de: [de.lat, de.lng], para: alvo ? [alvo.lat, alvo.lng] : [reto.lat, reto.lng], dur: dur, alt: altFim });
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
@@ -869,6 +870,7 @@ function golpeDoGalho() {
   var agora = performance.now(); if (agora - ultimoGolpe < GALHO_PAUSA) return; ultimoGolpe = agora;
   tocarTom(700, 180, 110, 'sawtooth', 0.07);
   if (!tocarFramesGolpe()) { elGalho.classList.remove('bate'); void elGalho.offsetWidth; elGalho.classList.add('bate'); }
+  net.enviar({ t: 'atq', k: 'pau' });
   setTimeout(function () {
     var alvo = null;
     inimigos.forEach(function (i) {
@@ -1029,8 +1031,50 @@ function removerAmigo() {
   if (!amigo) return;
   amigo.el._mk.remove(); var k = marcadores.indexOf(amigo.el); if (k >= 0) marcadores.splice(k, 1); amigo = null;
 }
+var amigoTimers = [];
+function pintarAmigo(conj, idx) { // conj: 'p' = pau, 'e' = estilingue; idx = quadro
+  if (!amigo) return;
+  var F = conj === 'p' ? FRAME_GOLPE : FRAME_EST, img = amigo.el.querySelector('img'), cg = 0.3631, e = 0.5;
+  if (F.prontos < F.src.length) return;
+  img.src = F.src[idx]; img.style.width = (F.w * cg * e) + 'px'; img.style.height = (F.h * cg * e) + 'px';
+  img.style.left = (17.5 - F.ax * cg * e) + 'px'; img.style.top = ((100 - 0.65) - F.ay * cg * e) + 'px'; img.style.bottom = 'auto';
+}
+function poseDoAmigo() { // pose parada de acordo com a arma
+  if (!amigo || amigo.anim) return;
+  var conj = amigo.arma === 'galho' ? 'p' : (amigo.arma ? 'e' : null);
+  if (amigo.conjVisto === conj) return;
+  amigo.conjVisto = conj; if (conj) pintarAmigo(conj, 0);
+}
+function animarAmigo(seq) { // seq: [[ms, conj, quadro], ...]; o último volta à pose parada
+  if (!amigo) return;
+  amigoTimers.forEach(clearTimeout); amigoTimers = []; amigo.anim = true;
+  seq.forEach(function (q) { amigoTimers.push(setTimeout(function () { pintarAmigo(q[1], q[2]); }, q[0])); });
+  amigoTimers.push(setTimeout(function () { if (amigo) { amigo.anim = false; amigo.conjVisto = null; } }, seq[seq.length - 1][0] + 40));
+}
+function atqDoAmigo(m) {
+  if (!amigo) return;
+  if (m.k === 'pau') { animarAmigo([[0, 'p', 1], [130, 'p', 2], [330, 'p', 0]]); tocarTom(700, 180, 110, 'sawtooth', 0.04); return; }
+  animarAmigo([[0, 'e', 1], [280, 'e', 0]]); tocarTom(880, 220, 110, 'square', 0.05);
+  // a pedra do amigo voa da posição dele até o alvo (só visual; o dano vem pelo anfitrião)
+  var de = { lat: m.de[0], lng: m.de[1] }, para = { lat: m.para[0], lng: m.para[1] }, tipo = m.k;
+  var fora = document.createElement('div'); fora.style.zIndex = 100001;
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
+  var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
+  var dl = (para.lat - de.lat) * 111320, dn = (para.lng - de.lng) * 111320 * Math.cos(de.lat * rad), dist = Math.sqrt(dl * dl + dn * dn);
+  var t0 = performance.now(), dur = m.dur || 700, altIni = 36, altFim = m.alt || 0, arco = 30 + dist;
+  (function voo(agora) {
+    var t = Math.min(1, (agora - t0) / dur);
+    mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
+    var h = altIni + (altFim - altIni) * t + Math.sin(Math.PI * t) * arco;
+    el.style.transform = 'translateY(' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
+    rastro(el, tipo === 'esp');
+    if (t < 1) { requestAnimationFrame(voo); return; }
+    mk.remove();
+  })(t0);
+}
 function atualizarAmigo(dt) {
   if (!amigo) return;
+  poseDoAmigo();
   var k = amigo.visto ? 1 - Math.exp(-6 * dt) : 1; amigo.visto = true;
   amigo.lat += (amigo.alvoLat - amigo.lat) * k; amigo.lng += (amigo.alvoLng - amigo.lng) * k;
   amigo.el._mk.setLngLat([amigo.lng, amigo.lat]); amigo.el._ll = [amigo.lng, amigo.lat];
@@ -1048,14 +1092,17 @@ function aplicarEstado(m) {
       i = inimigos[inimigos.length - 1]; i.id = e[0]; porId[e[0]] = i;
     }
     i.alvoLat = e[1]; i.alvoLng = e[2];
-    if (i.vivo) { i.vida = e[3]; i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%'; }
+    if (i.vivo) {
+      if (e[3] < i.vida - 0.05) { var emF = i.el.querySelector('.em'); emF.classList.remove('golpe'); void emF.offsetWidth; emF.classList.add('golpe'); estouro(i.el); } // levou golpe do outro jogador
+      i.vida = e[3]; i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
+    }
     if (i.vivo && !e[4]) { // morreu no anfitrião
       i.vivo = false; var em = i.el.querySelector('.em'); i.el.querySelector('.vida').style.display = 'none'; em.textContent = '💥';
       setTimeout(function () { i.el._mk.remove(); }, 500);
       if (i.chefao) estat.monstros++; else estat.zumbis++;
     }
   });
-  criarAmigo(); amigo.alvoLat = m.eu.x; amigo.alvoLng = m.eu.y; amigo.vida = m.eu.v;
+  criarAmigo(); amigo.alvoLat = m.eu.x; amigo.alvoLng = m.eu.y; amigo.vida = m.eu.v; amigo.arma = m.eu.a;
 }
 function atualizarComoConvidado(dt, agora) {
   var k = 1 - Math.exp(-8 * dt);
@@ -1072,12 +1119,13 @@ function atualizarComoConvidado(dt, agora) {
   });
 }
 function estadoParaConvidado() {
-  return { t: 'estado', r: rodada, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }), eu: { x: POS.lat, y: POS.lng, v: vidaMineu } };
+  return { t: 'estado', r: rodada, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }), eu: { x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa } };
 }
 function aoReceber(m) {
   if (m.t === 'estado') aplicarEstado(m);
-  else if (m.t === 'pos') { if (amigo) { amigo.alvoLat = m.x; amigo.alvoLng = m.y; amigo.vida = m.v; } else { criarAmigo(); amigo.lat = amigo.alvoLat = m.x; amigo.lng = amigo.alvoLng = m.y; } }
-  else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) acertouLocal(i, m.d); }
+  else if (m.t === 'pos') { if (amigo) { amigo.alvoLat = m.x; amigo.alvoLng = m.y; amigo.vida = m.v; amigo.arma = m.a; } else { criarAmigo(); amigo.lat = amigo.alvoLat = m.x; amigo.lng = amigo.alvoLng = m.y; } }
+  else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
+  else if (m.t === 'atq') atqDoAmigo(m);
   else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
   else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
   else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
@@ -1090,7 +1138,7 @@ function ligarConexao(conn, papel) {
   conn.on('error', function () { amigoSaiu(); });
   clearInterval(net.timer);
   if (papel === 'anfitriao') net.timer = setInterval(function () { net.enviar(estadoParaConvidado()); }, 250);
-  else net.timer = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu }); }, 330);
+  else net.timer = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa }); }, 330);
 }
 function amigoSaiu() {
   if (!net.conn) return;
