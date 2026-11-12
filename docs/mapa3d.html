@@ -97,11 +97,15 @@
   .rastro.fogo{background:rgba(255,109,0,.85);filter:none}
   .rastro.roxo{background:rgba(170,0,255,.85);filter:none}
   .pe-amarela{display:inline-block;filter:sepia(1) saturate(6) hue-rotate(-10deg) brightness(1.15)}
+  #inicio{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(25,35,18,.5)}
+  #bInicio{font-size:20px;font-weight:bold;padding:20px 28px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
+  #bInicio:active{transform:scale(.97)}
 </style>
 </head>
 <body>
 <div id="mapa"></div>
-<div class="chip"><b>MGO</b> · protótipo do mapa 3D<br><span id="dica">Gire o celular para girar o mapa e ande de verdade: toque no 📍 para ligar o GPS. (No computador: setas ou W A S D.)</span></div>
+<div id="inicio"><button id="bInicio">📍 Ativar GPS e bússola</button></div>
+<span id="dica" style="display:none"></span>
 <div id="painel">
   <button id="bGps" title="Usar meu GPS e bússola">📍</button>
   <button id="bMais" title="Aproximar">＋</button>
@@ -376,7 +380,9 @@ function direcaoLivre(i, angDireto) {
   return null;
 }
 var quadroMov = 0;
+var jogoIniciado = false;
 function moverInimigos(dt, agora) {
+  if (!jogoIniciado) return; // parado até tocar no botão de ativar o GPS
   quadroMov++;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
@@ -738,6 +744,11 @@ pintaMunicao();
 
 // ---------- GPS e bússola de verdade (no celular) ----------
 var modoReal = false;
+document.getElementById('bInicio').onclick = function () {
+  jogoIniciado = true;
+  document.getElementById('inicio').style.display = 'none';
+  document.getElementById('bGps').click(); // liga GPS e bússola (precisa ser dentro do toque)
+};
 function aviso(t) { var a = document.getElementById('aviso'); a.textContent = t; a.style.display = t ? 'block' : 'none'; }
 document.getElementById('bGps').onclick = function () {
   if (modoReal) { modoReal = false; aviso('Voltou para a caminhada simulada.'); setTimeout(function () { aviso(''); }, 2500); return; }
@@ -758,17 +769,17 @@ function ligarBussola() {
   var ouvir = function () {
     window.addEventListener('deviceorientationabsolute', orient, true);
     window.addEventListener('deviceorientation', orient, true);
-    setTimeout(function () { if (!recebeuBussola) { document.getElementById('dica').innerHTML = 'O celular não mandou a bússola. Confira se o navegador tem permissão de <b>movimento e orientação</b>.'; } }, 3000);
+    setTimeout(function () { if (!recebeuBussola) { aviso('O celular não mandou a bússola. Confira a permissão de movimento e orientação do navegador.'); } }, 3000);
   };
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     DeviceOrientationEvent.requestPermission().then(function (r) {
-      if (r === 'granted') ouvir(); else { bussolaLigada = false; document.getElementById('dica').textContent = 'Bússola negada. Toque de novo e escolha Permitir.'; }
+      if (r === 'granted') ouvir(); else { bussolaLigada = false; aviso('Bússola negada. Toque no 📍 e escolha Permitir.'); }
     }).catch(function () { bussolaLigada = false; });
   } else { ouvir(); }
 }
 function orient(e) {
   var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute && e.alpha != null ? (360 - e.alpha) : null);
-  if (h != null) { heading = h; recebeuBussola = true; document.getElementById('dica').innerHTML = 'Bússola: <span id="bus">' + Math.round(h) + '°</span> · gire o celular. 📍 liga o GPS.'; }
+  if (h != null) { heading = h; recebeuBussola = true;  }
 }
 
 // ---------- laço do jogo ----------
