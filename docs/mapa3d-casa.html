@@ -152,8 +152,9 @@ var ESTILO = {
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
     { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
     { id: 'galho-borda', type: 'line', source: 'galho-alc', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
+    { id: 'alcance-fundo', type: 'fill', source: 'alcance-fill', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.09 } },
     { id: 'alcance-sombra', type: 'line', source: 'alcance', paint: { 'line-color': '#000', 'line-width': 6, 'line-opacity': 0.35, 'line-blur': 2 } },
-    { id: 'alcance', type: 'line', source: 'alcance', paint: { 'line-color': '#ffe082', 'line-width': 3.5, 'line-opacity': 1, 'line-dasharray': [3, 2] } },
+    { id: 'alcance', type: 'line', source: 'alcance', paint: { 'line-color': '#ffffff', 'line-width': 3, 'line-opacity': 0.95 } },
     { id: 'mira-linha', type: 'line', source: 'mira', paint: { 'line-color': '#ff1744', 'line-width': 3, 'line-opacity': 0.85, 'line-dasharray': [2, 1.5] } },
     { id: 'zona-borda', type: 'line', source: 'zona-borda', paint: { 'line-color': ['get', 'cor'], 'line-opacity': 0.35, 'line-width': 2, 'line-dasharray': [3, 2] } }
   ]
@@ -177,6 +178,7 @@ var camadasZona = [], bordasZona = [];
     camadasZona.push(ft); if (i === 0) bordasZona.push(ft);
   });
 });
+ESTILO.sources['alcance-fill'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources['galho-alc'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources.alcance = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources.mira = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
@@ -297,7 +299,10 @@ function tiroDoMineu() {
   municao[ativa]--; pintaMunicao();
   atualizarMira(); var alvo = alvoAtual, tipo = ativa;
   tocarSomTiro(); tocarFramesTiro();
-  var de = deslocar(POS.lat, POS.lng, 1.6, heading); // a pedra sai da frente dele, da mão do estilingue, não das costas
+  var de = { lat: POS.lat, lng: POS.lng };
+  // a pedra começa onde está a bolsinha do estilingue no desenho (mão direita, altura do ombro) e segue pra frente
+  var escM = parseFloat(String(elInterno.style.transform).replace(/[^0-9.]/g, '')) || 1;
+  var iniX = 24 * escM, iniY = 142 * escM * SY_ATUAL;
   var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
   var fora = document.createElement('div'); fora.style.zIndex = 100001;
   var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
@@ -305,13 +310,13 @@ function tiroDoMineu() {
   var t0 = performance.now();
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
   var dur = Math.max(550, Math.min(1100, dist * 28)); // mais longe, mais tempo de voo
-  var altIni = 52, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
+  var altIni = iniY, altFim = alvo ? (alvo.chefao ? 40 : 22) : 0, arco = 30 + dist;
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur);
     var para = alvo ? alvo : reto; // acompanha o alvo se ele andar
     mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
     var h = altIni + (altFim - altIni) * t + Math.sin(Math.PI * t) * arco;
-    el.style.transform = 'translateY(' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
+    el.style.transform = 'translate(' + (iniX * Math.max(0, 1 - t * 3)) + 'px,' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
     rastro(el, tipo === 'esp');
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove();
@@ -466,7 +471,10 @@ function meiaLua(raioM) {
 }
 function atualizarAlcance() {
   var src = mapa.getSource('alcance');
-  if (src) src.setData({ type: 'FeatureCollection', features: [anelDe(ALCANCE_TIRO_M)] });
+  var comPedra = ativa !== 'galho'; // o círculo de tiro só aparece com o estilingue; com o pau, só a área do pau
+  if (src) src.setData({ type: 'FeatureCollection', features: comPedra ? [anelDe(ALCANCE_TIRO_M)] : [] });
+  var sf = mapa.getSource('alcance-fill');
+  if (sf) sf.setData({ type: 'FeatureCollection', features: comPedra ? [1, 0.78, 0.56, 0.34].map(function (k) { return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [circulo(POS.lat, POS.lng, ALCANCE_TIRO_M * k, 64)] } }; }) : [] });
   var sg = mapa.getSource('galho-alc');
   if (sg) sg.setData(ativa === 'galho' ? { type: 'Feature', geometry: { type: 'Polygon', coordinates: [meiaLua(GALHO_ALCANCE_M)] } } : { type: 'FeatureCollection', features: [] });
 }
@@ -723,6 +731,7 @@ function tocarFramesGolpe() {
   golpeTimers.push(setTimeout(function () { ig.src = FRAME_GOLPE.src[0]; }, 330));
   return true;
 }
+var SY_ATUAL = 1;
 function posicionarQuadro(F, idImg, idCorpo, sy, hVis) { // mesmo chão (pés) do desenho parado; não corta o que passa da cabeça
   var cg = 0.3631, ig = document.getElementById(idImg), cgb = document.getElementById(idCorpo);
   if (!ig || !cgb) return;
@@ -734,7 +743,7 @@ function ajustarMineu(pitch) {
   // de cima (0°) só dá pra ver a cabeça e o alto da mochila; inclinando, aparece o resto das costas
   var p = Math.min(pitch === undefined ? inclinacao : pitch, 60) / 60, H = 190;
   var v = 0.42 + 0.58 * Math.pow(p, 1.5), sy = 0.8 + 0.2 * p;
-  var hImg = H * sy, hVis = hImg * v;
+  var hImg = H * sy, hVis = hImg * v; SY_ATUAL = sy;
   elMineu.style.height = hVis + 'px';
   var corpo = elMineu.querySelector('.corpo'), img = elMineu.querySelector('img');
   corpo.style.height = hVis + 'px'; img.style.height = hImg + 'px';
