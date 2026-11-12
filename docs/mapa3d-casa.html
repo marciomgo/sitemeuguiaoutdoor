@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MGO · Protótipo do mapa 3D</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.css">
+<style>
+  html,body{margin:0;height:100%;background:#dff0c9;font-family:Arial,Helvetica,sans-serif;overflow:hidden;touch-action:none}
+  #mapa{position:absolute;inset:0}
+  .chip{position:absolute;left:10px;top:10px;z-index:5;background:rgba(40,30,20,.78);color:#fff;border-radius:14px;padding:7px 12px;font-size:13px;max-width:70%;line-height:1.3}
+  .chip b{color:#ffd54f}
+  #painel{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:6px}
+  #painel button{border:0;border-radius:12px;background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:18px;padding:8px 11px;cursor:pointer}
+  #controles{position:absolute;left:0;right:0;bottom:14px;z-index:5;display:flex;justify-content:center;gap:14px}
+  #controles button{width:62px;height:62px;border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 3px 8px rgba(0,0,0,.4);font-size:26px;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  #controles button:active{background:#ffe082}
+  #controles .mid{margin-bottom:34px}
+  #aviso{position:absolute;left:10px;bottom:90px;z-index:5;background:rgba(40,30,20,.7);color:#fff;border-radius:12px;padding:6px 10px;font-size:12px;max-width:60%}
+  /* marcadores em pé (billboard) */
+  .pino{display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));pointer-events:none}
+  .pino .bola{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;color:#fff;font-weight:bold}
+  .pino .haste{width:3px;height:10px;background:rgba(255,255,255,.9)}
+  .p-ponto .bola{width:34px;height:34px;background:#2979ff;font-size:15px}
+  .p-cura .bola{width:30px;height:30px;background:#e53935;font-size:18px}
+  .p-pedra .bola{width:24px;height:24px;background:#eceff1;font-size:14px;border-color:#90a4ae}
+  .p-pedra.esp .bola{background:#fff3c4;border-color:#f9a825}
+  .p-bomba .bola{width:26px;height:26px;background:#212121;font-size:15px;border-color:#fff}
+  .p-zumbi{font-size:34px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.55))}
+  .p-chefao{font-size:54px;filter:drop-shadow(0 4px 3px rgba(0,0,0,.6))}
+  /* o Mineu: aparece inteiro na frente, de costas pra câmera é só uma ideia — aqui ele é um cartaz em pé */
+  #mineu{position:relative;width:70px;height:190px;pointer-events:none}
+  #mineu .sombra{position:absolute;left:50%;bottom:-4px;width:84px;height:22px;margin-left:-42px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(3px)}
+  #mineu .anel{position:absolute;left:50%;bottom:-14px;width:120px;height:120px;margin-left:-60px;border-radius:50%;border:3px solid rgba(255,160,0,.8);background:radial-gradient(circle,rgba(255,213,79,.25),rgba(255,213,79,0) 70%);transform:rotateX(70deg);animation:pulsa 1.6s ease-in-out infinite}
+  @keyframes pulsa{0%,100%{opacity:.5;scale:.9}50%{opacity:1;scale:1.08}}
+  #mineu .corpo{position:absolute;left:0;top:0;width:70px;height:190px;filter:drop-shadow(0 4px 3px rgba(0,0,0,.4))}
+  #mineu img{position:absolute;width:70px;height:190px;left:0;top:0}
+  #mineu.anda .corpo{animation:balanca .42s ease-in-out infinite}
+  @keyframes balanca{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
+  #btnAtirar{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:5;width:70px;height:70px;padding:11px;box-sizing:border-box;border:none;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;touch-action:manipulation}
+  #btnAtirar img{width:100%;height:100%;object-fit:contain;display:block}
+  #btnAtirar:active{transform:translateX(-50%) scale(.94)}
+  #trocaPedraWrap{position:absolute;bottom:8px;left:calc(50% - 90px);z-index:5;width:46px;height:46px}
+  #btnTrocaPedra{position:relative;z-index:2;width:46px;height:46px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #90a4ae;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;font-size:20px;line-height:1}
+  #btnTrocaPedra.esp{border-color:#f9a825;background:#fff8e1}
+  #btnTrocaPedra small{font-size:11px;font-weight:bold;color:#37474f}
+  .pedra-reserva{position:absolute;z-index:1;left:-15px;bottom:-9px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid #90a4ae;background:#eceff1;box-shadow:0 1px 4px rgba(0,0,0,.45);font-size:13px;cursor:pointer}
+  .pedra-reserva.esp{border-color:#f9a825;background:#fff3c4}
+  .vida{position:absolute;left:50%;top:-9px;width:40px;height:6px;margin-left:-20px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
+  .vida i{display:block;height:100%;width:100%;background:#43a047}
+  .golpe{animation:golpe .18s linear}
+  @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
+  .pedrada{font-size:22px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+  .pedrada.esp{filter:drop-shadow(0 0 6px #ffca28) drop-shadow(0 3px 2px rgba(0,0,0,.5))}
+</style>
+</head>
+<body>
+<div id="mapa"></div>
+<div class="chip"><b>MGO</b> · protótipo do mapa 3D<br><span id="dica">Gire o celular para girar o mapa e ande de verdade: toque no 📍 para ligar o GPS. (No computador: setas ou W A S D.)</span></div>
+<div id="painel">
+  <button id="bGps" title="Usar meu GPS e bússola">📍</button>
+  <button id="bMais" title="Aproximar">＋</button>
+  <button id="bMenos" title="Afastar">－</button>
+  <button id="bInc" title="Mudar a inclinação">⤴️</button>
+</div>
+<div id="aviso" style="display:none"></div>
+<button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
+<div id="trocaPedraWrap"><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
+<script>
+const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[{"n":1,"lat":-30.0595556,"lng":-51.1684267},{"n":2,"lat":-30.059922,"lng":-51.168164},{"n":3,"lat":-30.0597871,"lng":-51.1688498},{"n":4,"lat":-30.0601378,"lng":-51.1686004}],"curas":[{"lat":-30.0602458,"lng":-51.1682575},{"lat":-30.0594903,"lng":-51.1687563}],"pedras":[{"lat":-30.0597871,"lng":-51.1683511,"esp":false},{"lat":-30.0602458,"lng":-51.1684758,"esp":false},{"lat":-30.0597871,"lng":-51.167977,"esp":false},{"lat":-30.0597062,"lng":-51.1682264,"esp":false},{"lat":-30.0594364,"lng":-51.1685381,"esp":false},{"lat":-30.0597331,"lng":-51.1684758,"esp":false},{"lat":-30.059895,"lng":-51.1680082,"esp":false},{"lat":-30.0602458,"lng":-51.1687251,"esp":false},{"lat":-30.059976,"lng":-51.1688498,"esp":true},{"lat":-30.0595173,"lng":-51.168164,"esp":true},{"lat":-30.0601109,"lng":-51.1681017,"esp":true}],"bombas":[{"lat":-30.05970285,"lng":-51.1684564,"e":"🍌"},{"lat":-30.059738799999998,"lng":-51.168295349999994,"e":"🐝"},{"lat":-30.05985455,"lng":-51.1685069,"e":"🐍"},{"lat":-30.05996245,"lng":-51.1687251,"e":"🐶"}],"chefoes":[{"lat":-30.059546240594088,"lng":-51.16836537185588,"final":false},{"lat":-30.059956645397577,"lng":-51.16811629499591,"final":false},{"lat":-30.059840998670502,"lng":-51.1688498,"final":false},{"lat":-30.060172445397576,"lng":-51.168648105108076,"final":true}],"zumbis":[{"lat":-30.059488069089415,"lng":-51.168398301278756},{"lat":-30.0596106517027,"lng":-51.16837332786241},{"lat":-30.05956807920788,"lng":-51.168508470858825},{"lat":-30.059880779990202,"lng":-51.16809598366496},{"lat":-30.05999359142638,"lng":-51.168156763230904},{"lat":-30.05989162858342,"lng":-51.168239253104126},{"lat":-30.0597871,"lng":-51.16876676749971},{"lat":-30.059849336823845,"lng":-51.16889131625014},{"lat":-30.059724863176157,"lng":-51.16889131625014},{"lat":-30.060179020009798,"lng":-51.168532383516705},{"lat":-30.06016817141658,"lng":-51.16867565326817},{"lat":-30.06006620857362,"lng":-51.168593163215135}]};
+
+var rad = Math.PI / 180;
+
+// ---------- estilo do mapa (cores originais do MGO) ----------
+var largura = ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 19, 9];
+var ESTILO = {
+  version: 8,
+  sources: { omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+  sky: { 'sky-color': '#bfe6ff', 'horizon-color': '#fff3d1', 'fog-color': '#f1f6dd', 'sky-horizon-blend': 0.6, 'horizon-fog-blend': 0.85, 'fog-ground-blend': 0.55 },
+  layers: [
+    { id: 'bg', type: 'background', paint: { 'background-color': '#e1f1c9' } },
+    { id: 'grama', type: 'fill', source: 'omt', 'source-layer': 'landcover', filter: ['==', ['get', 'class'], 'grass'], paint: { 'fill-color': '#cbe9a6' } },
+    { id: 'mata', type: 'fill', source: 'omt', 'source-layer': 'landcover', filter: ['==', ['get', 'class'], 'wood'], paint: { 'fill-color': '#b4dd8d' } },
+    { id: 'parque', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': '#b9e29c', 'fill-opacity': 0.9 } },
+    { id: 'quadra', type: 'fill', source: 'omt', 'source-layer': 'landuse', filter: ['in', ['get', 'class'], ['literal', ['pitch', 'playground']]], paint: { 'fill-color': '#f3dba5' } },
+    { id: 'agua', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#80cfee' } },
+    { id: 'rio', type: 'line', source: 'omt', 'source-layer': 'waterway', paint: { 'line-color': '#80cfee', 'line-width': largura } },
+    { id: 'rua-borda', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e0cfb0', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.2, 19, 13] } },
+    { id: 'rua', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fffaf0', 'line-width': largura } },
+    { id: 'trilha', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['path', 'track', 'pedestrian']]], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#f2c27a', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 1, 19, 3.5], 'line-dasharray': [2, 1.4] } },
+    { id: 'predio', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: {
+        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8], 0, '#f7e8d2', 40, '#ecd5b5', 90, '#dcbf9a'],
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.97, 'fill-extrusion-vertical-gradient': true } },
+    // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
+    { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
+    { id: 'zona-borda', type: 'line', source: 'zona-borda', paint: { 'line-color': ['get', 'cor'], 'line-opacity': 0.35, 'line-width': 2, 'line-dasharray': [3, 2] } }
+  ]
+};
+
+function circulo(lat, lng, raioM, passos) {
+  var pts = [];
+  for (var i = 0; i <= passos; i++) {
+    var a = (i / passos) * 2 * Math.PI;
+    var dLat = (raioM * Math.cos(a)) / 111320;
+    var dLng = (raioM * Math.sin(a)) / (111320 * Math.cos(lat * rad));
+    pts.push([lng + dLng, lat + dLat]);
+  }
+  return pts;
+}
+var camadasZona = [], bordasZona = [];
+(DADOS.chefoes || []).forEach(function (c) {
+  var cor = c.final ? '#8e24aa' : '#ef6c00';
+  [1, 0.78, 0.56, 0.34].forEach(function (f, i) {
+    var ft = { type: 'Feature', properties: { cor: cor }, geometry: { type: 'Polygon', coordinates: [circulo(c.lat, c.lng, 35 * f, 64)] } };
+    camadasZona.push(ft); if (i === 0) bordasZona.push(ft);
+  });
+});
+ESTILO.sources.zona = { type: 'geojson', data: { type: 'FeatureCollection', features: camadasZona } };
+ESTILO.sources['zona-borda'] = { type: 'geojson', data: { type: 'FeatureCollection', features: bordasZona } };
+
+// ---------- mapa e câmera ----------
+var POS = { lat: DADOS.largada.lat, lng: DADOS.largada.lng };
+var ALVO = { lat: POS.lat, lng: POS.lng };
+var heading = 30, bearing = 30, inclinacao = 62, zoom = 19.4;
+var mapa;
+try {
+  mapa = new maplibregl.Map({ container: 'mapa', style: ESTILO, center: [POS.lng, POS.lat], zoom: zoom, pitch: inclinacao, bearing: bearing, maxPitch: 80, minZoom: 15, maxZoom: 21,
+    interactive: false, attributionControl: { compact: true, customAttribution: 'Mapa © OpenStreetMap · OpenFreeMap' } });
+} catch (e) {
+  document.getElementById('dica').textContent = 'Este navegador não conseguiu abrir o mapa 3D (WebGL).';
+  throw e;
+}
+
+function marcador(lat, lng, classe, html, ancora) {
+  var el = document.createElement('div');
+  el.className = classe;
+  el.innerHTML = html;
+  el._mk = new maplibregl.Marker({ element: el, anchor: ancora || 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([lng, lat]).addTo(mapa);
+  return el;
+}
+function pino(cls, conteudo, lat, lng) {
+  marcador(lat, lng, 'pino ' + cls, '<div class="bola">' + conteudo + '</div><div class="haste"></div>');
+}
+
+// ---------- inimigos e tiro do Mineu ----------
+var ALCANCE_TIRO_M = 40, CONE_GRAUS = 50, DANO = { normal: 5, esp: 10 };
+var inimigos = [];
+function novoInimigo(lat, lng, classe, emoji, vida) {
+  var el = marcador(lat, lng, classe, '<span class="em">' + emoji + '</span><div class="vida"><i></i></div>');
+  inimigos.push({ lat: lat, lng: lng, vida: vida, max: vida, el: el, vivo: true });
+}
+function metrosAte(lat, lng) {
+  var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
+  return { d: Math.sqrt(dl * dl + dn * dn), ang: (Math.atan2(dn, dl) / rad + 360) % 360 };
+}
+function escolherAlvo() {
+  var melhor = null;
+  inimigos.forEach(function (i) {
+    if (!i.vivo) return;
+    var m = metrosAte(i.lat, i.lng);
+    if (m.d > ALCANCE_TIRO_M || Math.abs(difAng(heading, m.ang)) > CONE_GRAUS) return;
+    if (!melhor || m.d < melhor.d) melhor = { i: i, d: m.d };
+  });
+  return melhor && melhor.i;
+}
+function tiroDoMineu() {
+  if (municao[ativa] <= 0) return;
+  municao[ativa]--; pintaMunicao();
+  var alvo = escolherAlvo(), tipo = ativa;
+  var de = { lat: POS.lat, lng: POS.lng };
+  var para = alvo ? { lat: alvo.lat, lng: alvo.lng } : { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.textContent = '🪨';
+  var mk = new maplibregl.Marker({ element: el, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
+  var t0 = performance.now(), dur = 380;
+  (function voo(agora) {
+    var t = Math.min(1, (agora - t0) / dur);
+    mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
+    el.style.transform = 'translateY(' + (-70 + 70 * t - Math.sin(Math.PI * t) * 40) + 'px)';
+    if (t < 1) { requestAnimationFrame(voo); return; }
+    mk.remove();
+    if (alvo && alvo.vivo) acertou(alvo, DANO[tipo]);
+  })(t0);
+}
+function acertou(i, dano) {
+  i.vida -= dano;
+  var em = i.el.querySelector('.em'); em.classList.remove('golpe'); void em.offsetWidth; em.classList.add('golpe');
+  i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
+  if (i.vida <= 0) {
+    i.vivo = false; i.el.querySelector('.vida').style.display = 'none'; em.textContent = '💥';
+    setTimeout(function () { i.el._mk.remove(); }, 500);
+  }
+}
+
+mapa.on('load', function () {
+  DADOS.pontos.forEach(function (p) { pino('p-ponto', p.n, p.lat, p.lng); });
+  DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
+  DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), '🪨', p.lat, p.lng); });
+  DADOS.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
+  DADOS.zumbis.forEach(function (z) { novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+  (DADOS.chefoes || []).forEach(function (c) { novoInimigo(c.lat, c.lng, 'p-chefao', c.final ? '👿' : '👹', c.final ? 200 : 25); });
+});
+
+// o Mineu (cartaz em pé, sempre virado pra câmera)
+var elMineu = document.createElement('div');
+elMineu.id = 'mineu';
+elMineu.innerHTML = '<div class="anel"></div><div class="sombra"></div><div class="corpo"><img alt="Mineu" src="mineu-costas.png"></div>';
+var mkMineu = new maplibregl.Marker({ element: elMineu, anchor: 'bottom', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([POS.lng, POS.lat]).addTo(mapa);
+
+// ---------- controle: teclado e botões ----------
+var tecla = { esq: false, dir: false, anda: false, volta: false };
+var mapaTeclas = { ArrowLeft: 'esq', a: 'esq', A: 'esq', ArrowRight: 'dir', d: 'dir', D: 'dir', ArrowUp: 'anda', w: 'anda', W: 'anda', ArrowDown: 'volta', s: 'volta', S: 'volta' };
+window.addEventListener('keydown', function (e) { if (mapaTeclas[e.key]) { tecla[mapaTeclas[e.key]] = true; e.preventDefault(); } });
+window.addEventListener('keyup', function (e) { if (mapaTeclas[e.key]) { tecla[mapaTeclas[e.key]] = false; } });
+function segurar(id, chave) {
+  var b = document.getElementById(id);
+  var liga = function (e) { tecla[chave] = true; e.preventDefault(); };
+  var desliga = function (e) { tecla[chave] = false; e.preventDefault(); };
+  b.addEventListener('pointerdown', liga); b.addEventListener('pointerup', desliga); b.addEventListener('pointerleave', desliga); b.addEventListener('pointercancel', desliga);
+}
+document.addEventListener('pointerdown', function () { ligarBussola(); }, { once: true });
+document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
+document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
+document.getElementById('bInc').onclick = function () { inclinacao = inclinacao >= 70 ? 35 : inclinacao + 9; };
+
+// ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
+var municao = { normal: 150, esp: 12 }, ativa = "normal";
+function pintaMunicao() {
+  var b = document.getElementById("btnTrocaPedra"), rv = document.getElementById("pedraReserva");
+  b.classList.toggle("esp", ativa === "esp"); rv.classList.toggle("esp", ativa !== "esp");
+  document.getElementById("qtdPedra").textContent = municao[ativa];
+}
+document.getElementById("btnTrocaPedra").onclick = document.getElementById("pedraReserva").onclick = function () { ativa = ativa === "normal" ? "esp" : "normal"; pintaMunicao(); };
+document.getElementById("btnAtirar").onclick = function () { tiroDoMineu(); };
+pintaMunicao();
+
+// ---------- GPS e bússola de verdade (no celular) ----------
+var modoReal = false;
+function aviso(t) { var a = document.getElementById('aviso'); a.textContent = t; a.style.display = t ? 'block' : 'none'; }
+document.getElementById('bGps').onclick = function () {
+  if (modoReal) { modoReal = false; aviso('Voltou para a caminhada simulada.'); setTimeout(function () { aviso(''); }, 2500); return; }
+  modoReal = true;
+  aviso('Procurando o GPS... (permita a localização)');
+  if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(function (p) {
+      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
+      if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; }
+    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; }, { enableHighAccuracy: true });
+  }
+  ligarBussola();
+};
+var bussolaLigada = false;
+function ligarBussola() {
+  if (bussolaLigada) return;
+  bussolaLigada = true;
+  var ouvir = function () {
+    window.addEventListener('deviceorientationabsolute', orient, true);
+    window.addEventListener('deviceorientation', orient, true);
+  };
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function (r) { if (r === 'granted') ouvir(); else bussolaLigada = false; });
+  } else { ouvir(); }
+}
+function orient(e) {
+  var h = (typeof e.webkitCompassHeading === 'number') ? e.webkitCompassHeading : (e.absolute && e.alpha != null ? (360 - e.alpha) : null);
+  if (h != null) heading = h;
+}
+
+// ---------- laço do jogo ----------
+function difAng(a, b) { var d = ((b - a + 540) % 360) - 180; return d; }
+var ultimo = performance.now();
+function quadro(agora) {
+  var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
+  var andando = false;
+  if (!modoReal) {
+    if (tecla.esq) heading -= 110 * dt;
+    if (tecla.dir) heading += 110 * dt;
+    var v = (tecla.anda ? 1 : 0) - (tecla.volta ? 0.6 : 0);
+    if (v !== 0) {
+      andando = true;
+      var m = 6 * v * dt;
+      POS.lat += (m * Math.cos(heading * rad)) / 111320;
+      POS.lng += (m * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad));
+    }
+  } else {
+    var k = 1 - Math.exp(-4 * dt);
+    var antes = POS.lat + POS.lng;
+    POS.lat += (ALVO.lat - POS.lat) * k; POS.lng += (ALVO.lng - POS.lng) * k;
+    andando = Math.abs((POS.lat + POS.lng) - antes) > 1e-8;
+  }
+  heading = (heading + 360) % 360;
+  bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
+  mkMineu.setLngLat([POS.lng, POS.lat]);
+  elMineu.classList.toggle('anda', andando);
+  mapa.jumpTo({ center: [POS.lng, POS.lat], bearing: bearing, pitch: inclinacao, zoom: zoom, padding: { top: Math.round(window.innerHeight * 0.42), bottom: 0, left: 0, right: 0 } });
+  requestAnimationFrame(quadro);
+}
+mapa.on('load', function () { requestAnimationFrame(quadro); });
+</script>
+</body>
+</html>
