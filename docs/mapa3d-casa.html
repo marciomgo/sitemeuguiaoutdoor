@@ -11,6 +11,7 @@
   .chip{position:absolute;left:10px;top:10px;z-index:5;background:rgba(40,30,20,.78);color:#fff;border-radius:14px;padding:7px 12px;font-size:13px;max-width:70%;line-height:1.3}
   .chip b{color:#ffd54f}
   #painel{position:absolute;right:10px;top:10px;z-index:5;display:flex;flex-direction:column;gap:6px}
+  #bInc small{display:block;font-size:11px;font-weight:bold;color:#263238;margin-top:1px}
   #painel button{border:0;border-radius:12px;background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.35);font-size:18px;padding:8px 11px;cursor:pointer}
   #controles{position:absolute;left:0;right:0;bottom:14px;z-index:5;display:flex;justify-content:center;gap:14px}
   #controles button{width:62px;height:62px;border:0;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 3px 8px rgba(0,0,0,.4);font-size:26px;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
@@ -68,9 +69,9 @@
   <button id="bMais" title="Aproximar">＋</button>
   <button id="bMenos" title="Afastar">－</button>
   <button id="bSat" title="Mapa de satélite">🛰️</button>
-  <button id="bInc" title="Mudar a inclinação">⤴️</button>
+  <button id="bInc" title="Mudar a inclinação"></button>
 </div>
-<div id="legenda">Círculo amarelo grande = alcance do tiro (40 m) · pequeno = 20 m</div>
+<div id="legenda">Círculo amarelo = alcance do tiro do Mineu (40 m) · nuvem colorida = alcance do chefão</div>
 <div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
 <div id="trocaPedraWrap"><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
@@ -138,7 +139,8 @@ ESTILO.sources['zona-borda'] = { type: 'geojson', data: { type: 'FeatureCollecti
 // ---------- mapa e câmera ----------
 var POS = { lat: DADOS.largada.lat, lng: DADOS.largada.lng };
 var ALVO = { lat: POS.lat, lng: POS.lng };
-var heading = 30, bearing = 30, inclinacao = 62, zoom = 19.4;
+var NIVEIS_INC = [0, 30, 40, 50, 60, 70], nivelInc = 4;
+var heading = 30, bearing = 30, inclinacao = NIVEIS_INC[nivelInc], zoom = 19.4;
 var mapa;
 try {
   mapa = new maplibregl.Map({ container: 'mapa', style: ESTILO, center: [POS.lng, POS.lat], zoom: zoom, pitch: inclinacao, bearing: bearing, maxPitch: 80, minZoom: 15, maxZoom: 21,
@@ -242,7 +244,7 @@ mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), '
 function anelDe(raioM) { var c = circulo(POS.lat, POS.lng, raioM, 72); return { type: 'Feature', geometry: { type: 'LineString', coordinates: c } }; }
 function atualizarAlcance() {
   var src = mapa.getSource('alcance');
-  if (src) src.setData({ type: 'FeatureCollection', features: [anelDe(ALCANCE_TIRO_M), anelDe(20)] });
+  if (src) src.setData({ type: 'FeatureCollection', features: [anelDe(ALCANCE_TIRO_M)] });
 }
 
 mapa.on('load', function () {
@@ -274,7 +276,9 @@ function segurar(id, chave) {
 document.addEventListener('click', function () { ligarBussola(); });
 document.getElementById('bMais').onclick = function () { zoom = Math.min(21, zoom + 0.4); };
 document.getElementById('bMenos').onclick = function () { zoom = Math.max(17, zoom - 0.4); };
-document.getElementById('bInc').onclick = function () { inclinacao = inclinacao >= 70 ? 35 : inclinacao + 9; };
+function pintaInc() { document.getElementById('bInc').innerHTML = '⤴️<small>' + inclinacao + '°</small>'; }
+document.getElementById('bInc').onclick = function () { nivelInc = (nivelInc + 1) % NIVEIS_INC.length; inclinacao = NIVEIS_INC[nivelInc]; pintaInc(); };
+pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
 var municao = { normal: 150, esp: 12 }, ativa = "normal";
