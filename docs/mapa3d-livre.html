@@ -848,6 +848,8 @@ pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
 var municao = { normal: 150, esp: 12 }, ativa = "normal";
+// jogar de novo: tudo volta aos estoques do começo do jogo (pedras normais e amarelas, vida)
+function reiniciarEstoques() { municao.normal = 150; municao.esp = 12; vidaMineu = 100; pintaVidaMineu(); pintaMunicao(); }
 var ORDEM_ARMAS = ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
 var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
@@ -891,7 +893,7 @@ pintaMunicao();
 // ---------- GPS e bússola de verdade (no celular) ----------
 var modoReal = false;
 document.getElementById('bDeNovo').onclick = function () { // nova rodada em volta de onde você está
-  document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); spawnAoRedor(POS.lat, POS.lng);
+  document.getElementById('parabens').style.display = 'none'; reiniciarEstoques(); spawnAoRedor(POS.lat, POS.lng);
 };
 document.getElementById('bInicio').onclick = function () {
   jogoIniciado = true;

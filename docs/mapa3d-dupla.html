@@ -915,6 +915,8 @@ pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
 var municao = { normal: 150, esp: 12 }, ativa = "normal";
+// jogar de novo: tudo volta aos estoques do começo do jogo (pedras normais e amarelas, vida)
+function reiniciarEstoques() { municao.normal = 150; municao.esp = 12; vidaMineu = 100; pintaVidaMineu(); pintaMunicao(); }
 var ORDEM_ARMAS = ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
 var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
@@ -1107,7 +1109,7 @@ spawnBase = function (lat, lng) { // dificuldade: chefão com vida x número de 
   for (var k = 0; k < extra; k++) { var z = pontoLivre(lat, lng, 14 + Math.random() * 16, Math.random() * 360); novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); }
 };
 function reiniciarRodada() {
-  document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu();
+  document.getElementById('parabens').style.display = 'none'; reiniciarEstoques();
   if (net.papel === 'convidado') net.enviar({ t: 'denovo' }); else spawnAoRedor(POS.lat, POS.lng);
 }
 document.getElementById('bDeNovo').onclick = reiniciarRodada;
@@ -1366,7 +1368,7 @@ function aoReceberDoJogador(pid, m) {
   else if (m.t === 'ping') net.enviarPara(pid, { t: 'pong', c: m.c });
   else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
   else if (m.t === 'atq') { m.p = pid; atqDeOutro(m); for (var k in outros) { if (k !== pid) net.enviarPara(k, m); } }
-  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); net.enviar({ t: 'denovo' }); spawnAoRedor(POS.lat, POS.lng); }
+  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; reiniciarEstoques(); net.enviar({ t: 'denovo' }); spawnAoRedor(POS.lat, POS.lng); }
 }
 function jogadorCaiu(pid, conn) {
   var j = outros[pid]; if (!j || j.conn !== conn) return; // já voltou por outra conexão
@@ -1450,7 +1452,7 @@ function aoReceberDoAnfitriao(m) {
   else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
   else if (m.t === 'atq') atqDeOutro(m);
   else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
-  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; vidaMineu = 100; pintaVidaMineu(); }
+  else if (m.t === 'denovo') { document.getElementById('parabens').style.display = 'none'; reiniciarEstoques(); }
 }
 function souSucessor() { // o convidado de menor número assume se o criador sair
   var menor = 99; net.ultimoJs.forEach(function (e) { if (e[5] > 0 && e[5] < menor) menor = e[5]; });
