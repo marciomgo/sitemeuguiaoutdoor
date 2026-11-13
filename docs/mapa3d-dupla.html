@@ -237,10 +237,9 @@ var ESTILO = {
     // construções planas, só marcadas no chão (sem 3D); o desenho vem do OpenStreetMap
     { id: 'predio', type: 'fill', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'fill-color': '#e9d2b0', 'fill-opacity': 0.95 } },
     { id: 'predio-borda', type: 'line', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'line-color': '#b98f62', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 20, 2] } },
-    // perímetro do jogo: fora da área fica sombreado de vermelho; a linha marca o limite
-    { id: 'area-fora', type: 'fill', source: 'area-fora', paint: { 'fill-color': '#d32f2f', 'fill-opacity': 0.16 } },
-    { id: 'area-linha-fundo', type: 'line', source: 'area-linha', layout: { 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 } },
-    { id: 'area-linha', type: 'line', source: 'area-linha', layout: { 'line-join': 'round' }, paint: { 'line-color': '#e53935', 'line-width': 4.5 } },
+    // perímetro do jogo: fora da área fica escurecido (preto translúcido); a linha preta marca o limite
+    { id: 'area-fora', type: 'fill', source: 'area-fora', paint: { 'fill-color': '#000000', 'fill-opacity': 0.5 } },
+    { id: 'area-linha', type: 'line', source: 'area-linha', layout: { 'line-join': 'round' }, paint: { 'line-color': '#000000', 'line-width': 4 } },
     // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
     { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
@@ -545,6 +544,10 @@ function moverInimigos(dt, agora) {
         var passo = Math.min(vel * (i.vf || 1) * dt, m.d - para);
         i.lat += (passo * Math.cos(i._ang * rad)) / 111320;
         i.lng += (passo * Math.sin(i._ang * rad)) / (111320 * Math.cos(i.lat * rad));
+        if (AREA && AREA.raio) { /* modo livre: nenhum monstro sai do círculo do jogo */
+          var dlA = (i.lat - AREA.lat) * 111320, dnA = (i.lng - AREA.lng) * 111320 * Math.cos(AREA.lat * rad), dA = Math.hypot(dlA, dnA);
+          if (dA > AREA.raio - 1) { var fA = (AREA.raio - 1) / dA; i.lat = AREA.lat + (dlA * fA) / 111320; i.lng = AREA.lng + (dnA * fA) / (111320 * Math.cos(AREA.lat * rad)); }
+        }
         anda = true;
         i.el._mk.setLngLat([i.lng, i.lat]); i.el._ll = [i.lng, i.lat];
       }
@@ -667,12 +670,12 @@ function atualizarZonas(lista) {
   mapa.getSource('zona').setData({ type: 'FeatureCollection', features: f });
   mapa.getSource('zona-borda').setData({ type: 'FeatureCollection', features: b });
 }
-// ---------- construções e água: os monstros não nascem dentro delas ----------
+// ---------- água: os monstros não nascem nem andam dentro dela (as construções são planas, não atrapalham) ----------
 var obstaculos = [];
 function carregarObstaculos(lat, lng) {
   obstaculos = [];
   var fs2 = [];
-  try { fs2 = mapa.querySourceFeatures('omt', { sourceLayer: 'building' }).concat(mapa.querySourceFeatures('omt', { sourceLayer: 'water' })); } catch (e) {}
+  try { fs2 = mapa.querySourceFeatures('omt', { sourceLayer: 'water' }); } catch (e) {}
   var folga = 0.0045; // ~500 m em volta
   fs2.forEach(function (f) {
     var g = f.geometry; if (!g) return;
@@ -811,7 +814,7 @@ function ajustarInimigosFixos() {
   window.__ajuste = { obstaculos: n, mexidos: mexidos };
 }
 // ---------- área do jogo (perímetro) ----------
-var AREA = null, RAIO_AREA_LIVRE_M = 150, foraDaArea = false; // AREA = { anel: [[lng,lat],...] } ou { lat, lng, raio }
+var AREA = null, RAIO_AREA_LIVRE_M = 100, foraDaArea = false; // AREA = { anel: [[lng,lat],...] } ou { lat, lng, raio }
 function anelDaArea() { return AREA.anel || circulo(AREA.lat, AREA.lng, AREA.raio, 120); }
 function pintarArea() {
   if (!AREA) return;
