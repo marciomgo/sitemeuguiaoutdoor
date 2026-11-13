@@ -935,9 +935,9 @@ document.getElementById('bInc').onclick = function () { if (satelite) return; /*
 pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
-var municao = { normal: 150, esp: 12 }, ativa = "normal";
+var municao = { normal: 150, esp: 24 }, ativa = "normal";
 // jogar de novo: tudo volta ao padrão do começo do jogo (pedras normais e amarelas, vida e arma na mão = pedra normal)
-function reiniciarEstoques() { municao.normal = 150; municao.esp = 12; vidaMineu = 100; ativa = "normal"; pintaVidaMineu(); pintaMunicao(); }
+function reiniciarEstoques() { municao.normal = 150; municao.esp = 24; vidaMineu = 100; ativa = "normal"; pintaVidaMineu(); pintaMunicao(); }
 var ORDEM_ARMAS = ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
 var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
