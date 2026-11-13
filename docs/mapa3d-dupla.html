@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>MGO · Protótipo do mapa 3D</title>
+<link rel="manifest" href="manifest-mapa3d-dupla.json">
+<meta name="theme-color" content="#2f6b3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MGO">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.css">
 <style>
   html,body{margin:0;height:100%;background:#dff0c9;font-family:Arial,Helvetica,sans-serif;overflow:hidden;touch-action:none}
@@ -123,6 +129,10 @@
   #btnTrocaPedra img{height:38px;width:auto;display:block}
   .pedra-reserva img{height:22px;width:auto;display:block}
   .fantasma .em{opacity:.6}
+  .cxIni2{display:flex;flex-direction:column;align-items:center;gap:14px;width:84%;max-width:340px}
+  #bOffline{width:100%;font-size:14px;font-weight:bold;padding:12px 16px;border:2px solid rgba(255,255,255,.85);border-radius:999px;background:rgba(255,255,255,.2);color:#fff;cursor:pointer;touch-action:manipulation;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  #bOffline:disabled{opacity:.6}
+  #msgOff{color:#fff;font-size:13px;text-align:center;min-height:16px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
   .cxIni{display:flex;flex-direction:column;align-items:center;gap:12px;width:82%;max-width:320px}
   .cxIni button,.cxLob button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   .cxIni .ou{color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -1062,6 +1072,62 @@ mapa.on('load', function () {
   var at = document.querySelector('.maplibregl-ctrl-attrib'); // créditos do mapa: só o ícone ⓘ, no topo; toque pra abrir
   if (at) { at.classList.remove('maplibregl-compact-show'); at.removeAttribute('open'); }
   requestAnimationFrame(quadro); if (!DADOS.livre) quandoMapaPronto(ajustarInimigosFixos); });
+
+// ---------- jogar sem internet ----------
+(function offline() {
+  var ARM_APP = 'mgo-app-v1', ARM_MAPA = 'mgo-tiles-v1', TJ = 'https://tiles.openfreemap.org/planet';
+  var CHAVE = 'mgo-offline-' + (DADOS.livre ? 'livre' : 'parque');
+  if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw-mgo.js').catch(function () {}); }); }
+  window.testeOffline = function (v) { // só pra teste: finge que está sem internet
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ t: 'offline-teste', v: !!v });
+  };
+  window.addEventListener('offline', function () { if (typeof aviso === 'function') { aviso('Sem internet: jogando com o mapa baixado.'); setTimeout(function () { aviso(''); }, 4000); } });
+  var btn = document.getElementById('bOffline'), msg = document.getElementById('msgOff');
+  if (!btn) return; // páginas sem o botão (ex.: dupla) só ganham o service worker
+  function lerRegistro() { try { return JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; } }
+  function mostrarRegistro() {
+    var rg = lerRegistro();
+    if (rg) { var d = new Date(rg.t); msg.textContent = '✓ Parque baixado em ' + d.getDate() + '/' + (d.getMonth() + 1) + ' (' + rg.mb + ' MB). Pode jogar sem internet.'; btn.textContent = '⬇ Baixar de novo (atualizar)'; }
+    else msg.textContent = 'Baixe com internet (de preferência no Wi-Fi) antes de ir pro parque.';
+  }
+  mostrarRegistro();
+  function tile(lat, lng, z) { var n = Math.pow(2, z), s = Math.sin(lat * Math.PI / 180); return [Math.floor((lng + 180) / 360 * n), Math.floor((0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n)]; }
+  function listaTiles(c, raioM) {
+    var dLat = raioM / 111320, dLng = raioM / (111320 * Math.cos(c.lat * Math.PI / 180)), out = [];
+    for (var z = 11; z <= 14; z++) { var a = tile(c.lat + dLat, c.lng - dLng, z), b = tile(c.lat - dLat, c.lng + dLng, z); for (var x = a[0]; x <= b[0]; x++) for (var y = a[1]; y <= b[1]; y++) out.push([z, x, y]); }
+    return out;
+  }
+  async function baixar() {
+    if (!('caches' in window)) { msg.textContent = 'Este navegador não deixa guardar o parque.'; return; }
+    if (!navigator.onLine) { msg.textContent = 'Sem internet agora. Conecte pra baixar o parque.'; return; }
+    btn.disabled = true; msg.textContent = 'Baixando...';
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+      var cT = await caches.open(ARM_MAPA), cA = await caches.open(ARM_APP), bytes = 0;
+      var centro = DADOS.livre ? { lat: POS.lat, lng: POS.lng } : DADOS.largada, raio = DADOS.livre ? 1500 : 2000;
+      var tjr = await fetch(TJ, { cache: 'reload' }); await cT.put(TJ, tjr.clone()); var tj = await tjr.json(), modelo = tj.tiles[0];
+      var lista = listaTiles(centro, raio), feitos = 0;
+      for (var i = 0; i < lista.length; i++) {
+        var u = modelo.replace('{z}', lista[i][0]).replace('{x}', lista[i][1]).replace('{y}', lista[i][2]);
+        try { var rr = await fetch(u); if (rr.ok) { bytes += (await rr.clone().blob()).size; await cT.put(u, rr); } } catch (e) {}
+        feitos++; msg.textContent = 'Baixando o mapa... ' + feitos + '/' + lista.length;
+      }
+      // arquivos do jogo: a página, imagens e as bibliotecas que ela usa
+      var arquivos = ['mineu-costas.png', 'mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png', 'mineu-estilingue-1.png', 'mineu-estilingue-2.png', 'mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png', 'mineu-comemora.png', 'icone-pau.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', location.pathname.split('/').pop() || 'index.html'];
+      var man = document.querySelector('link[rel=manifest]'); if (man) arquivos.push(man.getAttribute('href'));
+      document.querySelectorAll('script[src], link[rel=stylesheet], img[src]').forEach(function (el) { var s = el.src || el.href; if (s && arquivos.indexOf(s) < 0) arquivos.push(s); });
+      msg.textContent = 'Guardando o jogo no celular...';
+      for (var k = 0; k < arquivos.length; k++) {
+        var a = arquivos[k], externo = /^https?:\/\//.test(a) && a.indexOf(location.origin) !== 0;
+        try { var r2 = await fetch(a, externo ? { mode: 'no-cors' } : { cache: 'reload' }); await cA.put(a, r2); } catch (e) {}
+      }
+      localStorage.setItem(CHAVE, JSON.stringify({ t: Date.now(), mb: Math.round(bytes / 1e5) / 10, n: lista.length }));
+      mostrarRegistro();
+    } catch (e) { msg.textContent = 'Não consegui baixar agora. Tente de novo com internet.'; }
+    btn.disabled = false;
+  }
+  btn.onclick = baixar;
+})();
 
 // =====================================================================
 //  MISSÃO EM DUPLA (até 4): um mundo só, vários celulares (PeerJS: celular a celular, em estrela).
