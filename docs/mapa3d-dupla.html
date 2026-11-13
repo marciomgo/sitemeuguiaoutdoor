@@ -1312,7 +1312,8 @@ function baixarMusica(seg) { /* some a música por uns segundos (ex.: na fanfarr
   if (!musicaNo.mestre || !musicaNo.ctx) return; var g = musicaNo.mestre.gain, t = musicaNo.ctx.currentTime;
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(MUSICA_VOL * 0.12, t + 0.4); g.linearRampToValueAtTime(MUSICA_VOL, t + seg);
 }
-if (DADOS.livre) {
+var MUSICA_NO_JOGO = false; /* música tirada do jogo (decisão dele, 13/11: 'tá chata'); true = volta o botão e a trilha */
+if (DADOS.livre && MUSICA_NO_JOGO) {
   var bMus = document.createElement('button'); bMus.id = 'bMusica'; bMus.title = 'Música de fundo'; bMus.textContent = musicaNo.mudo ? '🔇' : (musicaNo.faixa === 'e' ? '⚔️' : '🎵');
   document.getElementById('painel').appendChild(bMus);
   bMus.onclick = function () { /* a cada toque: aventura -> épica -> sem música -> aventura */
@@ -1821,7 +1822,23 @@ function assumirAnfitriao() { // o criador saiu: este celular assume a MESMA sal
   var qs = (location.search.match(/[?&]sala=(\d{4})/) || [])[1], ult = null;
   try { ult = JSON.parse(localStorage.getItem('mgo-ultima') || 'null'); } catch (e) {}
   if (qs) { document.getElementById('bEntrarQR').style.display = 'block'; document.getElementById('codQR').textContent = qs; document.getElementById('bCriar').style.display = 'none'; document.getElementById('ouEntrar').style.display = 'none'; document.getElementById('codSala').style.display = 'none'; document.getElementById('bEntrar').style.display = 'none'; }
-  else if (ult && ult.cod && Date.now() - ult.t < 3 * 3600 * 1000) { document.getElementById('bVoltar').style.display = 'block'; document.getElementById('codVolta').textContent = ult.cod; }
+  else if (ult && ult.cod && Date.now() - ult.t < 3 * 3600 * 1000) { /* o botão só aparece se a sala ainda estiver no ar */
+    verificarSalaNoAr(ult.cod, function (viva) {
+      if (viva === false) { try { localStorage.removeItem('mgo-ultima'); } catch (e) {} return; }
+      document.getElementById('bVoltar').style.display = 'block'; document.getElementById('codVolta').textContent = ult.cod;
+    });
+  }
+  function verificarSalaNoAr(cod, fim) { /* true = no ar, false = não existe mais, null = não deu pra saber (sem internet / demorou) */
+    var feito = false, p = null;
+    function acabar(v) { if (feito) return; feito = true; clearTimeout(tempo); try { if (p) p.destroy(); } catch (e) {} fim(v); }
+    var tempo = setTimeout(function () { acabar(null); }, 8000);
+    if (typeof Peer === 'undefined') { acabar(null); return; }
+    try {
+      p = new Peer();
+      p.on('open', function () { var c = p.connect('mgo-dupla-' + cod, { reliable: true }); c.on('open', function () { acabar(true); }); });
+      p.on('error', function (e) { acabar(e && e.type === 'peer-unavailable' ? false : null); });
+    } catch (e) { acabar(null); }
+  }
   document.getElementById('bCriar').onclick = function () { ativarGps(); criarSala(0); };
   document.getElementById('bEntrar').onclick = function () {
     var cod = document.getElementById('codSala').value.replace(/[^0-9]/g, '');

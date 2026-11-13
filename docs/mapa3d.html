@@ -1249,7 +1249,8 @@ function baixarMusica(seg) { /* some a música por uns segundos (ex.: na fanfarr
   if (!musicaNo.mestre || !musicaNo.ctx) return; var g = musicaNo.mestre.gain, t = musicaNo.ctx.currentTime;
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(MUSICA_VOL * 0.12, t + 0.4); g.linearRampToValueAtTime(MUSICA_VOL, t + seg);
 }
-if (DADOS.livre) {
+var MUSICA_NO_JOGO = false; /* música tirada do jogo (decisão dele, 13/11: 'tá chata'); true = volta o botão e a trilha */
+if (DADOS.livre && MUSICA_NO_JOGO) {
   var bMus = document.createElement('button'); bMus.id = 'bMusica'; bMus.title = 'Música de fundo'; bMus.textContent = musicaNo.mudo ? '🔇' : (musicaNo.faixa === 'e' ? '⚔️' : '🎵');
   document.getElementById('painel').appendChild(bMus);
   bMus.onclick = function () { /* a cada toque: aventura -> épica -> sem música -> aventura */
