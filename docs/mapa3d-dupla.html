@@ -134,6 +134,9 @@
   #bOffline:disabled{opacity:.6}
   #msgOff{color:#fff;font-size:13px;text-align:center;min-height:16px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
   #painel button.ligado{background:#ffd54f !important;box-shadow:0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.4)}
+  #pausaSat{display:none;position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;background:rgba(30,40,50,.82);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:bold;white-space:nowrap;pointer-events:none}
+  body.sat-pausa #pausaSat{display:block}
+  body.sat-pausa #controles, body.sat-pausa #trocaPedraWrap, body.sat-pausa #btnAtirar{opacity:.3;pointer-events:none}
   .cxIni{display:flex;flex-direction:column;align-items:center;gap:12px;width:82%;max-width:320px}
   .cxIni button,.cxLob button{width:100%;font-size:19px;font-weight:bold;padding:18px 20px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
   .cxIni .ou{color:#fff;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -193,7 +196,7 @@
 </div>
 <div id="sangue"></div>
 <div id="parabens" style="display:none"><canvas id="confete"></canvas><div class="caixaP"><img src="mineu-comemora.png" alt="Mineu comemorando"><div class="estrelas">★ ★ ★</div><h2>Missão cumprida!</h2><p>Todos os zumbis e monstros foram derrotados.</p><div class="statsP"><div><b id="pZumbis">0</b><span>zumbis</span></div><div><b id="pMonstros">0</b><span>monstros</span></div><div><b id="pTempo">0:00</b><span>tempo</span></div></div><button id="bDeNovo">Jogar de novo</button></div></div>
-<div id="aviso" style="display:none"></div>
+<div id="pausaSat">⏸ Vista de cima — jogo pausado</div><div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
 <div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
@@ -607,6 +610,7 @@ document.getElementById('bSat').onclick = function () {
   if (satelite) { antesSat = { inc: inclinacao, zoom: zoom }; inclinacao = 0; zoom = ZOOM_SATELITE; } // de cima e no melhor nível da foto
   else if (antesSat) { inclinacao = antesSat.inc; zoom = antesSat.zoom; antesSat = null; }
   pintaInc();
+  document.body.classList.toggle('sat-pausa', congelado());
 };
 mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'top-left');
 function anelDe(raioM) { var c = circulo(POS.lat, POS.lng, raioM, 72); return { type: 'Feature', geometry: { type: 'LineString', coordinates: c } }; }
@@ -973,9 +977,9 @@ function golpeDoGalho() {
     if (alvo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, GALHO_DANO); }
   }, 140);
 }
-elTroca.onclick = function () { ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+elTroca.onclick = function () { if (congelado()) return; ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
 [elReserva, elReserva2].forEach(function (e) { e.onclick = function () { ativa = e._arma; pintaMunicao(); }; }); // tocar numa bolinha de trás escolhe aquela arma
-document.getElementById("btnAtirar").onclick = function () { if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
+document.getElementById("btnAtirar").onclick = function () { if (congelado()) return; if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
 pintaMunicao();
 
 // ---------- GPS e bússola de verdade (no celular) ----------
@@ -1032,13 +1036,15 @@ function atualizarBatalha(dt, agora) {
   if (era !== emBatalha) pintaInc();
   fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
 }
+function congelado() { return satelite && !DADOS.dupla; } /* vista de cima = jogo parado */
 function quadro(agora) {
   var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
   var andando = false;
   if (!modoReal) {
-    if (tecla.esq) heading -= 110 * dt;
-    if (tecla.dir) heading += 110 * dt;
-    var v = (tecla.anda ? 1 : 0) - (tecla.volta ? 0.6 : 0);
+    var par = congelado();
+    if (tecla.esq && !par) heading -= 110 * dt;
+    if (tecla.dir && !par) heading += 110 * dt;
+    var v = par ? 0 : (tecla.anda ? 1 : 0) - (tecla.volta ? 0.6 : 0);
     if (v !== 0) {
       andando = true;
       var m = 6 * v * dt;
@@ -1054,7 +1060,7 @@ function quadro(agora) {
   heading = (heading + 360) % 360;
   bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
   mkMineu.setLngLat([POS.lng, POS.lat]);
-  moverInimigos(dt, agora);
+  if (!congelado()) moverInimigos(dt, agora);
   atualizarMira();
   if (++contaQuadro % 3 === 0) atualizarAlcance();
   if (GRADE && contaQuadro % 20 === 0) {
