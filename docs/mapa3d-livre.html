@@ -28,11 +28,11 @@
   .pino{display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));pointer-events:none}
   .pino .bola{display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid #fff;color:#fff;font-weight:bold}
   .pino .haste{width:3px;height:10px;background:rgba(255,255,255,.9)}
-  .p-ponto .bola{width:34px;height:34px;background:#2979ff;font-size:15px}
-  .p-cura .bola{width:30px;height:30px;background:#e53935;font-size:18px}
-  .p-pedra .bola{width:24px;height:24px;background:#eceff1;font-size:14px;border-color:#90a4ae}
-  .p-pedra.esp .bola{background:#fff3c4;border-color:#f9a825}
-  .p-bomba .bola{width:26px;height:26px;background:#212121;font-size:15px;border-color:#fff}
+  .p-ponto .bola{width:44px;height:44px;background:none;border:0;border-radius:0}
+  .p-ponto .bola img{width:44px;height:44px;display:block}
+  .p-cura .bola{width:32px;height:32px;box-sizing:border-box;background:#c0392b;font-size:20px;border:2px solid #fff}
+  .p-pedra .bola{width:34px;height:34px;background:none;border:0;border-radius:0;font-size:28px}
+  .p-bomba .bola{width:34px;height:34px;background:none;border:0;border-radius:0;font-size:28px}
   .p-zumbi{font-size:34px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.55))}
   .p-chefao{font-size:54px;filter:drop-shadow(0 4px 3px rgba(0,0,0,.6))}
   /* o Mineu: aparece inteiro na frente, de costas pra câmera é só uma ideia — aqui ele é um cartaz em pé */
@@ -224,7 +224,7 @@ var POS = { lat: DADOS.largada.lat, lng: DADOS.largada.lng };
 var ALVO = { lat: POS.lat, lng: POS.lng };
 var NIVEIS_INC = [0, 30, 40, 50, 60, 70], nivelInc = 4;
 var pitchSuave, zoomSuave; // câmera suavizada
-var heading = 30, bearing = 30, inclinacao = NIVEIS_INC[nivelInc], zoom = 19.4;
+var heading = 30, bearing = 30, inclinacao = NIVEIS_INC[nivelInc], zoom = 20.2;
 var mapa;
 var marcadores = [];
 try {
@@ -755,7 +755,8 @@ function spawnBase(lat, lng) {
 
 mapa.on('load', function () {
   if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng);
-  DADOS.pontos.forEach(function (p) { pino('p-ponto', p.n, p.lat, p.lng); });
+  var ICONES_NUMERADOS = ["https://static.wixstatic.com/media/f02643_48f7c1d977754b23977fd2e7f58c6c27~mv2.png","https://static.wixstatic.com/media/f02643_f14858e9c66d43feae48eff43148759e~mv2.png","https://static.wixstatic.com/media/f02643_cba7ab04f17845d98a60cbdb48466302~mv2.png","https://static.wixstatic.com/media/f02643_ea984cd4c0fc44aead08ba7a5af6b383~mv2.png","https://static.wixstatic.com/media/f02643_6a69d7baa0794d37848b3948fed51e44~mv2.png","https://static.wixstatic.com/media/f02643_801dffdc2e554552a5c134e097d91ea6~mv2.png","https://static.wixstatic.com/media/f02643_cd0ee07d3fcd40fb9a33810c88f2d851~mv2.png","https://static.wixstatic.com/media/f02643_91b88885a5c44c8c833417bc1190b7b5~mv2.png","https://static.wixstatic.com/media/f02643_1b89172049664af79ec14bce19a83033~mv2.png","https://static.wixstatic.com/media/f02643_033f68da0d1044bcbd9a97da09181820~mv2.png","https://static.wixstatic.com/media/f02643_193c340555f24225b4d92d767d84255a~mv2.png","https://static.wixstatic.com/media/f02643_1ff212affeb84c9584f484f04ba0535e~mv2.png","https://static.wixstatic.com/media/f02643_741fb6aae44744de8ed6e009fb318faf~mv2.png","https://static.wixstatic.com/media/f02643_b1b9ad3701be4696815636ec5dc6cedc~mv2.png","https://static.wixstatic.com/media/f02643_ed5489163f5f4182b136c62a8f93eb33~mv2.png","https://static.wixstatic.com/media/f02643_7ccdf03c1f824bea8af5c7f17a999e96~mv2.png","https://static.wixstatic.com/media/f02643_c8fe0d4b091b49f7aba79ef064ecfbae~mv2.png","https://static.wixstatic.com/media/f02643_77ea1b50292947b7adb0c8eac523973d~mv2.png","https://static.wixstatic.com/media/f02643_4695d3ce6947477ca8a54cf26fda87c6~mv2.png","https://static.wixstatic.com/media/f02643_5bc20c9e31a9428980ffd69a42beb7bb~mv2.png","https://static.wixstatic.com/media/f02643_514f5fbaf6134390b721277b01a65366~mv2.png","https://static.wixstatic.com/media/f02643_4c05aa018fc8463393cd0d9f0d63e102~mv2.png","https://static.wixstatic.com/media/f02643_8530ccc59ad743e78a7ad6977226335e~mv2.png","https://static.wixstatic.com/media/f02643_e692002f886449efb41c97bf50166f45~mv2.png","https://static.wixstatic.com/media/f02643_81eaeefadf2744878569f4cb8b6d73f1~mv2.png","https://static.wixstatic.com/media/f02643_c2baf60987ef4598af4bdc0d73e2fbd9~mv2.png","https://static.wixstatic.com/media/f02643_845aec3fa20e4ff595646def8a93b08c~mv2.png","https://static.wixstatic.com/media/f02643_009e01b80a6e4289adcbe915449e9652~mv2.png","https://static.wixstatic.com/media/f02643_37e8e810d5c248b5893ee19c8bceeba5~mv2.png","https://static.wixstatic.com/media/f02643_d2909286d264450c9c8321282b3e2c9e~mv2.png"]; // desenhos oficiais do jogo, 1 a 30
+  DADOS.pontos.forEach(function (p, i) { var u = ICONES_NUMERADOS[i]; pino('p-ponto', u ? '<img src="' + u + '" alt="' + (i + 1) + '">' : (i + 1), p.lat, p.lng); }); /* o desenho segue a ORDEM do ponto no percurso, nao o codigo */
   DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
   DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), (p.esp ? '<span class="pe-amarela">🪨</span>' : '🪨'), p.lat, p.lng); });
   DADOS.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
@@ -1063,7 +1064,7 @@ mapa.on('load', function () {
         feitos++; msg.textContent = 'Baixando o mapa... ' + feitos + '/' + lista.length;
       }
       // arquivos do jogo: a página, imagens e as bibliotecas que ela usa
-      var arquivos = ['mineu-costas.png', 'mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png', 'mineu-estilingue-1.png', 'mineu-estilingue-2.png', 'mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png', 'mineu-comemora.png', 'icone-pau.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', location.pathname.split('/').pop() || 'index.html'];
+      var arquivos = ['mineu-costas.png', 'mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png', 'mineu-estilingue-1.png', 'mineu-estilingue-2.png', 'mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png', 'mineu-comemora.png', 'icone-pau.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'].concat(typeof ICONES_NUMERADOS !== 'undefined' ? ICONES_NUMERADOS : []).concat([location.pathname.split('/').pop() || 'index.html']);
       var man = document.querySelector('link[rel=manifest]'); if (man) arquivos.push(man.getAttribute('href'));
       document.querySelectorAll('script[src], link[rel=stylesheet], img[src]').forEach(function (el) { var s = el.src || el.href; if (s && arquivos.indexOf(s) < 0) arquivos.push(s); });
       msg.textContent = 'Guardando o jogo no celular...';
