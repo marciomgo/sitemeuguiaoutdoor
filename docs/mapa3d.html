@@ -244,7 +244,7 @@ function marcador(lat, lng, classe, html, ancora) {
   return el;
 }
 function pino(cls, conteudo, lat, lng) {
-  marcador(lat, lng, 'pino ' + cls, '<div class="bola">' + conteudo + '</div><div class="haste"></div>');
+  marcador(lat, lng, 'pino ' + cls, '<div class="bola">' + conteudo + '</div>', 'center'); /* sem mastro: o icone fica centrado no ponto */
 }
 
 // ---------- inimigos e tiro do Mineu ----------
