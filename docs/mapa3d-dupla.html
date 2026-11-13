@@ -1160,8 +1160,9 @@ mapa.on('load', function () {
 
 // ---------- musiquinha de fundo (modo livre e dupla) ----------
 /* Trilha de aventura: tom de dó maior, marcha animada (110 por minuto), melodia heróica que sobe e desce, baixo andando, pandeiro e bumbo bem leves, eco no solo. Tudo sintetizado aqui. */
-var MUSICA_BPM = 112, MUSICA_VOL = 0.09;
-var MUSICA = (function () {
+var MUSICA_VOL = 0.045; /* metade do volume anterior (0.09), pedido dele em 13/11 */
+var MUSICA_AVENTURA = (function () {
+  var MUSICA_BPM = 112;
   var NOTA = function (n) { return 440 * Math.pow(2, (n - 69) / 12); }; /* n = número MIDI */
   /* 16 compassos (cada um = 8 colcheias): [baixo, acorde] */
   var C = [48, [60, 64, 67]], G = [43, [59, 62, 67]], Am = [45, [57, 60, 64]], F = [41, [57, 60, 65]];
@@ -1201,7 +1202,7 @@ var MUSICA = (function () {
     g.gain.setValueAtTime(pico, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.2);
   }
   return {
-    PASSOS: 8 * 16, /* uma volta inteira = 16 compassos de 8 colcheias */
+    BPM: MUSICA_BPM, PASSOS: 8 * 16, /* uma volta inteira = 16 compassos de 8 colcheias */
     dur: function () { return 60 / MUSICA_BPM / 2; }, /* uma colcheia, em segundos */
     agendar: function (ctx, dest, eco, passo, t) { /* toca o que acontece na colcheia "passo" da volta, no instante t */
       var comp = Math.floor(passo / 8) % 16, p = passo % 8, ac = COMPASSOS[comp], d = 60 / MUSICA_BPM / 2;
@@ -1226,11 +1227,69 @@ var MUSICA = (function () {
     }
   };
 })();
-var musicaNo = { ligada: false, mestre: null, eco: null, passo: 0, proximo: 0, timer: null, ctx: null, mudo: false };
-try { musicaNo.mudo = localStorage.getItem('mgo-musica') === '0'; } catch (e) {}
+
+/* Trilha épica: ré menor, 100 por minuto, metais e cordas sintetizados, tímpanos e um prato que abre a cada 4 compassos. Mesma ideia, mais heróica. */
+var MUSICA_EPICA = (function () {
+  var MUSICA_BPM = 100;
+  var NOTA = function (n) { return 440 * Math.pow(2, (n - 69) / 12); };
+  var Dm = [50, [62, 65, 69]], Bb = [46, [58, 62, 65]], F = [53, [60, 65, 69]], Cc = [48, [60, 64, 67]], Gm = [43, [58, 62, 67]], A = [45, [57, 61, 64]];
+  var COMPASSOS = [Dm, Bb, F, Cc, Dm, Bb, Cc, A, Gm, Dm, Bb, F, Gm, Dm, A, Dm];
+  var MEL = [
+    [[0, 74, 4], [4, 77, 2], [6, 81, 2]], [[0, 82, 4], [4, 81, 2], [6, 77, 2]], [[0, 77, 4], [4, 81, 2], [6, 84, 2]], [[0, 84, 3], [3, 81, 1], [4, 79, 4]],
+    [[0, 74, 2], [2, 77, 2], [4, 81, 4]], [[0, 82, 2], [2, 86, 2], [4, 84, 2], [6, 82, 2]], [[0, 84, 2], [2, 81, 2], [4, 79, 2], [6, 76, 2]], [[0, 81, 4], [4, 85, 2], [6, 81, 2]],
+    [[0, 79, 4], [4, 82, 2], [6, 86, 2]], [[0, 86, 4], [4, 84, 2], [6, 81, 2]], [[0, 82, 3], [3, 86, 1], [4, 89, 4]], [[0, 89, 2], [2, 86, 2], [4, 84, 4]],
+    [[0, 86, 4], [4, 82, 2], [6, 79, 2]], [[0, 81, 4], [4, 77, 2], [6, 74, 2]], [[0, 81, 2], [2, 85, 2], [4, 88, 4]], [[0, 86, 6], [6, 81, 2]]
+  ];
+  function nota(ctx, dest, tipo, freq, t, dur, pico, ataque, filtro) {
+    var o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = tipo; o.frequency.value = freq; f.type = 'lowpass'; f.frequency.value = filtro || 2000;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pico, t + ataque); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function ruido(ctx) { if (!ctx._ruido) { var n = Math.floor(ctx.sampleRate * 0.2), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; ctx._ruido = b; } return ctx._ruido; }
+  function prato(ctx, dest, t, dur, pico) {
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = ruido(ctx); s.loop = true; f.type = 'highpass'; f.frequency.value = 5500;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pico, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + dur + 0.05);
+  }
+  function timpano(ctx, dest, t, freq, pico) {
+    var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(freq * 1.9, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.14);
+    g.gain.setValueAtTime(pico, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.5);
+  }
+  return {
+    BPM: MUSICA_BPM, PASSOS: 8 * 16,
+    dur: function () { return 60 / MUSICA_BPM / 2; },
+    agendar: function (ctx, dest, eco, passo, t) {
+      var comp = Math.floor(passo / 8) % 16, p = passo % 8, ac = COMPASSOS[comp], d = 60 / MUSICA_BPM / 2;
+      if (p === 0) { /* cordas longas (colchão) e baixo grave */
+        ac[1].forEach(function (n, k) { nota(ctx, dest, 'sawtooth', NOTA(n - 12), t + k * 0.015, d * 8, 0.08, 0.5, 750); });
+        nota(ctx, dest, 'triangle', NOTA(ac[0]), t, d * 4, 0.5, 0.02, 650);
+        if (comp % 4 === 0) prato(ctx, dest, t, d * 7, 0.1);
+      }
+      if (p === 4) nota(ctx, dest, 'triangle', NOTA(ac[0]), t, d * 3, 0.36, 0.02, 650);
+      /* pulso de cordas: uma nota curta por colcheia (sobe e desce no acorde) */
+      nota(ctx, dest, 'sawtooth', NOTA(ac[1][[0, 2, 1, 2, 0, 2, 1, 2][p]]), t, d * 1.1, 0.075, 0.008, 1500);
+      /* tímpanos: forte no 1, depois no "e" do 2 e no 4 */
+      if (p === 0) timpano(ctx, dest, t, NOTA(ac[0] - 12), 0.8);
+      if (p === 3) timpano(ctx, dest, t, NOTA(ac[0] - 12), 0.45);
+      if (p === 6) timpano(ctx, dest, t, NOTA(ac[0] - 5), 0.4);
+      /* metais: melodia grandiosa, com eco */
+      MEL[comp].forEach(function (n) {
+        if (n[0] !== p) return; var dn = d * n[2];
+        nota(ctx, dest, 'sawtooth', NOTA(n[1]), t, dn + 0.2, 0.17, 0.05, 2100);
+        nota(ctx, dest, 'square', NOTA(n[1] - 12), t, dn + 0.2, 0.05, 0.05, 1200);
+        if (eco) nota(ctx, eco, 'sawtooth', NOTA(n[1]), t, dn + 0.2, 0.12, 0.05, 2100);
+      });
+    }
+  };
+})();
+var FAIXAS = { a: MUSICA_AVENTURA, e: MUSICA_EPICA };
+var MUSICA_EPICA_ATIVA = false; /* a faixa épica está pronta mas desligada (decisão dele, 13/11); true = o botão passa a oferecer aventura / épica / sem música */
+var musicaNo = { ligada: false, mestre: null, eco: null, passo: 0, proximo: 0, timer: null, ctx: null, mudo: false, faixa: 'a' };
+try { var escMus = localStorage.getItem('mgo-musica'); musicaNo.mudo = escMus === '0'; if (escMus === 'e' && MUSICA_EPICA_ATIVA) musicaNo.faixa = 'e'; } catch (e) {}
+function faixaAtual() { return FAIXAS[musicaNo.faixa] || MUSICA_AVENTURA; }
 function montarMusica(ctx) {
   var mestre = ctx.createGain(); mestre.gain.value = MUSICA_VOL; mestre.connect(ctx.destination);
-  var eco = ctx.createDelay(1); eco.delayTime.value = 60 / MUSICA_BPM * 0.75;
+  var eco = ctx.createDelay(1); eco.delayTime.value = 60 / faixaAtual().BPM * 0.75;
   var fb = ctx.createGain(); fb.gain.value = 0.32; var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
   var mix = ctx.createGain(); mix.gain.value = 0.5;
   eco.connect(lp); lp.connect(fb); fb.connect(eco); lp.connect(mix); mix.connect(mestre);
@@ -1240,9 +1299,9 @@ function ciclo() {
   var ctx = obterAudio(); if (!ctx || !musicaNo.ligada) return;
   if (ctx !== musicaNo.ctx) { musicaNo.ctx = ctx; var n = montarMusica(ctx); musicaNo.mestre = n.mestre; musicaNo.eco = n.eco; musicaNo.proximo = ctx.currentTime + 0.1; }
   if (ctx.state !== 'running') return;
-  var agora = ctx.currentTime, d = MUSICA.dur();
+  var fx = faixaAtual(), agora = ctx.currentTime, d = fx.dur();
   if (musicaNo.proximo < agora) musicaNo.proximo = agora + 0.05; /* ficou parada (tela apagou): recomeça sem tentar recuperar o tempo perdido */
-  while (musicaNo.proximo < agora + 0.5) { MUSICA.agendar(ctx, musicaNo.mestre, musicaNo.eco, musicaNo.passo % MUSICA.PASSOS, musicaNo.proximo); musicaNo.passo++; musicaNo.proximo += d; }
+  while (musicaNo.proximo < agora + 0.5) { fx.agendar(ctx, musicaNo.mestre, musicaNo.eco, musicaNo.passo % fx.PASSOS, musicaNo.proximo); musicaNo.passo++; musicaNo.proximo += d; }
 }
 function ligarMusica() {
   if (!DADOS.livre || musicaNo.mudo || musicaNo.ligada) return;
@@ -1254,12 +1313,14 @@ function baixarMusica(seg) { /* some a música por uns segundos (ex.: na fanfarr
   g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(MUSICA_VOL * 0.12, t + 0.4); g.linearRampToValueAtTime(MUSICA_VOL, t + seg);
 }
 if (DADOS.livre) {
-  var bMus = document.createElement('button'); bMus.id = 'bMusica'; bMus.title = 'Música de fundo'; bMus.textContent = musicaNo.mudo ? '🔇' : '🎵';
+  var bMus = document.createElement('button'); bMus.id = 'bMusica'; bMus.title = 'Música de fundo'; bMus.textContent = musicaNo.mudo ? '🔇' : (musicaNo.faixa === 'e' ? '⚔️' : '🎵');
   document.getElementById('painel').appendChild(bMus);
-  bMus.onclick = function () {
-    musicaNo.mudo = !musicaNo.mudo; try { localStorage.setItem('mgo-musica', musicaNo.mudo ? '0' : '1'); } catch (e) {}
-    bMus.textContent = musicaNo.mudo ? '🔇' : '🎵';
-    if (musicaNo.mudo) desligarMusica(); else ligarMusica();
+  bMus.onclick = function () { /* a cada toque: aventura -> épica -> sem música -> aventura */
+    var nome;
+    if (MUSICA_EPICA_ATIVA && !musicaNo.mudo && musicaNo.faixa === 'a') { desligarMusica(); musicaNo.faixa = 'e'; musicaNo.passo = 0; ligarMusica(); nome = 'Música épica'; bMus.textContent = '⚔️'; try { localStorage.setItem('mgo-musica', 'e'); } catch (e) {} }
+    else if (!musicaNo.mudo) { musicaNo.mudo = true; desligarMusica(); nome = 'Sem música'; bMus.textContent = '🔇'; try { localStorage.setItem('mgo-musica', '0'); } catch (e) {} }
+    else { musicaNo.mudo = false; musicaNo.faixa = 'a'; musicaNo.passo = 0; ligarMusica(); nome = 'Música de aventura'; bMus.textContent = '🎵'; try { localStorage.setItem('mgo-musica', 'a'); } catch (e) {} }
+    aviso(nome); setTimeout(function () { aviso(''); }, 1800);
   };
   /* navegador só deixa tocar depois de um toque: liga no primeiro toque em qualquer lugar */
   var primeiroToque = function () { document.removeEventListener('pointerdown', primeiroToque, true); ligarMusica(); };
