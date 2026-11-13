@@ -196,7 +196,7 @@
 </div>
 <div id="sangue"></div>
 <div id="parabens" style="display:none"><canvas id="confete"></canvas><div class="caixaP"><img src="mineu-comemora.png" alt="Mineu comemorando"><div class="estrelas">★ ★ ★</div><h2>Missão cumprida!</h2><p>Todos os zumbis e monstros foram derrotados.</p><div class="statsP"><div><b id="pZumbis">0</b><span>zumbis</span></div><div><b id="pMonstros">0</b><span>monstros</span></div><div><b id="pTempo">0:00</b><span>tempo</span></div></div><button id="bDeNovo">Jogar de novo</button></div></div>
-<div id="pausaSat">⏸ Vista de cima — jogo pausado</div><div id="aviso" style="display:none"></div>
+<div id="pausaSat">👁 Vista de cima — você fica invisível e não joga</div><div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
 <div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
@@ -463,6 +463,7 @@ function dispararFogo(i, tp, alvoJ) {
   net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: TEMPO_VOO_FOGO_MS });
   voarFogo(de, alvo, i.final, TEMPO_VOO_FOGO_MS, function () {
     i.balaEmVoo = false;
+    if (alvoJ ? alvoJ.sat : satelite) return; // se foi pro satélite enquanto o fogo voava, não leva dano
     var ref = alvoJ || POS; // posição ATUAL de quem foi mirado
     var dl = (alvo.lat - ref.lat) * 111320, dn = (alvo.lng - ref.lng) * 111320 * Math.cos(ref.lat * rad);
     if (Math.sqrt(dl * dl + dn * dn) > RAIO_ACERTO_FOGO_M) return;
@@ -492,8 +493,8 @@ function moverInimigos(dt, agora) {
   quadroMov++;
   inimigos.forEach(function (i) {
     if (!i.vivo) return;
-    var eu = metrosAte(i.lat, i.lng), m = eu, anda = false, alvoJ = null, tp = POS;
-    for (var pidJ in outros) { var oj = outros[pidJ]; if (!oj.visto) continue; var da = metrosDe(oj, i.lat, i.lng); if (da.d < m.d) { m = da; alvoJ = oj; tp = oj; } }
+    var eu = metrosAte(i.lat, i.lng), m = satelite ? { d: 1e9, ang: 0 } : eu, anda = false, alvoJ = null, tp = POS; /* quem está na vista de satélite fica invisível: ninguém o persegue */
+    for (var pidJ in outros) { var oj = outros[pidJ]; if (!oj.visto || oj.sat) continue; var da = metrosDe(oj, i.lat, i.lng); if (da.d < m.d) { m = da; alvoJ = oj; tp = oj; } }
     var naArea = eu.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, eu.ang)) <= GALHO_CONE;
     if (naArea && !i.naArea) i.tEntrada = agora;
     i.naArea = naArea;
@@ -610,7 +611,7 @@ document.getElementById('bSat').onclick = function () {
   if (satelite) { antesSat = { inc: inclinacao, zoom: zoom }; inclinacao = 0; zoom = ZOOM_SATELITE; } // de cima e no melhor nível da foto
   else if (antesSat) { inclinacao = antesSat.inc; zoom = antesSat.zoom; antesSat = null; }
   pintaInc();
-  document.body.classList.toggle('sat-pausa', congelado());
+  document.body.classList.toggle('sat-pausa', satelite);
 };
 mapa.addControl(new maplibregl.ScaleControl({ maxWidth: 90, unit: 'metric' }), 'top-left');
 function anelDe(raioM) { var c = circulo(POS.lat, POS.lng, raioM, 72); return { type: 'Feature', geometry: { type: 'LineString', coordinates: c } }; }
@@ -718,7 +719,7 @@ function celulaDe(g, lat, lng) {
 }
 function atualizarCampo() {
   var g = GRADE; if (!g) return;
-  var n = g.n, fontes = [POS]; for (var pidC in outros) { if (outros[pidC].visto) fontes.push(outros[pidC]); }
+  var n = g.n, fontes = satelite ? [] : [POS]; for (var pidC in outros) { if (outros[pidC].visto && !outros[pidC].sat) fontes.push(outros[pidC]); }
   g.dist.fill(-1); g.ok = false;
   var fila = new Int32Array(n * n), ini = 0, fim = 0;
   fontes.forEach(function (p) {
@@ -977,9 +978,9 @@ function golpeDoGalho() {
     if (alvo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, GALHO_DANO); }
   }, 140);
 }
-elTroca.onclick = function () { if (congelado()) return; ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
+elTroca.onclick = function () { if (satelite) return; ativa = ORDEM_ARMAS[(ORDEM_ARMAS.indexOf(ativa) + 1) % ORDEM_ARMAS.length]; pintaMunicao(); };
 [elReserva, elReserva2].forEach(function (e) { e.onclick = function () { ativa = e._arma; pintaMunicao(); }; }); // tocar numa bolinha de trás escolhe aquela arma
-document.getElementById("btnAtirar").onclick = function () { if (congelado()) return; if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
+document.getElementById("btnAtirar").onclick = function () { if (satelite) return; if (ativa === "galho") golpeDoGalho(); else tiroDoMineu(); };
 pintaMunicao();
 
 // ---------- GPS e bússola de verdade (no celular) ----------
@@ -1036,12 +1037,12 @@ function atualizarBatalha(dt, agora) {
   if (era !== emBatalha) pintaInc();
   fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
 }
-function congelado() { return satelite && !DADOS.dupla; } /* vista de cima = jogo parado */
+function congelado() { return satelite && !DADOS.dupla; } /* vista de cima: no solo o jogo para (nada te persegue); na dupla o mundo segue e voce fica invisivel (ver editar-dupla.js) */
 function quadro(agora) {
   var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
   var andando = false;
   if (!modoReal) {
-    var par = congelado();
+    var par = satelite;
     if (tecla.esq && !par) heading -= 110 * dt;
     if (tecla.dir && !par) heading += 110 * dt;
     var v = par ? 0 : (tecla.anda ? 1 : 0) - (tecla.volta ? 0.6 : 0);
@@ -1261,6 +1262,7 @@ function atualizarOutros(dt) {
   var k = 1 - Math.exp(-6 * dt);
   for (var pid in outros) {
     var j = outros[pid]; if (!j.el || !j.visto) continue;
+    j.el.style.display = j.sat ? 'none' : '';
     j.lat += (j.alvoLat - j.lat) * k; j.lng += (j.alvoLng - j.lng) * k;
     j.el._mk.setLngLat([j.lng, j.lat]); j.el._ll = [j.lng, j.lat];
     j.el.querySelector('.vida i').style.width = Math.max(0, j.vida) + '%';
@@ -1300,7 +1302,7 @@ function aplicarEstado(m) {
   net.ultimoJs = m.js || [];
   (m.js || []).forEach(function (e) { // [pid, lat, lng, vida, arma, slot, nome, cor]
     if (e[0] === net.pid) return;
-    var j = novoOutro(e[0], e[5], e[6], e[7]); j.conectado = true; posDoOutro(j, e[1], e[2], e[3], e[4]);
+    var j = novoOutro(e[0], e[5], e[6], e[7]); j.conectado = true; posDoOutro(j, e[1], e[2], e[3], e[4]); j.sat = !!e[8];
   });
   var presentes = {}; (m.js || []).forEach(function (e) { presentes[e[0]] = 1; });
   for (var kk in outros) { if (!presentes[kk]) { removerAvatar(outros[kk]); delete outros[kk]; } } // quem saiu some do mapa
@@ -1321,8 +1323,8 @@ function atualizarComoConvidado(dt, agora) {
   });
 }
 function estadoParaConvidados() {
-  var js = [[net.pid, POS.lat, POS.lng, vidaMineu, ativa, eu.slot, eu.nome, eu.cor]];
-  for (var k in outros) { var j = outros[k]; if (j.conectado && j.visto) js.push([j.pid, j.alvoLat, j.alvoLng, j.vida, j.arma, j.slot, j.nome, j.cor]); }
+  var js = [[net.pid, POS.lat, POS.lng, vidaMineu, ativa, eu.slot, eu.nome, eu.cor, satelite ? 1 : 0]];
+  for (var k in outros) { var j = outros[k]; if (j.conectado && j.visto) js.push([j.pid, j.alvoLat, j.alvoLng, j.vida, j.arma, j.slot, j.nome, j.cor, j.sat ? 1 : 0]); }
   return { t: 'estado', r: rodada, js: js, m: inimigos.map(function (i) { return [i.id, i.lat, i.lng, Math.round(i.vida * 10) / 10, i.vivo ? 1 : 0, i.chefao ? 1 : 0, i.final ? 1 : 0, i.max]; }) };
 }
 
@@ -1449,7 +1451,7 @@ function aceitarJogador(conn, m) {
 }
 function aoReceberDoJogador(pid, m) {
   var j = outros[pid]; if (!j) return;
-  if (m.t === 'pos') { j.g = m.g; j.acc = m.acc; j.rtt = m.rd; j.via = m.rv; posDoOutro(j, m.x, m.y, m.v, m.a); redeDoAnfitriao(); }
+  if (m.t === 'pos') { j.sat = !!m.s; j.g = m.g; j.acc = m.acc; j.rtt = m.rd; j.via = m.rv; posDoOutro(j, m.x, m.y, m.v, m.a); redeDoAnfitriao(); }
   else if (m.t === 'ping') net.enviarPara(pid, { t: 'pong', c: m.c });
   else if (m.t === 'acerto') { var i = inimigos.filter(function (x) { return x.id === m.id; })[0]; if (i && i.vivo) { tocarSomImpacto(); estouro(i.el); acertouLocal(i, m.d); } }
   else if (m.t === 'atq') { m.p = pid; atqDeOutro(m); for (var k in outros) { if (k !== pid) net.enviarPara(k, m); } }
@@ -1519,7 +1521,7 @@ function ligarComoConvidado(conn) {
   conn.on('close', perdeuAnfitriao);
   conn.on('error', perdeuAnfitriao);
   clearInterval(net.tPos);
-  net.tPos = setInterval(function () { net.enviar({ t: 'pos', x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa, g: gpsStatus, acc: ALVO.acc || 0, rd: net.rtt, rv: net.via }); }, 400);
+  net.tPos = setInterval(function () { net.enviar({ t: 'pos', s: satelite ? 1 : 0, x: POS.lat, y: POS.lng, v: vidaMineu, a: ativa, g: gpsStatus, acc: ALVO.acc || 0, rd: net.rtt, rv: net.via }); }, 400);
   clearInterval(net.tPing); net.tPing = setInterval(function () { net.enviar({ t: 'ping', c: performance.now() }); descobrirVia(conn); }, 3000);
 }
 function aoReceberDoAnfitriao(m) {
@@ -1533,7 +1535,7 @@ function aoReceberDoAnfitriao(m) {
   else if (m.t === 'contagem') rodarContagem();
   else if (m.t === 'pong') { net.rtt = Math.round(performance.now() - m.c); atualizarChipRede(net.rtt, net.via, 'Anfitrião'); }
   else if (m.t === 'estado') { aplicarEstado(m); if (net.fase === 'sala') { net.fase = 'jogo'; jogoIniciado = true; document.getElementById('lobby').style.display = 'none'; } }
-  else if (m.t === 'dano') { levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
+  else if (m.t === 'dano') { if (satelite) return; levarDano(m.v); if (m.k === 'm') tocarSomMordida(); else tocarSomAtingido(); }
   else if (m.t === 'fogo') { tocarSomTiroChefao(!!m.f); voarFogo({ lat: m.de[0], lng: m.de[1] }, { lat: m.para[0], lng: m.para[1] }, !!m.f, m.dur, null); }
   else if (m.t === 'atq') atqDeOutro(m);
   else if (m.t === 'fim') { estat.zumbis = m.z; estat.monstros = m.mo; estat.t0 = performance.now() - m.s * 1000; celebrou = false; celebrarOrig(); celebrou = true; }
