@@ -531,7 +531,7 @@ function celebrar() {
   if (DADOS.livre) {
     venceuNivel = true; var ult = NIVEL >= NIVEL_MAX;
     document.querySelector('#parabens h2').textContent = ult ? 'Os ' + NIVEL_MAX + ' níveis cumpridos!' : 'Nível ' + NIVEL + ' cumprido!';
-    document.querySelector('#parabens .caixaP > p').textContent = ult ? 'Você derrotou todos os monstros dos 10 níveis. Incrível!' : 'Todos os zumbis e monstros foram derrotados. No próximo vêm 20% a mais!';
+    document.querySelector('#parabens .caixaP > p').textContent = ult ? 'Você derrotou todos os monstros dos ' + NIVEL_MAX + ' níveis. Incrível!' : 'Todos os zumbis e monstros foram derrotados. No próximo vêm muito mais!';
     document.getElementById('bDeNovo').textContent = ult ? 'Jogar de novo (nível 1)' : 'Próximo nível ➜';
   }
   document.getElementById('parabens').style.display = 'flex';
@@ -785,8 +785,8 @@ function spawnAoRedor(lat, lng) {
   if (DADOS.livre) definirAreaLivre(lat, lng);
   quandoMapaPronto(function () { if (carregarObstaculos(lat, lng)) construirGrade(lat, lng); spawnBase(lat, lng); });
 }
-// ---------- níveis do modo livre: +20% de zumbis e de chefões a cada nível (10 níveis) ----------
-var NIVEL = 1, NIVEL_MAX = 10, CRESCE_NIVEL = 1.2, TETO_ZUMBIS_NIVEL = 60, venceuNivel = false; /* teto de zumbis: celular fraco */
+// ---------- níveis do modo livre: 5 níveis, de 14 a 60 zumbis (+20% duas vezes por nível = x1,44) ----------
+var NIVEL = 1, NIVEL_MAX = 5, CRESCE_NIVEL = 1.44, TETO_ZUMBIS_NIVEL = 60, venceuNivel = false; /* teto de zumbis: celular fraco */
 function pintaNivel() { var t = document.getElementById('nivelTag'); if (t) { t.style.display = DADOS.livre ? 'block' : 'none'; t.textContent = 'Nível ' + NIVEL + ' de ' + NIVEL_MAX; } }
 function spawnBase(lat, lng) {
   if (venceuNivel) { NIVEL = NIVEL >= NIVEL_MAX ? 1 : NIVEL + 1; venceuNivel = false; }
@@ -1094,6 +1094,116 @@ mapa.on('load', function () {
   var at = document.querySelector('.maplibregl-ctrl-attrib'); // créditos do mapa: só o ícone ⓘ, no topo; toque pra abrir
   if (at) { at.classList.remove('maplibregl-compact-show'); at.removeAttribute('open'); }
   requestAnimationFrame(quadro); if (!DADOS.livre) quandoMapaPronto(ajustarInimigosFixos); });
+
+// ---------- musiquinha de fundo (modo livre e dupla) ----------
+/* Trilha de aventura: tom de dó maior, marcha animada (110 por minuto), melodia heróica que sobe e desce, baixo andando, pandeiro e bumbo bem leves, eco no solo. Tudo sintetizado aqui. */
+var MUSICA_BPM = 112, MUSICA_VOL = 0.09;
+var MUSICA = (function () {
+  var NOTA = function (n) { return 440 * Math.pow(2, (n - 69) / 12); }; /* n = número MIDI */
+  /* 16 compassos (cada um = 8 colcheias): [baixo, acorde] */
+  var C = [48, [60, 64, 67]], G = [43, [59, 62, 67]], Am = [45, [57, 60, 64]], F = [41, [57, 60, 65]];
+  var COMPASSOS = [C, G, Am, F, C, G, F, G, Am, F, C, G, Am, F, G, G];
+  /* melodia: [colcheia, nota MIDI, duração em colcheias] por compasso */
+  var MEL = [
+    [[0, 72, 2], [2, 76, 1], [3, 79, 2], [5, 76, 1], [6, 79, 2]],
+    [[0, 74, 2], [2, 79, 1], [3, 74, 2], [5, 71, 1], [6, 74, 2]],
+    [[0, 76, 2], [2, 81, 1], [3, 76, 2], [5, 72, 1], [6, 76, 2]],
+    [[0, 77, 2], [2, 81, 1], [3, 84, 2], [5, 81, 1], [6, 77, 2]],
+    [[0, 72, 2], [2, 76, 1], [3, 79, 2], [5, 84, 3]],
+    [[0, 83, 2], [2, 79, 1], [3, 74, 2], [5, 79, 3]],
+    [[0, 81, 2], [2, 77, 1], [3, 81, 2], [5, 84, 3]],
+    [[0, 83, 2], [2, 79, 2], [4, 74, 2], [6, 71, 2]],
+    [[0, 81, 3], [3, 79, 1], [4, 76, 2], [6, 72, 2]],
+    [[0, 77, 3], [3, 79, 1], [4, 81, 2], [6, 84, 2]],
+    [[0, 84, 3], [3, 79, 1], [4, 76, 2], [6, 79, 2]],
+    [[0, 79, 2], [2, 74, 1], [3, 79, 1], [4, 83, 4]],
+    [[0, 81, 2], [2, 84, 1], [3, 83, 2], [5, 81, 1], [6, 84, 2]],
+    [[0, 81, 2], [2, 84, 1], [3, 81, 2], [5, 77, 1], [6, 81, 2]],
+    [[0, 83, 2], [2, 79, 1], [3, 83, 2], [5, 86, 3]],
+    [[0, 79, 4], [4, 74, 2], [6, 79, 2]]
+  ];
+  function nota(ctx, dest, tipo, freq, t, dur, pico, ataque, filtro) {
+    var o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = tipo; o.frequency.value = freq; f.type = 'lowpass'; f.frequency.value = filtro || 2200;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(pico, t + ataque); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function ruido(ctx) { if (!ctx._ruido) { var n = Math.floor(ctx.sampleRate * 0.2), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; ctx._ruido = b; } return ctx._ruido; }
+  function chiado(ctx, dest, t, dur, pico, freqAlta) { /* pandeiro: ruído curto e agudo */
+    var s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = ruido(ctx); f.type = 'highpass'; f.frequency.value = freqAlta;
+    g.gain.setValueAtTime(pico, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + dur + 0.02);
+  }
+  function bumbo(ctx, dest, t, pico) {
+    var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+    g.gain.setValueAtTime(pico, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.2);
+  }
+  return {
+    PASSOS: 8 * 16, /* uma volta inteira = 16 compassos de 8 colcheias */
+    dur: function () { return 60 / MUSICA_BPM / 2; }, /* uma colcheia, em segundos */
+    agendar: function (ctx, dest, eco, passo, t) { /* toca o que acontece na colcheia "passo" da volta, no instante t */
+      var comp = Math.floor(passo / 8) % 16, p = passo % 8, ac = COMPASSOS[comp], d = 60 / MUSICA_BPM / 2;
+      if (p === 0) ac[1].forEach(function (n, k) { nota(ctx, dest, 'sine', NOTA(n - 12), t + k * 0.02, d * 8, 0.13, 0.25, 900); }); /* fundo suave do acorde */
+      /* baixo andando: raiz, quinta, raiz, oitava */
+      if (p === 0) nota(ctx, dest, 'triangle', NOTA(ac[0] + 12), t, d * 2, 0.42, 0.01, 700);
+      if (p === 2) nota(ctx, dest, 'triangle', NOTA(ac[0] + 19), t, d * 1.6, 0.26, 0.01, 700);
+      if (p === 4) nota(ctx, dest, 'triangle', NOTA(ac[0] + 12), t, d * 2, 0.36, 0.01, 700);
+      if (p === 6) nota(ctx, dest, 'triangle', NOTA(ac[0] + 24), t, d * 1.6, 0.22, 0.01, 700);
+      /* arpejo dedilhado do acorde, uma nota por colcheia */
+      var arp = ac[1][[0, 1, 2, 1, 0, 1, 2, 1][p]] + 12; nota(ctx, dest, 'triangle', NOTA(arp), t, d * 1.5, 0.16, 0.006, 2400);
+      /* ritmo leve: bumbo nos tempos 1 e 3, pandeiro nas colcheias */
+      if (p === 0 || p === 4) bumbo(ctx, dest, t, 0.55);
+      if (p % 2 === 1) chiado(ctx, dest, t, 0.05, 0.07, 6500); else if (p === 2 || p === 6) chiado(ctx, dest, t, 0.09, 0.1, 3500);
+      /* melodia principal, com eco */
+      MEL[comp].forEach(function (n) {
+        if (n[0] !== p) return; var dn = d * n[2] * 0.95;
+        nota(ctx, dest, 'triangle', NOTA(n[1]), t, dn + 0.15, 0.4, 0.015, 3200);
+        nota(ctx, dest, 'sine', NOTA(n[1] + 12), t, dn, 0.07, 0.015, 3200);
+        if (eco) nota(ctx, eco, 'triangle', NOTA(n[1]), t, dn + 0.15, 0.3, 0.015, 3200);
+      });
+    }
+  };
+})();
+var musicaNo = { ligada: false, mestre: null, eco: null, passo: 0, proximo: 0, timer: null, ctx: null, mudo: false };
+try { musicaNo.mudo = localStorage.getItem('mgo-musica') === '0'; } catch (e) {}
+function montarMusica(ctx) {
+  var mestre = ctx.createGain(); mestre.gain.value = MUSICA_VOL; mestre.connect(ctx.destination);
+  var eco = ctx.createDelay(1); eco.delayTime.value = 60 / MUSICA_BPM * 0.75;
+  var fb = ctx.createGain(); fb.gain.value = 0.32; var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+  var mix = ctx.createGain(); mix.gain.value = 0.5;
+  eco.connect(lp); lp.connect(fb); fb.connect(eco); lp.connect(mix); mix.connect(mestre);
+  return { mestre: mestre, eco: eco };
+}
+function ciclo() {
+  var ctx = obterAudio(); if (!ctx || !musicaNo.ligada) return;
+  if (ctx !== musicaNo.ctx) { musicaNo.ctx = ctx; var n = montarMusica(ctx); musicaNo.mestre = n.mestre; musicaNo.eco = n.eco; musicaNo.proximo = ctx.currentTime + 0.1; }
+  if (ctx.state !== 'running') return;
+  var agora = ctx.currentTime, d = MUSICA.dur();
+  if (musicaNo.proximo < agora) musicaNo.proximo = agora + 0.05; /* ficou parada (tela apagou): recomeça sem tentar recuperar o tempo perdido */
+  while (musicaNo.proximo < agora + 0.5) { MUSICA.agendar(ctx, musicaNo.mestre, musicaNo.eco, musicaNo.passo % MUSICA.PASSOS, musicaNo.proximo); musicaNo.passo++; musicaNo.proximo += d; }
+}
+function ligarMusica() {
+  if (!DADOS.livre || musicaNo.mudo || musicaNo.ligada) return;
+  musicaNo.ligada = true; ciclo(); musicaNo.timer = setInterval(ciclo, 150);
+}
+function desligarMusica() { musicaNo.ligada = false; if (musicaNo.timer) { clearInterval(musicaNo.timer); musicaNo.timer = null; } if (musicaNo.mestre) { try { musicaNo.mestre.gain.cancelScheduledValues(0); musicaNo.mestre.disconnect(); } catch (e) {} musicaNo.mestre = null; musicaNo.ctx = null; } }
+function baixarMusica(seg) { /* some a música por uns segundos (ex.: na fanfarra da vitória) */
+  if (!musicaNo.mestre || !musicaNo.ctx) return; var g = musicaNo.mestre.gain, t = musicaNo.ctx.currentTime;
+  g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(MUSICA_VOL * 0.12, t + 0.4); g.linearRampToValueAtTime(MUSICA_VOL, t + seg);
+}
+if (DADOS.livre) {
+  var bMus = document.createElement('button'); bMus.id = 'bMusica'; bMus.title = 'Música de fundo'; bMus.textContent = musicaNo.mudo ? '🔇' : '🎵';
+  document.getElementById('painel').appendChild(bMus);
+  bMus.onclick = function () {
+    musicaNo.mudo = !musicaNo.mudo; try { localStorage.setItem('mgo-musica', musicaNo.mudo ? '0' : '1'); } catch (e) {}
+    bMus.textContent = musicaNo.mudo ? '🔇' : '🎵';
+    if (musicaNo.mudo) desligarMusica(); else ligarMusica();
+  };
+  /* navegador só deixa tocar depois de um toque: liga no primeiro toque em qualquer lugar */
+  var primeiroToque = function () { document.removeEventListener('pointerdown', primeiroToque, true); ligarMusica(); };
+  document.addEventListener('pointerdown', primeiroToque, true);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && musicaNo.ligada) ciclo(); });
+  var celebrarMus = celebrar; celebrar = function () { celebrarMus(); baixarMusica(6); };
+}
 
 // ---------- jogar sem internet ----------
 (function offline() {
