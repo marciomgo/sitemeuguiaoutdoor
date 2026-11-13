@@ -134,6 +134,9 @@
   #bOffline:disabled{opacity:.6}
   #msgOff{color:#fff;font-size:13px;text-align:center;min-height:16px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
   #painel button.ligado{background:#ffd54f !important;box-shadow:0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.4)}
+  #foraArea{display:none;position:absolute;left:50%;top:54px;transform:translateX(-50%);z-index:6;background:rgba(198,40,40,.94);color:#fff;border:2px solid #fff;border-radius:14px;padding:8px 14px;font-size:14px;font-weight:bold;text-align:center;max-width:86%;box-shadow:0 3px 10px rgba(0,0,0,.45);pointer-events:none;animation:piscaArea 1.1s ease-in-out infinite}
+  body.fora-area #foraArea{display:block}
+  @keyframes piscaArea{0%,100%{opacity:1}50%{opacity:.72}}
   #pausaSat{display:none;position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:6;background:rgba(30,40,50,.82);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:bold;white-space:nowrap;pointer-events:none}
   body.sat-pausa #pausaSat{display:block}
   body.sat-pausa #controles, body.sat-pausa #trocaPedraWrap, body.sat-pausa #btnAtirar{opacity:.3;pointer-events:none}
@@ -152,18 +155,23 @@
 </div>
 <div id="sangue"></div>
 <div id="parabens" style="display:none"><canvas id="confete"></canvas><div class="caixaP"><img src="mineu-comemora.png" alt="Mineu comemorando"><div class="estrelas">★ ★ ★</div><h2>Missão cumprida!</h2><p>Todos os zumbis e monstros foram derrotados.</p><div class="statsP"><div><b id="pZumbis">0</b><span>zumbis</span></div><div><b id="pMonstros">0</b><span>monstros</span></div><div><b id="pTempo">0:00</b><span>tempo</span></div></div><button id="bDeNovo">Jogar de novo</button></div></div>
-<div id="pausaSat">👁 Vista de cima — você fica invisível e não joga</div><div id="aviso" style="display:none"></div>
+<div id="foraArea">⚠ Área proibida! Volte para a área do jogo</div><div id="pausaSat">👁 Vista de cima — você fica invisível e não joga</div><div id="aviso" style="display:none"></div>
 <button id="btnAtirar" aria-label="Atirar"><img src="https://static.wixstatic.com/media/f02643_23b401c7466341439fbcbc7e4b07773b~mv2.png" alt="Estilingue"></button>
 <div id="trocaPedraWrap"><span id="pedraReserva2" class="pedra-reserva">🪨</span><span id="pedraReserva" class="pedra-reserva esp">🪨</span><button id="btnTrocaPedra" aria-label="Trocar de munição"><span>🪨</span><small id="qtdPedra">150</small></button></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
 <script>
-const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[{"n":1,"lat":-30.0595556,"lng":-51.1684267},{"n":2,"lat":-30.059922,"lng":-51.168164},{"n":3,"lat":-30.0597871,"lng":-51.1688498},{"n":4,"lat":-30.0601378,"lng":-51.1686004}],"curas":[{"lat":-30.0602458,"lng":-51.1682575},{"lat":-30.0594903,"lng":-51.1687563}],"pedras":[{"lat":-30.0597871,"lng":-51.1683511,"esp":false},{"lat":-30.0602458,"lng":-51.1684758,"esp":false},{"lat":-30.0597871,"lng":-51.167977,"esp":false},{"lat":-30.0597062,"lng":-51.1682264,"esp":false},{"lat":-30.0594364,"lng":-51.1685381,"esp":false},{"lat":-30.0597331,"lng":-51.1684758,"esp":false},{"lat":-30.059895,"lng":-51.1680082,"esp":false},{"lat":-30.0602458,"lng":-51.1687251,"esp":false},{"lat":-30.059976,"lng":-51.1688498,"esp":true},{"lat":-30.0595173,"lng":-51.168164,"esp":true},{"lat":-30.0601109,"lng":-51.1681017,"esp":true}],"bombas":[{"lat":-30.05970285,"lng":-51.1684564,"e":"🍌"},{"lat":-30.059738799999998,"lng":-51.168295349999994,"e":"🐝"},{"lat":-30.05985455,"lng":-51.1685069,"e":"🐍"},{"lat":-30.05996245,"lng":-51.1687251,"e":"🐶"}],"chefoes":[{"lat":-30.059546240594088,"lng":-51.16836537185588,"final":false},{"lat":-30.059956645397577,"lng":-51.16811629499591,"final":false},{"lat":-30.059840998670502,"lng":-51.1688498,"final":false},{"lat":-30.060172445397576,"lng":-51.168648105108076,"final":true}],"zumbis":[{"lat":-30.059488069089415,"lng":-51.168398301278756},{"lat":-30.0596106517027,"lng":-51.16837332786241},{"lat":-30.05956807920788,"lng":-51.168508470858825},{"lat":-30.059880779990202,"lng":-51.16809598366496},{"lat":-30.05999359142638,"lng":-51.168156763230904},{"lat":-30.05989162858342,"lng":-51.168239253104126},{"lat":-30.0597871,"lng":-51.16876676749971},{"lat":-30.059849336823845,"lng":-51.16889131625014},{"lat":-30.059724863176157,"lng":-51.16889131625014},{"lat":-30.060179020009798,"lng":-51.168532383516705},{"lat":-30.06016817141658,"lng":-51.16867565326817},{"lat":-30.06006620857362,"lng":-51.168593163215135}]};
+const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"perimetro":[[-51.1695,-30.0592],[-51.1675,-30.0592],[-51.1675,-30.0605],[-51.1695,-30.0605],[-51.1695,-30.0592]],"pontos":[{"n":1,"lat":-30.0595556,"lng":-51.1684267},{"n":2,"lat":-30.059922,"lng":-51.168164},{"n":3,"lat":-30.0597871,"lng":-51.1688498},{"n":4,"lat":-30.0601378,"lng":-51.1686004}],"curas":[{"lat":-30.0602458,"lng":-51.1682575},{"lat":-30.0594903,"lng":-51.1687563}],"pedras":[{"lat":-30.0597871,"lng":-51.1683511,"esp":false},{"lat":-30.0602458,"lng":-51.1684758,"esp":false},{"lat":-30.0597871,"lng":-51.167977,"esp":false},{"lat":-30.0597062,"lng":-51.1682264,"esp":false},{"lat":-30.0594364,"lng":-51.1685381,"esp":false},{"lat":-30.0597331,"lng":-51.1684758,"esp":false},{"lat":-30.059895,"lng":-51.1680082,"esp":false},{"lat":-30.0602458,"lng":-51.1687251,"esp":false},{"lat":-30.059976,"lng":-51.1688498,"esp":true},{"lat":-30.0595173,"lng":-51.168164,"esp":true},{"lat":-30.0601109,"lng":-51.1681017,"esp":true}],"bombas":[{"lat":-30.05970285,"lng":-51.1684564,"e":"🍌"},{"lat":-30.059738799999998,"lng":-51.168295349999994,"e":"🐝"},{"lat":-30.05985455,"lng":-51.1685069,"e":"🐍"},{"lat":-30.05996245,"lng":-51.1687251,"e":"🐶"}],"chefoes":[{"lat":-30.059546240594088,"lng":-51.16836537185588,"final":false},{"lat":-30.059956645397577,"lng":-51.16811629499591,"final":false},{"lat":-30.059840998670502,"lng":-51.1688498,"final":false},{"lat":-30.060172445397576,"lng":-51.168648105108076,"final":true}],"zumbis":[{"lat":-30.059488069089415,"lng":-51.168398301278756},{"lat":-30.0596106517027,"lng":-51.16837332786241},{"lat":-30.05956807920788,"lng":-51.168508470858825},{"lat":-30.059880779990202,"lng":-51.16809598366496},{"lat":-30.05999359142638,"lng":-51.168156763230904},{"lat":-30.05989162858342,"lng":-51.168239253104126},{"lat":-30.0597871,"lng":-51.16876676749971},{"lat":-30.059849336823845,"lng":-51.16889131625014},{"lat":-30.059724863176157,"lng":-51.16889131625014},{"lat":-30.060179020009798,"lng":-51.168532383516705},{"lat":-30.06016817141658,"lng":-51.16867565326817},{"lat":-30.06006620857362,"lng":-51.168593163215135}]};
 
 var rad = Math.PI / 180;
 var MOSTRAR_ZONAS = false; // círculos/nuvens de alcance dos monstros: desligados; só o círculo do Mineu aparece (true = volta a mostrar)
 
 // ---------- estilo do mapa (cores originais do MGO) ----------
-var largura = ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 19, 9];
+/* largura das ruas em escala real (metros por classe -> pixels a cada zoom; vale em torno de 30 graus de latitude) */
+function larguraRua(extraM) {
+  function porClasse(mpp) { var o = ['match', ['get', 'class']]; [['primary', 12], ['trunk', 12], ['secondary', 10], ['tertiary', 8], ['minor', 6], ['service', 4]].forEach(function (c) { o.push(c[0], (c[1] + extraM) / mpp); }); o.push((6 + extraM) / mpp); return o; }
+  return ['interpolate', ['exponential', 2], ['zoom'], 14, porClasse(4.14), 19, porClasse(0.129)];
+}
+var largura = larguraRua(0);
 var ESTILO = {
   version: 8,
   sources: { omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' }, sat: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19, attribution: 'Imagens © Esri' } },
@@ -177,12 +185,16 @@ var ESTILO = {
     { id: 'quadra', type: 'fill', source: 'omt', 'source-layer': 'landuse', filter: ['in', ['get', 'class'], ['literal', ['pitch', 'playground']]], paint: { 'fill-color': '#f3dba5' } },
     { id: 'agua', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#80cfee' } },
     { id: 'rio', type: 'line', source: 'omt', 'source-layer': 'waterway', paint: { 'line-color': '#80cfee', 'line-width': largura } },
-    { id: 'rua-borda', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e0cfb0', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.2, 19, 13] } },
+    { id: 'rua-borda', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e0cfb0', 'line-width': larguraRua(1.6) } },
     { id: 'rua', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fffaf0', 'line-width': largura } },
     { id: 'trilha', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['path', 'track', 'pedestrian']]], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#f2c27a', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 1, 19, 3.5], 'line-dasharray': [2, 1.4] } },
     // construções planas, só marcadas no chão (sem 3D); o desenho vem do OpenStreetMap
     { id: 'predio', type: 'fill', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'fill-color': '#e9d2b0', 'fill-opacity': 0.95 } },
     { id: 'predio-borda', type: 'line', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'line-color': '#b98f62', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 20, 2] } },
+    // perímetro do jogo: fora da área fica sombreado de vermelho; a linha marca o limite
+    { id: 'area-fora', type: 'fill', source: 'area-fora', paint: { 'fill-color': '#d32f2f', 'fill-opacity': 0.16 } },
+    { id: 'area-linha-fundo', type: 'line', source: 'area-linha', layout: { 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 } },
+    { id: 'area-linha', type: 'line', source: 'area-linha', layout: { 'line-join': 'round' }, paint: { 'line-color': '#e53935', 'line-width': 4.5 } },
     // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
     { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
@@ -213,6 +225,8 @@ var camadasZona = [], bordasZona = [];
     camadasZona.push(ft); if (i === 0) bordasZona.push(ft);
   });
 });
+ESTILO.sources['area-fora'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
+ESTILO.sources['area-linha'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources['alcance-fill'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources['galho-alc'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
 ESTILO.sources.alcance = { type: 'geojson', data: { type: 'FeatureCollection', features: [] } };
@@ -728,7 +742,37 @@ function ajustarInimigosFixos() {
   });
   window.__ajuste = { obstaculos: n, mexidos: mexidos };
 }
+// ---------- área do jogo (perímetro) ----------
+var AREA = null, RAIO_AREA_LIVRE_M = 150, foraDaArea = false; // AREA = { anel: [[lng,lat],...] } ou { lat, lng, raio }
+function anelDaArea() { return AREA.anel || circulo(AREA.lat, AREA.lng, AREA.raio, 120); }
+function pintarArea() {
+  if (!AREA) return;
+  quandoMapaPronto(function () {
+    var anel = anelDaArea(), mundo = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
+    mapa.getSource('area-fora').setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [mundo, anel] } });
+    mapa.getSource('area-linha').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anel } });
+  });
+}
+function definirAreaLivre(lat, lng) { // modo livre/dupla: círculo de 150 m em volta de onde o jogo começa
+  if (AREA && AREA.raio && Math.abs(AREA.lat - lat) < 1e-7 && Math.abs(AREA.lng - lng) < 1e-7) return;
+  AREA = { lat: lat, lng: lng, raio: RAIO_AREA_LIVRE_M }; pintarArea();
+}
+function dentroDaArea(lat, lng) {
+  if (!AREA) return true;
+  if (AREA.raio) return Math.hypot((lat - AREA.lat) * 111320, (lng - AREA.lng) * 111320 * Math.cos(AREA.lat * rad)) <= AREA.raio;
+  var a = AREA.anel, dentro = false;
+  for (var i = 0, j = a.length - 1; i < a.length; j = i++) { if (((a[i][1] > lat) !== (a[j][1] > lat)) && (lng < (a[j][0] - a[i][0]) * (lat - a[i][1]) / (a[j][1] - a[i][1]) + a[i][0])) dentro = !dentro; }
+  return dentro;
+}
+function checarArea() {
+  var fora = !dentroDaArea(POS.lat, POS.lng);
+  if (fora === foraDaArea) return;
+  foraDaArea = fora; document.body.classList.toggle('fora-area', fora);
+  if (fora && navigator.vibrate) navigator.vibrate([120, 80, 120]);
+}
+if (DADOS.perimetro) { AREA = { anel: DADOS.perimetro }; pintarArea(); }
 function spawnAoRedor(lat, lng) {
+  if (DADOS.livre) definirAreaLivre(lat, lng);
   quandoMapaPronto(function () { if (carregarObstaculos(lat, lng)) construirGrade(lat, lng); spawnBase(lat, lng); });
 }
 function spawnBase(lat, lng) {
@@ -1000,6 +1044,7 @@ function quadro(agora) {
   if (!congelado()) moverInimigos(dt, agora);
   atualizarMira();
   if (++contaQuadro % 3 === 0) atualizarAlcance();
+  if (contaQuadro % 6 === 0) checarArea();
   if (GRADE && contaQuadro % 20 === 0) {
     var dgl = (POS.lat - GRADE.lat0) * 111320, dgn = (POS.lng - GRADE.lng0) * 111320 * GRADE.cl;
     if (dgl * dgl + dgn * dgn > 50 * 50) { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); } else atualizarCampo();
