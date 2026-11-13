@@ -226,11 +226,9 @@ var ESTILO = {
     { id: 'rua-borda', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#e0cfb0', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 14, 1.2, 19, 13] } },
     { id: 'rua', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'tertiary', 'secondary', 'primary', 'trunk']]], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fffaf0', 'line-width': largura } },
     { id: 'trilha', type: 'line', source: 'omt', 'source-layer': 'transportation', filter: ['in', ['get', 'class'], ['literal', ['path', 'track', 'pedestrian']]], layout: { 'line-cap': 'round' }, paint: { 'line-color': '#f2c27a', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 1, 19, 3.5], 'line-dasharray': [2, 1.4] } },
-    { id: 'predio', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: {
-        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 8], 0, '#f7e8d2', 40, '#ecd5b5', 90, '#dcbf9a'],
-        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
-        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-        'fill-extrusion-opacity': 0.97, 'fill-extrusion-vertical-gradient': true } },
+    // construções planas, só marcadas no chão (sem 3D); o desenho vem do OpenStreetMap
+    { id: 'predio', type: 'fill', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'fill-color': '#e9d2b0', 'fill-opacity': 0.95 } },
+    { id: 'predio-borda', type: 'line', source: 'omt', 'source-layer': 'building', minzoom: 14, paint: { 'line-color': '#b98f62', 'line-width': ['interpolate', ['linear'], ['zoom'], 15, 0.6, 20, 2] } },
     // nuvem de zona do chefão (camadas empilhadas, bem fraquinhas)
     { id: 'zona', type: 'fill', source: 'zona', paint: { 'fill-color': ['get', 'cor'], 'fill-opacity': 0.05 } },
     { id: 'galho-fundo', type: 'fill', source: 'galho-alc', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0.32 } },
@@ -601,6 +599,7 @@ function aplicarSatelite() {
   mapa.setLayoutProperty('sat', 'visibility', satelite ? 'visible' : 'none');
   CAMADAS_PLANAS.forEach(function (id) { mapa.setLayoutProperty(id, 'visibility', satelite ? 'none' : 'visible'); });
   mapa.setLayoutProperty('predio', 'visibility', satelite ? 'none' : 'visible');
+  mapa.setLayoutProperty('predio-borda', 'visibility', satelite ? 'none' : 'visible');
   mapa.setPaintProperty('rua', 'line-opacity', satelite ? 0.35 : 1);
   mapa.setPaintProperty('rua-borda', 'line-opacity', satelite ? 0 : 1);
 }
