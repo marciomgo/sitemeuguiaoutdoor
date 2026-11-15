@@ -439,7 +439,7 @@ function mordida(agora) {
   }
 }
 var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
-var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_VOO_MIN_MS = 2500, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
+var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_ALCANCE_M = 35, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
   tocarTom(150 * g, 45 * g, final ? 520 : 380, 'sawtooth', 0.22);
@@ -456,7 +456,7 @@ function levarDano(v) {
   }
 }
 // bola de fogo: o voo é visual (aparece em todos os celulares); o dano é decidido só pelo anfitrião
-function voarFogo(de, alvo, final, dur, aoChegar) {
+function voarFogo(de, alvo, final, dur, aoChegar, aoMover) { /* aoMover(pos) devolve true se o fogo acertou alguém (some na hora) */
   var fora = document.createElement('div'); fora.style.zIndex = 99990;
   var el = document.createElement('div'); el.className = 'fogo' + (final ? ' roxo' : ''); el.textContent = '🔥'; fora.appendChild(el);
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
@@ -466,24 +466,31 @@ function voarFogo(de, alvo, final, dur, aoChegar) {
     mk.setLngLat([de.lng + (alvo.lng - de.lng) * t, de.lat + (alvo.lat - de.lat) * t]);
     el.style.transform = 'translateY(' + (-(34 - 22 * t)) + 'px)';
     if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, final ? 'roxo' : 'fogo'); }
+    if (aoMover && aoMover({ lat: de.lat + (alvo.lat - de.lat) * t, lng: de.lng + (alvo.lng - de.lng) * t })) { mk.remove(); if (aoChegar) aoChegar(); return; }
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove(); if (aoChegar) aoChegar();
   })(t0);
 }
-function dispararFogo(i, tp, alvoJ) {
+function dispararFogo(i, tp, alvoJ) { /* o fogo segue reto na direção de quem foi mirado até o limite do alcance (35 m); acerta qualquer jogador visível a menos de 3 m do caminho */
   i.balaEmVoo = true;
   tocarSomTiroChefao(i.final);
-  var de = { lat: i.lat, lng: i.lng }, alvo = { lat: tp.lat, lng: tp.lng };
-  var durF = duracaoFogo(Math.hypot((alvo.lat - de.lat) * 111320, (alvo.lng - de.lng) * 111320 * Math.cos(de.lat * rad)));
-  net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: durF });
-  voarFogo(de, alvo, i.final, durF, function () {
-    i.balaEmVoo = false;
-    if (alvoJ ? alvoJ.sat : satelite) return; // se foi pro satélite enquanto o fogo voava, não leva dano
-    var ref = alvoJ || POS; // posição ATUAL de quem foi mirado
-    var dl = (alvo.lat - ref.lat) * 111320, dn = (alvo.lng - ref.lng) * 111320 * Math.cos(ref.lat * rad);
-    if (Math.sqrt(dl * dl + dn * dn) > RAIO_ACERTO_FOGO_M) return;
-    var v = i.final ? DANO_FOGO_FINAL : DANO_FOGO;
-    if (alvoJ) net.enviarPara(alvoJ.pid, { t: 'dano', v: v, k: 'f' }); else { tocarSomAtingido(); levarDano(v); }
+  var cl = Math.cos(i.lat * rad), dl = (tp.lat - i.lat) * 111320, dn = (tp.lng - i.lng) * 111320 * cl, dd = Math.hypot(dl, dn) || 1;
+  var de = { lat: i.lat, lng: i.lng }, fim = { lat: i.lat + (dl / dd * FOGO_ALCANCE_M) / 111320, lng: i.lng + (dn / dd * FOGO_ALCANCE_M) / (111320 * cl) };
+  var durF = (FOGO_ALCANCE_M / FOGO_VEL_MS) * 1000;
+  net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [fim.lat, fim.lng], f: i.final ? 1 : 0, dur: durF });
+  voarFogo(de, fim, i.final, durF, function () { i.balaEmVoo = false; }, function (pos) {
+    var alvos = [{ ref: POS, pid: null, sat: satelite }];
+    for (var kj in outros) { var oj = outros[kj]; if (oj.visto) alvos.push({ ref: oj, pid: oj.pid, sat: oj.sat }); }
+    for (var q = 0; q < alvos.length; q++) {
+      var a = alvos[q]; if (a.sat) continue; /* quem está na vista de cima não é atingido */
+      var ex = (pos.lat - a.ref.lat) * 111320, ey = (pos.lng - a.ref.lng) * 111320 * Math.cos(a.ref.lat * rad);
+      if (Math.sqrt(ex * ex + ey * ey) <= RAIO_ACERTO_FOGO_M) {
+        var v = i.final ? DANO_FOGO_FINAL : DANO_FOGO;
+        if (a.pid) net.enviarPara(a.pid, { t: 'dano', v: v, k: 'f' }); else { tocarSomAtingido(); levarDano(v); }
+        return true;
+      }
+    }
+    return false;
   });
 }
 // contorna construções e água: olha 2,2 m à frente e, se bater, vira pro lado livre mais próximo (e continua do mesmo lado até o caminho direto abrir)
