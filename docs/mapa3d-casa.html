@@ -370,7 +370,6 @@ function tiroDoMineu() {
     mk.setLngLat([de.lng + (para.lng - de.lng) * t, de.lat + (para.lat - de.lat) * t]);
     var h = altIni + (altFim - altIni) * t + Math.sin(Math.PI * t) * arco;
     el.style.transform = 'translate(' + (iniX * Math.max(0, 1 - t * 3)) + 'px,' + (-h) + 'px) rotate(' + (t * 1100) + 'deg)';
-    rastro(el, tipo === 'esp');
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove();
     if (alvo && alvo.vivo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, DANO[tipo]); }
