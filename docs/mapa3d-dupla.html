@@ -394,8 +394,11 @@ function estouro(el) {
   d.className = 'estouro'; d.style.left = (b.left + b.width / 2) + 'px'; d.style.top = (b.top + b.height / 2) + 'px';
   document.body.appendChild(d); setTimeout(function () { d.remove(); }, 450);
 }
+var TIRO_PAUSA_MS = 500, ultimoTiro = 0; /* intervalo mínimo entre pedras (antes não havia: dava pra metralhar e travava o celular do outro jogador) */
 function tiroDoMineu() {
+  var agoraT = performance.now(); if (agoraT - ultimoTiro < TIRO_PAUSA_MS) return;
   if (municao[ativa] <= 0) return;
+  ultimoTiro = agoraT;
   municao[ativa]--; pintaMunicao(); atacandoAte = performance.now() + 450;
   atualizarMira(); var alvo = alvoAtual, tipo = ativa;
   tocarSomTiro(); tocarFramesTiro();
