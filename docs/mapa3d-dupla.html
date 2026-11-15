@@ -439,7 +439,7 @@ function mordida(agora) {
   }
 }
 var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
-var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
+var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_VOO_MIN_MS = 2500, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
   tocarTom(150 * g, 45 * g, final ? 520 : 380, 'sawtooth', 0.22);
@@ -474,8 +474,9 @@ function dispararFogo(i, tp, alvoJ) {
   i.balaEmVoo = true;
   tocarSomTiroChefao(i.final);
   var de = { lat: i.lat, lng: i.lng }, alvo = { lat: tp.lat, lng: tp.lng };
-  net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: TEMPO_VOO_FOGO_MS });
-  voarFogo(de, alvo, i.final, TEMPO_VOO_FOGO_MS, function () {
+  var durF = duracaoFogo(Math.hypot((alvo.lat - de.lat) * 111320, (alvo.lng - de.lng) * 111320 * Math.cos(de.lat * rad)));
+  net.enviar({ t: 'fogo', de: [de.lat, de.lng], para: [alvo.lat, alvo.lng], f: i.final ? 1 : 0, dur: durF });
+  voarFogo(de, alvo, i.final, durF, function () {
     i.balaEmVoo = false;
     if (alvoJ ? alvoJ.sat : satelite) return; // se foi pro satélite enquanto o fogo voava, não leva dano
     var ref = alvoJ || POS; // posição ATUAL de quem foi mirado
@@ -630,6 +631,8 @@ function aplicarSatelite() {
   mapa.setPaintProperty('rua-borda', 'line-opacity', satelite ? 0 : 1);
 }
 var ZOOM_SATELITE = 18, antesSat = null;
+var SATELITE_ATIVO = true; /* satélite: hoje ligado nas páginas de teste; a ideia (15/11) é só no plano pago, quando houver contas. false = esconde o botão e não pede imagens da Esri */
+if (!SATELITE_ATIVO) document.getElementById('bSat').style.display = 'none';
 document.getElementById('bSat').onclick = function () {
   satelite = !satelite; aplicarSatelite();
   document.getElementById('bSat').classList.toggle('ligado', satelite);

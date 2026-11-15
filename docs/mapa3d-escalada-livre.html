@@ -135,13 +135,8 @@
   #msgOff{color:#fff;font-size:13px;text-align:center;min-height:16px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
   #painel button.ligado{background:#ffd54f !important;box-shadow:0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.4)}
   .pedrada.dardo{font-size:22px;color:#3e2a14;text-shadow:0 0 3px #fff}
-  .rocha{width:200px;height:170px;pointer-events:none}
-  .rocha .rochaImg{width:200px;height:154px;display:block;filter:drop-shadow(0 4px 4px rgba(0,0,0,.45))}
-  .rocha.trancada .rochaImg{opacity:.42;filter:grayscale(.85) blur(.5px)}
-  .rochaTag{position:absolute;left:50%;top:-26px;transform:translateX(-50%);white-space:nowrap;background:rgba(30,40,50,.88);color:#fff;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:999px}
-  .rochaTopo{position:absolute;left:50%;top:2px;transform:translateX(-50%) scale(1.35);filter:drop-shadow(0 0 7px #ffd54f)}
-  .rocha.trancada .rochaTopo{opacity:.4;filter:grayscale(1)}
-  .rocha.vazia .rochaTopo{display:none}
+  .rocha{width:2px;height:2px;pointer-events:none}
+  .rochaTag{position:absolute;left:50%;top:-200px;transform:translateX(-50%);white-space:nowrap;background:rgba(30,40,50,.88);color:#fff;font-size:11px;font-weight:bold;padding:3px 9px;border-radius:999px}
   #joy{position:absolute;left:14px;bottom:26px;width:104px;height:104px;border-radius:50%;background:rgba(255,255,255,.3);border:3px solid rgba(255,255,255,.75);z-index:6;touch-action:none;user-select:none;-webkit-user-select:none}
   #joyBola{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.45);pointer-events:none}
   #bSubir{display:none;position:absolute;left:50%;bottom:132px;transform:translateX(-50%);z-index:7;border:3px solid #fff;border-radius:999px;background:#ef6c00;color:#fff;font-size:18px;font-weight:bold;padding:12px 22px;box-shadow:0 4px 12px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
@@ -410,7 +405,7 @@ function mordida(agora) {
   }
 }
 var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
-var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
+var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_VOO_MIN_MS = 2500, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
   tocarTom(150 * g, 45 * g, final ? 520 : 380, 'sawtooth', 0.22);
@@ -428,16 +423,19 @@ function levarDano(v) {
   }
 }
 // bola de fogo do chefão: voa até o ponto onde o Mineu estava quando ela saiu; só acerta se ele ainda estiver a menos de 3 m
+/* o fogo voa a velocidade constante (2,9 m/s: 12 s na distância máxima de 35 m); antes durava sempre 12 s, então de perto ele quase não se mexia */
+function duracaoFogo(distM) { return Math.max(FOGO_VOO_MIN_MS, Math.min(TEMPO_VOO_FOGO_MS, (distM / FOGO_VEL_MS) * 1000)); }
 function dispararFogo(i) {
   i.balaEmVoo = true;
   tocarSomTiroChefao(i.final);
   var de = { lat: i.lat, lng: i.lng }, alvo = { lat: POS.lat, lng: POS.lng };
+  var dur = duracaoFogo(Math.hypot((alvo.lat - de.lat) * 111320, (alvo.lng - de.lng) * 111320 * Math.cos(de.lat * rad)));
   var fora = document.createElement('div'); fora.style.zIndex = 99990;
   var el = document.createElement('div'); el.className = 'fogo' + (i.final ? ' roxo' : ''); el.textContent = '🔥'; fora.appendChild(el);
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now(), ultRastro = 0;
   (function voo(agora) {
-    var t = Math.min(1, (agora - t0) / TEMPO_VOO_FOGO_MS);
+    var t = Math.min(1, (agora - t0) / dur);
     mk.setLngLat([de.lng + (alvo.lng - de.lng) * t, de.lat + (alvo.lat - de.lat) * t]);
     el.style.transform = 'translateY(' + (-(34 - 22 * t)) + 'px)';
     if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, i.final ? 'roxo' : 'fogo'); }
@@ -1309,6 +1307,67 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   setInterval(function () { joy.style.display = modoReal ? 'none' : 'block'; }, 500);
 })();
 
+// ---------- a rocha em 3D de verdade: blocos empilhados (camada de extrusão do mapa), com a sarabatana em cima ----------
+var ROCHA_TOPO_M = 12.5, rochaChave = '', rochaOp = -1;
+function ruidoR(sem, i) { var x = Math.sin(sem * 12.9898 + i * 78.233) * 43758.5453; return x - Math.floor(x); }
+function anelM(lat0, lng0, cx, cy, r, n, sem) { /* polígono irregular (em metros) em volta de um centro */
+  var pts = [], cl = Math.cos(lat0 * rad);
+  for (var i = 0; i <= n; i++) {
+    var k = i % n, a = (k / n) * 2 * Math.PI, rr = r * (0.82 + 0.36 * ruidoR(sem, k)), x = cx + rr * Math.cos(a), y = cy + rr * Math.sin(a);
+    pts.push([lng0 + x / (111320 * cl), lat0 + y / 111320]);
+  }
+  return pts;
+}
+function caixaM(lat0, lng0, cx, cy, comp, larg, ang) { /* retângulo girado (em metros) */
+  var cl = Math.cos(lat0 * rad), c = Math.cos(ang * rad), s = Math.sin(ang * rad), pts = [];
+  [[-comp / 2, -larg / 2], [comp / 2, -larg / 2], [comp / 2, larg / 2], [-comp / 2, larg / 2], [-comp / 2, -larg / 2]].forEach(function (p) {
+    var x = cx + p[0] * c - p[1] * s, y = cy + p[0] * s + p[1] * c; pts.push([lng0 + x / (111320 * cl), lat0 + y / 111320]);
+  });
+  return pts;
+}
+function feicao(anel, b, h, cor) { return { type: 'Feature', properties: { b: b, h: h, cor: cor }, geometry: { type: 'Polygon', coordinates: [anel] } }; }
+function geoRocha(lat, lng, comArma) {
+  var F = [];
+  /* [base, topo, raio, desvio x, desvio y, semente, cor]: 4 blocos que vão afinando, o de cima é o musgo */
+  [[0, 4, 6.2, 0, 0, 1, '#a3a8ae'], [4, 8, 5.2, 0.4, 0.3, 2, '#8d9298'], [8, 11, 3.9, -0.3, 0.5, 3, '#7a7f86'], [11, ROCHA_TOPO_M, 2.9, 0.2, -0.2, 4, '#6f9a4a']].forEach(function (b) {
+    F.push(feicao(anelM(lat, lng, b[3], b[4], b[2], 11, b[5]), b[0], b[1], b[6]));
+  });
+  /* pedras caídas em volta */
+  [[7.6, 2.2, 1.7, 3.0, 5, '#9a9fa5'], [-6.6, -4.2, 1.4, 2.2, 6, '#8a8f95'], [-2.2, 7.9, 1.2, 1.7, 7, '#a0a5ab'], [5.4, -6.2, 1.6, 2.6, 8, '#858a90']].forEach(function (q) {
+    F.push(feicao(anelM(lat, lng, q[0], q[1], q[2], 8, q[4]), 0, q[3], q[5]));
+  });
+  if (comArma) { /* a sarabatana deitada no musgo: um tubo marrom com a ponta clara */
+    F.push(feicao(caixaM(lat, lng, 0.2, -0.2, 3.4, 0.6, 35), ROCHA_TOPO_M, ROCHA_TOPO_M + 0.5, '#8d5a2b'));
+    F.push(feicao(caixaM(lat, lng, 0.2 + 1.85 * Math.cos(35 * rad), -0.2 + 1.85 * Math.sin(35 * rad), 0.9, 0.85, 35), ROCHA_TOPO_M, ROCHA_TOPO_M + 0.55, '#e0c08f'));
+  }
+  return { type: 'FeatureCollection', features: F };
+}
+function brilhoRocha(lat, lng) { return { type: 'FeatureCollection', features: [feicao(anelM(lat, lng, 0.2, -0.2, 2.5, 20, 9), ROCHA_TOPO_M, ROCHA_TOPO_M + 0.06, '#ffd54f')] }; }
+function garantirCamadasRocha() {
+  if (mapa.getSource('rocha3d')) return;
+  mapa.addSource('rocha3d', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  mapa.addSource('rocha3d-brilho', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  mapa.addLayer({ id: 'rocha3d', type: 'fill-extrusion', source: 'rocha3d', paint: { 'fill-extrusion-color': ['get', 'cor'], 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 0.98, 'fill-extrusion-vertical-gradient': true } });
+  mapa.addLayer({ id: 'rocha3d-brilho', type: 'fill-extrusion', source: 'rocha3d-brilho', paint: { 'fill-extrusion-color': '#ffd54f', 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': ['get', 'b'], 'fill-extrusion-opacity': 0.7 } });
+}
+function atualizarRocha3D() {
+  var r = DADOS.rocha; if (!r) return;
+  try { garantirCamadasRocha(); } catch (e) { return; }
+  var chave = r.lat.toFixed(6) + ',' + r.lng.toFixed(6) + ',' + (temSar ? 1 : 0);
+  if (chave !== rochaChave) {
+    rochaChave = chave;
+    mapa.getSource('rocha3d').setData(geoRocha(r.lat, r.lng, !temSar));
+    mapa.getSource('rocha3d-brilho').setData(temSar ? { type: 'FeatureCollection', features: [] } : brilhoRocha(r.lat, r.lng));
+  }
+  var op = INSIG.escalada ? 0.98 : 0.38; /* sem a habilidade: a rocha é só uma silhueta apagada */
+  if (op !== rochaOp) { rochaOp = op; mapa.setPaintProperty('rocha3d', 'fill-extrusion-opacity', op); mapa.setPaintProperty('rocha3d-brilho', 'fill-extrusion-opacity', INSIG.escalada ? 0.7 : 0.2); }
+}
+function alturaTopoPx() { /* quantos pixels o topo da rocha sobe na tela com o zoom e a inclinação de agora */
+  var mpp = 78271.517 * Math.cos(POS.lat * rad) / Math.pow(2, mapa.getZoom());
+  return (ROCHA_TOPO_M / mpp) * Math.sin(mapa.getPitch() * rad);
+}
+var altoSubida = 0;
+
 // ---------- MUNDO ESCONDIDO: a rocha que só aparece pra quem sabe escalar ----------
 /* Requisito do objeto: DADOS.rocha.req = 'escalada'. Sem a insígnia a rocha fica uma silhueta apagada com o aviso do que falta; com ela dá pra subir e pegar a sarabatana (que fica pra sempre no arsenal). */
 var SAR_SVG = '<svg viewBox="0 0 64 24" width="34" height="13" style="transform:rotate(-16deg)"><rect x="2" y="9" width="48" height="6" rx="3" fill="#8d5a2b" stroke="#4a2c12" stroke-width="1.5"/><rect x="46" y="7.5" width="15" height="9" rx="3" fill="#d9b573" stroke="#4a2c12" stroke-width="1.5"/><path d="M8 11 L40 11" stroke="#b98450" stroke-width="1.4" stroke-linecap="round"/></svg>';
@@ -1323,6 +1382,8 @@ function pintarRocha() {
   elRocha.classList.toggle('trancada', !INSIG.escalada); elRocha.classList.toggle('vazia', temSar);
   elRocha.querySelector('.rochaTag').textContent = !INSIG.escalada ? '🔒 Precisa da habilidade de escalada' : (temSar ? '✔ Rocha escalada' : '🧗 Chegue perto pra subir');
   var b = document.getElementById('bInsig'); if (b) b.classList.toggle('ligado', INSIG.escalada);
+  atualizarRocha3D();
+  elRocha.querySelector('.rochaTag').style.top = (-alturaTopoPx() - 30) + 'px'; /* o aviso fica em cima do topo da rocha */
 }
 function darSarabatana(novo) {
   temSar = true; if (ORDEM_ARMAS.indexOf('sar') < 0) ORDEM_ARMAS.push('sar'); municao.sar = 60;
@@ -1332,7 +1393,7 @@ function darSarabatana(novo) {
 if (temSar) darSarabatana(false);
 function criarElRocha(lat, lng) {
   if (elRocha) { elRocha._mk.setLngLat([lng, lat]); elRocha._ll = [lng, lat]; return; }
-  elRocha = marcador(lat, lng, 'rocha', ROCHA_SVG + '<div class="rochaTag"></div><div class="rochaTopo">' + SAR_SVG + '</div>', 'bottom');
+  elRocha = marcador(lat, lng, 'rocha', '<div class="rochaTag"></div>', 'bottom');
   pintarRocha();
 }
 mapa.on('load', function () { var r = DADOS.rocha; if (r) criarElRocha(r.lat, r.lng); });
@@ -1363,12 +1424,12 @@ function subirDescer(de, para, ms, fim) {
 }
 document.getElementById('bSubir').onclick = function () {
   if (emAlto || temSar || !INSIG.escalada) return;
-  emAlto = true; this.style.display = 'none';
+  emAlto = true; this.style.display = 'none'; altoSubida = alturaTopoPx();
   var caixa = document.getElementById('subindo'), barra = caixa.querySelector('i'), t0 = performance.now(), DUR = 3600;
   caixa.style.display = 'flex'; barra.style.width = '0';
   [0, 500, 1000, 1500, 2000, 2500, 3000].forEach(function (ms, k) { setTimeout(function () { tocarTom(300 + k * 70, 340 + k * 70, 120, 'triangle', 0.12); }, ms); });
   (function passo(agora) {
-    var t = Math.min(1, (agora - t0) / DUR); elMineu.style.marginTop = (-145 * t) + 'px'; barra.style.width = (t * 100) + '%';
+    var t = Math.min(1, (agora - t0) / DUR); elMineu.style.marginTop = (-altoSubida * t) + 'px'; barra.style.width = (t * 100) + '%';
     if (t < 1) { requestAnimationFrame(passo); return; }
     caixa.style.display = 'none';
     document.getElementById('premioIcone').innerHTML = SAR_GRANDE.replace('width="46" height="18"', 'width="120" height="45"');
@@ -1379,7 +1440,7 @@ document.getElementById('bSubir').onclick = function () {
 document.getElementById('bDescer').onclick = function () {
   document.getElementById('premio').style.display = 'none';
   darSarabatana(true);
-  subirDescer(145, 0, 900, function () { emAlto = false; });
+  subirDescer(altoSubida, 0, 900, function () { emAlto = false; });
 };
 
 // ---------- jogar sem internet ----------
