@@ -1308,7 +1308,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 })();
 
 // ---------- a rocha em 3D de verdade: blocos empilhados (camada de extrusão do mapa), com a sarabatana em cima ----------
-var ROCHA_TOPO_M = 12.5, rochaChave = '', rochaOp = -1;
+var ROCHA_TOPO_M = 12.5, ROCHA_NIVEIS = 10, rochaChave = '', rochaOp = -1;
 function ruidoR(sem, i) { var x = Math.sin(sem * 12.9898 + i * 78.233) * 43758.5453; return x - Math.floor(x); }
 function anelM(lat0, lng0, cx, cy, r, n, sem) { /* polígono irregular (em metros) em volta de um centro */
   var pts = [], cl = Math.cos(lat0 * rad);
@@ -1328,10 +1328,13 @@ function caixaM(lat0, lng0, cx, cy, comp, larg, ang) { /* retângulo girado (em 
 function feicao(anel, b, h, cor) { return { type: 'Feature', properties: { b: b, h: h, cor: cor }, geometry: { type: 'Polygon', coordinates: [anel] } }; }
 function geoRocha(lat, lng, comArma) {
   var F = [];
-  /* [base, topo, raio, desvio x, desvio y, semente, cor]: 4 blocos que vão afinando, o de cima é o musgo */
-  [[0, 4, 6.2, 0, 0, 1, '#a3a8ae'], [4, 8, 5.2, 0.4, 0.3, 2, '#8d9298'], [8, 11, 3.9, -0.3, 0.5, 3, '#7a7f86'], [11, ROCHA_TOPO_M, 2.9, 0.2, -0.2, 4, '#6f9a4a']].forEach(function (b) {
-    F.push(feicao(anelM(lat, lng, b[3], b[4], b[2], 11, b[5]), b[0], b[1], b[6]));
-  });
+  /* ROCHA_NIVEIS blocos empilhados que vão afinando (raio de 6,2 m na base a 2,9 m no topo); o de cima é o musgo onde fica a arma */
+  for (var k = 0; k < ROCHA_NIVEIS; k++) {
+    var f = k / (ROCHA_NIVEIS - 1), alt = ROCHA_TOPO_M / ROCHA_NIVEIS, raio = 6.2 - 3.3 * f;
+    var dx = (ruidoR(20, k) - 0.5) * 0.9, dy = (ruidoR(21, k) - 0.5) * 0.9; /* cada degrau fica um pouco torto, como pedra de verdade */
+    var tom = Math.round(163 - 52 * f), cor = (k === ROCHA_NIVEIS - 1) ? '#6f9a4a' : ('rgb(' + tom + ',' + (tom + 4) + ',' + (tom + 9) + ')');
+    F.push(feicao(anelM(lat, lng, dx, dy, raio, 11, 30 + k), k * alt, (k + 1) * alt, cor));
+  }
   /* pedras caídas em volta */
   [[7.6, 2.2, 1.7, 3.0, 5, '#9a9fa5'], [-6.6, -4.2, 1.4, 2.2, 6, '#8a8f95'], [-2.2, 7.9, 1.2, 1.7, 7, '#a0a5ab'], [5.4, -6.2, 1.6, 2.6, 8, '#858a90']].forEach(function (q) {
     F.push(feicao(anelM(lat, lng, q[0], q[1], q[2], 8, q[4]), 0, q[3], q[5]));
