@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universo MGO - Mapa 3D</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1e3c6;--bg2:#ead8b2;--card:#fff8e8;--line:#b98a4e;--ink:#4a2c14;--or:#f58220;--or2:#b4540c;--gold:#e0a21a;--gold2:#a8740a;--tan:#8a6232;--red:#d6452a;--txt:#4a2c14;--mut:#8a6a44;--px:'Fredoka','Trebuchet MS',sans-serif;--tt:'Lilita One','Fredoka',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
+body{background-color:var(--bg);background-image:radial-gradient(rgba(150,100,40,.10) 1px,transparent 1.5px),radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.5px);background-size:14px 14px,23px 23px;background-position:0 0,7px 9px;color:var(--txt);font-family:var(--px);font-size:15px;line-height:1.45;overflow:hidden}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:1200px;margin:0 auto}
+.bar-top{display:flex;align-items:center;gap:4px;padding:10px 8px 8px;background:linear-gradient(#6b3f1c,#4a2c14);border-radius:0 0 18px 18px;box-shadow:0 4px 0 #2f1b0c}
+.logo{font-family:var(--tt);font-size:14px;color:#ffd978;line-height:1;margin-right:auto;text-shadow:0 2px 0 #8a3f08;letter-spacing:.5px}
+.tab{font-family:var(--px);font-weight:600;font-size:11px;color:#f3dcae;background:rgba(255,255,255,.08);border:0;border-radius:999px;padding:7px 8px;cursor:pointer}
+.tab.on{background:linear-gradient(#ffa24a,#f58220);color:#4a2c14;box-shadow:0 3px 0 #b4540c}
+.view{display:none;flex:1;min-height:0}.view.on{display:block}
+#vHome.on{display:grid;gap:10px;padding:10px;grid-template-rows:auto auto 1fr}
+.pad{padding:14px;overflow:auto;height:100%}
+.btn{font-family:var(--px);font-weight:700;font-size:14px;color:#4a2c14;background:linear-gradient(#ffa24a,#f58220);border:0;border-radius:14px;padding:11px 14px;cursor:pointer;box-shadow:0 5px 0 #b4540c,0 8px 10px rgba(74,44,20,.25);line-height:1.2}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #b4540c}
+.btn.gold{background:linear-gradient(#ffd566,#e0a21a);box-shadow:0 5px 0 #a8740a,0 8px 10px rgba(74,44,20,.25)}
+.btn.red{background:linear-gradient(#ee6a4c,#d6452a);color:#fff;box-shadow:0 5px 0 #8c2411,0 8px 10px rgba(74,44,20,.25)}
+.btn.ghost{background:transparent;color:var(--mut);box-shadow:none;border:2px solid var(--line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.box{background:var(--card);border:3px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 4px 0 rgba(185,138,78,.5)}
+h2{font-family:var(--tt);font-size:17px;color:var(--or2);margin-bottom:10px;font-weight:400;letter-spacing:.5px}
+.hero{display:flex;gap:12px;align-items:center}
+.mineuWrap{width:86px;flex:none}
+.mineuWrap canvas{width:86px;height:86px;display:block;border-radius:50%;object-fit:cover;object-position:50% 12%;background:radial-gradient(#ffe9bd,#f0c98a);border:4px solid #fff8e8;box-shadow:0 0 0 3px var(--line),0 6px 8px rgba(74,44,20,.3)}
+.bubble{position:relative;flex:1;background:#fffdf5;color:var(--ink);border:3px solid var(--line);border-radius:18px;padding:10px 12px;font-size:14px;font-weight:500;line-height:1.4;cursor:pointer;min-height:62px;box-shadow:0 4px 0 rgba(185,138,78,.5)}
+.bubble:before{content:'';position:absolute;left:-13px;top:50%;margin-top:-9px;border:9px solid transparent;border-right:11px solid var(--line)}
+.bubble:after{content:'';position:absolute;left:-8px;top:50%;margin-top:-7px;border:7px solid transparent;border-right:9px solid #fffdf5}
+.slots{display:flex;gap:8px;margin-top:8px}
+.slotChip{flex:1;font-size:12px;background:var(--card);border:2px dashed var(--line);border-radius:14px;padding:7px 9px;color:var(--mut);line-height:1.25}
+.slotChip b{display:block;color:var(--ink);font-weight:600}
+.slotChip.on{color:var(--or2);border:2px solid var(--gold);background:#fff3cf;font-weight:600}
+.podium{display:block}.rest{display:none}
+.conqHd{font-family:var(--tt);font-size:15px;color:var(--or2);margin-bottom:6px;letter-spacing:.3px}.conqHd b{color:var(--ink);font-weight:400}
+.conq{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.tile{display:flex;gap:6px;align-items:center;background:var(--bg2);border:2px solid var(--line);border-radius:14px;padding:5px 6px;cursor:pointer;min-width:0}
+.tile canvas{width:32px;height:32px;flex:none;filter:grayscale(1);opacity:.5}
+.tile .tx{min-width:0;flex:1}.tile .nm{font-size:11px;font-weight:700;line-height:1.15;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.tile small{display:block;font-size:10px;color:var(--mut);margin-top:2px;white-space:nowrap;font-weight:600}
+.tile.on{border-color:var(--gold);background:linear-gradient(#fff8e0,#ffe9a8);box-shadow:0 0 0 2px #fff3c0,0 4px 10px rgba(224,162,26,.55)}
+.tile.on canvas{filter:none;opacity:1}.tile.on small{color:var(--or2)}
+.mini{height:9px;background:#e0cba2;border-radius:99px;position:relative;overflow:visible;margin:2px 0}
+.mini i{display:block;height:100%;background:linear-gradient(#ffa24a,#f58220);border-radius:99px}.mini i.r{background:linear-gradient(#ffd566,#e0a21a)}
+.mini u{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--ink);border-radius:2px}
+.mapArea{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;background:#e3cd9b;border:4px solid var(--line);border-radius:20px;box-shadow:0 5px 0 rgba(185,138,78,.6),inset 0 0 22px rgba(120,80,30,.25);overflow:hidden}
+.map{position:relative}.map svg{position:absolute;inset:0;width:100%;height:100%}
+.pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;text-align:center;width:96px;z-index:3}
+.pin .ic{width:46px;height:46px;margin:0 auto;display:block;background:#fffdf5;border:4px solid var(--gold);border-radius:50%;box-shadow:0 4px 0 rgba(74,44,20,.35),0 6px 8px rgba(74,44,20,.3)}
+.pin.p1 .ic{border-color:var(--or);animation:bob 1.2s ease-in-out infinite;box-shadow:0 0 0 4px rgba(255,210,100,.7),0 6px 8px rgba(74,44,20,.3)}
+@keyframes bob{50%{transform:translateY(-5px)}}
+.pin .lb{display:inline-block;font-size:11px;font-weight:700;line-height:1;background:var(--ink);color:#ffe9bd;padding:4px 8px;margin-top:4px;border-radius:99px;box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.pin .rk{position:absolute;top:-6px;right:14px;background:var(--gold);color:var(--ink);font-size:12px;font-weight:700;width:22px;height:22px;line-height:18px;border:3px solid #fffdf5;border-radius:50%;z-index:2}
+.pin .pbar{height:6px;width:60px;margin:3px auto 0;background:#e0cba2;border-radius:99px;overflow:hidden}.pin .pbar i{display:block;height:100%;background:var(--or)}.pin .pbar i.r{background:var(--gold)}
+.walker{display:none}
+.mapLegend{position:absolute;left:8px;bottom:8px;font-size:11px;font-weight:600;color:var(--ink);background:rgba(255,248,232,.9);padding:4px 10px;border-radius:99px;z-index:5}
+.sheet{position:fixed;z-index:120;background:var(--card);border:4px solid var(--gold);border-radius:22px;box-shadow:0 10px 30px rgba(74,44,20,.45);padding:14px;overflow:auto;font-size:14px;display:none}
+.sheet.on{display:block}
+@media(max-width:759px){.sheet{left:8px;right:8px;bottom:8px;top:56%}body.foco #vHome>div:nth-child(-n+2){display:none}body.foco #vHome.on{grid-template-rows:1fr}}@media(min-width:760px){.sheet{right:20px;top:64px;bottom:20px;width:400px}}
+.sheet h3{font-family:var(--tt);font-weight:400;font-size:20px;color:var(--or2);line-height:1.15;margin:4px 0}
+.sheet .hd{display:flex;gap:12px;align-items:center}
+.sheet .hd canvas{width:64px;height:64px;background:#fff;border:3px solid var(--gold);border-radius:50%;padding:4px}
+.stars{color:var(--gold);font-size:13px;letter-spacing:2px;font-weight:700}
+.loc{color:var(--tan);margin:6px 0 8px;font-weight:600}
+.badge{display:inline-block;padding:4px 10px;font-size:12px;font-weight:700;margin:2px 4px 4px 0;border-radius:99px}
+.b-win{background:linear-gradient(#ffd566,#e0a21a);color:var(--ink)}.b-ok{background:var(--or);color:var(--ink)}.b-wait{background:#d9c299;color:var(--ink)}.b-bad{background:var(--red);color:#fff}
+.bar{position:relative;height:20px;background:#e0cba2;border-radius:99px;margin:12px 0 6px;box-shadow:inset 0 2px 3px rgba(74,44,20,.25)}
+.fill{height:100%;border-radius:99px;background:linear-gradient(#ffa24a,#f58220);transition:width .6s}.fill.reached{background:linear-gradient(#ffd566,#e0a21a)}
+.minmark{position:absolute;top:-5px;bottom:-5px;width:4px;background:var(--ink);border-radius:2px}
+.nums{display:flex;justify-content:space-between;color:var(--mut);font-size:12px;font-weight:500}.nums b{color:var(--ink)}
+.price{margin:10px 0;color:var(--mut);font-size:14px}.price s{color:var(--red)}.price b{color:var(--or2);font-size:16px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.acts .full{grid-column:1/3}
+.mine{margin-top:10px;background:#fff3cf;border:2px solid var(--gold);border-radius:14px;padding:9px 11px;color:var(--or2);font-size:13px;font-weight:600}.mine a{color:var(--red);cursor:pointer;text-decoration:underline}
+.clim{margin:8px 0;font-size:13px;color:var(--mut)}.clim b{color:var(--ink)}
+.row{display:flex;justify-content:space-between;align-items:center;margin:12px 0}
+.rk-item{display:flex;align-items:center;gap:10px;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:10px;margin-bottom:10px;cursor:pointer;font-size:14px;font-weight:500}
+.rk-item canvas{width:42px;height:42px;flex:none}.rk-item .grow{flex:1}.rk-item.p1{border-color:var(--gold);background:#fff3cf}
+.day{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px;font-size:14px}.day b{display:block;color:var(--or2);margin-bottom:6px;font-family:var(--tt);font-weight:400;font-size:17px}
+.legend{list-style:none}.legend li{margin:12px 0;font-size:14px;line-height:1.5;color:var(--mut);font-weight:500}.legend b{color:var(--or2)}
+select{font-family:var(--px);font-size:13px;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:6px}
+.overlay{position:fixed;inset:0;background:rgba(40,22,8,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:14px}.overlay.on{display:flex}
+.modal{background:var(--card);border:4px solid var(--gold);border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,.45);padding:18px;max-width:420px;width:100%;font-size:14px;max-height:92vh;overflow:auto}
+.modal h3{font-family:var(--tt);font-weight:400;color:var(--or2);font-size:22px;margin-bottom:10px;line-height:1.15}
+.qty{display:flex;align-items:center;gap:10px}.qty button{font-family:var(--px);font-weight:700;font-size:18px;width:36px;height:36px;background:var(--bg2);color:var(--ink);border:2px solid var(--line);border-radius:50%;cursor:pointer}
+.total{font-family:var(--tt);font-size:26px;color:var(--or2);text-align:right;margin:10px 0}
+.win{text-align:center}.win h3{font-size:28px;color:var(--or);text-shadow:0 3px 0 #f6d98c;animation:pop .9s ease-in-out infinite}
+@keyframes pop{50%{transform:scale(1.06)}}
+.win canvas{width:130px;height:130px;margin:0 auto 10px;display:block;border-radius:50%;object-fit:cover;object-position:50% 12%;border:5px solid var(--gold);background:#f6dba2}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#ffe9bd;border-radius:99px;padding:10px 18px;font-size:14px;font-weight:600;z-index:400;display:none;max-width:90vw;text-align:center}
+.muted{color:var(--mut)}
+.map{position:absolute!important;inset:0;width:auto!important;height:auto!important}
+.mk .pin{position:relative;left:auto;top:auto;transform:none;cursor:pointer}
+.maplibregl-canvas{outline:none}
+.mapArea{background:linear-gradient(#ffd9a0,#ffeed0 60%,#cfe3ee)!important}
+.tint{position:absolute;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse at 50% 55%,rgba(255,200,110,0) 45%,rgba(70,30,5,.45) 100%),linear-gradient(rgba(255,160,60,.16),rgba(255,160,60,0) 45%)}
+.pin.p1:before{content:"";position:absolute;left:50%;top:6px;width:64px;height:64px;margin-left:-32px;border-radius:50%;background:radial-gradient(rgba(255,210,100,.85),rgba(255,210,100,0) 70%);animation:glow 1.6s ease-in-out infinite;z-index:-1}
+@keyframes glow{50%{transform:scale(1.35);opacity:.6}}
+.mapCtl{position:absolute;left:8px;top:8px;z-index:6;display:flex;flex-direction:column;gap:8px}
+.mapCtl button{font-family:var(--px);font-weight:700;font-size:12px;color:var(--ink);background:#fff8e8;border:3px solid var(--line);border-radius:14px;padding:8px 10px;cursor:pointer;box-shadow:0 3px 0 rgba(185,138,78,.6)}
+.mapCtl button.on{background:var(--or);color:#fff}
+.maplibregl-ctrl-attrib{font-size:9px!important}
+
+.mk.g .pin{width:96px}
+#map.z-far .ind{display:none}#map.z-near .clu{display:none}
+body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
+.mis{text-align:center;cursor:pointer;width:92px}
+.mis .sh{filter:drop-shadow(0 4px 2px rgba(40,25,5,.45));display:inline-block}
+.mis .hx{width:48px;height:52px;background:#eaf6d2;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);padding:3px}
+.mis .hi{width:100%;height:100%;background:linear-gradient(#5fbb70,#2c7539);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center}
+.mis canvas{width:26px;height:26px}
+.mis .lb2{display:block;width:max-content;max-width:92px;margin:3px auto 0;font-size:10px;font-weight:700;line-height:1.1;background:#2c7539;color:#eaf6d2;padding:3px 6px;border-radius:5px;box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.mis .ok2{position:absolute;margin:-4px 0 0 30px;background:var(--gold);color:var(--ink);font-size:11px;font-weight:700;width:20px;height:20px;line-height:16px;border:3px solid #fffdf5;border-radius:50%}
+.mis.big .hx{width:62px;height:67px}.mis.big canvas{width:32px;height:32px}.mis.big .lb2{font-size:11px}
+.mis .num{position:absolute;margin:-6px 0 0 36px;background:var(--gold);color:var(--ink);font-size:12px;font-weight:700;min-width:22px;height:22px;line-height:17px;border:3px solid #fffdf5;border-radius:50%}
+.mapLeg{position:absolute;left:8px;bottom:8px;z-index:6;display:flex;flex-direction:column;gap:6px}
+.mapLeg button{font-family:var(--px);font-size:11px;font-weight:700;color:var(--ink);background:rgba(255,248,232,.95);border:2px solid var(--line);border-radius:99px;padding:5px 10px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:7px}
+.mapLeg button.off{opacity:.5;text-decoration:line-through}
+.mapLeg .dot{width:14px;height:14px;display:inline-block;flex:none}
+.mapLeg .dot.g{border-radius:50%;background:var(--or);border:3px solid var(--gold)}
+.mapLeg .dot.m{background:#2c7539;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.sheet.sheetM{border-color:#2c7539}.sheet.sheetM h3{color:#2c7539}
+.sheet.sheetM .hd canvas{border-color:#2c7539;border-radius:14px}
+.badge.tg{background:var(--or);color:#fff}.badge.tm{background:#2c7539;color:#eaf6d2}
+.vs{margin:10px 0;background:var(--bg2);border-radius:14px;padding:9px 11px;font-size:13px;color:var(--mut)}.vs b{color:var(--ink)}
+.btn.green{background:linear-gradient(#5fbb70,#2c7539);color:#fff;box-shadow:0 5px 0 #1d5226,0 8px 10px rgba(74,44,20,.25)}
+
+#vHome.on{grid-template-rows:auto 1fr;gap:8px;padding:8px}
+#vHome>div:nth-child(2){display:none}
+#slots{display:none}
+.mineuWrap{width:60px}.mineuWrap canvas{width:60px;height:60px;border-width:3px}
+.bubble{font-size:13px;min-height:48px;padding:7px 10px}
+.hero{gap:10px}
+.wxMini{position:absolute;right:8px;top:8px;z-index:6;display:flex;gap:6px;cursor:pointer}
+.wxMini span{font-size:11px;font-weight:700;color:var(--ink);background:rgba(255,248,232,.95);border:2px solid var(--line);border-radius:99px;padding:4px 8px;white-space:nowrap}
+.wxMini span.ok{border-color:var(--gold);background:#fff3cf}
+
+.tl{display:flex;align-items:flex-start;margin:12px 0 4px}
+.tl .st{flex:1;text-align:center;position:relative;font-size:10px;font-weight:700;color:var(--mut);line-height:1.15}
+.tl .st:before{content:'';position:absolute;top:10px;left:-50%;width:100%;height:4px;background:#d8c29c;z-index:0}
+.tl .st:first-child:before{display:none}
+.tl .st i{position:relative;z-index:1;display:block;width:22px;height:22px;margin:0 auto 4px;border-radius:50%;background:#d8c29c;border:3px solid #fffdf5;box-shadow:0 0 0 2px #d8c29c;font-style:normal;font-size:11px;line-height:16px;color:#fff}
+.tl .st.done i{background:var(--gold);box-shadow:0 0 0 2px var(--gold)}.tl .st.done:before{background:var(--gold)}
+.tl .st.now i{background:var(--or);box-shadow:0 0 0 2px var(--or),0 0 0 6px rgba(245,130,32,.25)}.tl .st.now{color:var(--ink)}.tl .st.now:before{background:var(--gold)}
+.tlcap{font-size:13px;color:var(--ink);background:var(--bg2);border-radius:12px;padding:8px 10px;margin:8px 0}
+
+.fld{width:100%;box-sizing:border-box;padding:11px;border:3px solid var(--line);border-radius:12px;font:inherit;font-size:15px;margin:6px 0;background:#fffdf5;color:var(--ink)}
+.btn.lnk{display:block;text-align:center;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="bar-top">
+    <div class="logo">UNIVERSO MGO</div>
+    <button class="tab on" data-tab="vHome">MAPA</button>
+    <button class="tab" data-tab="vRank">METAS</button>
+    <button class="tab" data-tab="vClima">CLIMA</button>
+    <button class="tab" data-tab="vRegras">REGRAS</button>
+    <button class="tab" id="btnSom">SOM</button>
+  </div>
+
+  <div class="view on" id="vHome">
+    <div>
+      <div class="hero">
+        <div class="mineuWrap"><canvas id="mineu"></canvas></div>
+        <div class="bubble" id="bubble"><span id="bubbleTxt"></span></div>
+      </div>
+      <div class="slots" id="slots"></div>
+    </div>
+    <div>
+      <div class="podium" id="podium"></div>
+      <div class="rest" id="rest"></div>
+    </div>
+    <div class="mapArea" id="mapArea">
+      <div class="map" id="map"></div>
+      <div class="tint"></div><div class="wxMini" id="wxMini" data-tab="vClima"></div><div class="mapCtl"><button id="btnVisao">Visao geral</button><button id="btnTour">Tour 3D</button><button id="btnVis">Ver satelite</button></div><div class="mapLeg"><button data-f="hideG"><i class="dot g"></i>Guiadas: com guia, em grupo</button><button data-f="hideM"><i class="dot m"></i>Autoguiadas: so a familia</button></div>
+    </div>
+  </div>
+
+  <div class="view" id="vRank"><div class="pad"><h2>&gt; AVENTURAS E CONQUISTAS</h2><div id="rankList"></div></div></div>
+  <div class="view" id="vClima"><div class="pad"><h2>&gt; PREVISAO - PORTO ALEGRE</h2><div id="weather"></div><div id="testPanel" class="muted"></div></div></div>
+  <div class="view" id="vRegras"><div class="pad"><h2>&gt; COMO FUNCIONA</h2>
+    <ul class="legend">
+      <li><b>1.</b> Cada aventura tem um <b>minimo</b> de pessoas pagas (marca branca na barra).</li>
+      <li><b>2.</b> Quem paga <b>antes do minimo</b> ganha <b>20% de desconto</b> e garante que o evento saia. Depois, preco cheio.</li>
+      <li><b>3.</b> Nao existe data marcada. Bateu o minimo, a aventura e <b>DESBLOQUEADA</b> e acontece no <b>proximo fim de semana de tempo bom</b>. E uma conquista de todas as familias que garantiram e chamaram amigos!</li>
+      <li><b>4.</b> Sem pagar? Entre no <b>pre-interesse</b> e suba na fila quando alguem cancelar.</li>
+      <li><b>5.</b> Cancelou? Devolvemos tudo em ate <b>24h</b>.</li>
+      <li><b>6.</b> A data exata sai na segunda ou terca, com aviso no WhatsApp.</li>
+    </ul>
+    <p class="muted" style="margin-top:12px;font-size:8px">Demonstracao: dados de exemplo e pagamento simulado.</p></div></div>
+</div>
+
+<div class="sheet" id="sheet"></div>
+<div class="overlay" id="ov"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ====== CONFIGURACAO ====== */
+var DESCONTO = 0.20;
+var API='https://www.meuguiaoutdoor.com.br/_functions',LIVE=false,AMB='';
+var EVENTOS = [
+  {id:'por-do-sol', nome:'Trilha do Por do Sol', curto:'POR DO SOL', nivel:1, max:40, min:25, adulto:90, crianca:70, icone:'sol', req:'sol', reqTxt:'precisa de ceu aberto',
+   local:'Morro das Abertas - Zona Sul', lng:-51.2076, lat:-30.158, seed:{g:19,i:14,h:null}},
+  {id:'gigantes', nome:'Trilha dos Gigantes', curto:'GIGANTES', nivel:2, max:40, min:25, adulto:90, crianca:70, icone:'mont', req:'seco', reqTxt:'precisa de tempo seco',
+   local:'Morro da Tapera - Zona Sul', lng:-51.185, lat:-30.162, seed:{g:26,i:9,h:30}},
+  {id:'cascatinha', nome:'Trilha da Cascatinha Escondida', curto:'CASCATINHA', nivel:3, max:40, min:25, adulto:90, crianca:70, icone:'casc', req:'seco', reqTxt:'precisa de tempo seco',
+   local:'Morro Santana - Zona Leste', lng:-51.113, lat:-30.071, seed:{g:11,i:6,h:null}},
+  {id:'caiaque', nome:'Caiaque na Ilha Pirata', curto:'CAIAQUE', nivel:2, max:12, min:8, adulto:180, crianca:120, icone:'caiq', req:'vento', reqTxt:'precisa de tempo seco e pouco vento',
+   local:'Beira do Lami - Extremo Sul', lng:-51.08, lat:-30.23, seed:{g:6,i:4,h:null}},
+  {id:'escalada', nome:'Escalada e Rapel Indoor', curto:'ESCALADA', nivel:1, max:40, min:25, adulto:90, crianca:70, icone:'esc', req:'any', reqTxt:'funciona com qualquer clima',
+   local:'Zona Norte (local a confirmar)', lng:-51.15, lat:-30.005, seed:{g:27,i:12,h:18}},
+  {id:'minicamp', nome:'MiniCamp POA', curto:'MINICAMP', nivel:1, max:40, min:25, adulto:180, crianca:120, icone:'camp', req:'seco', reqTxt:'precisa de tempo seco',
+   local:'Vaca Bike Park - Lami', lng:-51.09, lat:-30.212, seed:{g:8,i:17,h:null}}
+];
+
+/* ====== SPRITES (icones) ====== */
+var SPR = {
+ sol:{s:5,pal:{y:'#ffd23f'},rows:["y..yy..y",".y.yy.y.","..yyyy..","yyyyyyyy","yyyyyyyy","..yyyy..",".y.yy.y.","y..yy..y"]},
+ mont:{s:5,pal:{g:'#a89a86',w:'#ffffff',d:'#5a4a38'},rows:["...ww...","..wwww..","..gwwg..",".gggggg.",".gggdggg","gggdddgg","ggdddddg","dddddddd"]},
+ casc:{s:5,pal:{g:'#7a6a58',c:'#6fd3ff',w:'#ffffff'},rows:["gggggggg","ggcwwcgg","ggcwcwgg","ggwcwcgg","ggcwwcgg","ggwcwcgg","gcwwwwcg","cccccccc"]},
+ caiq:{s:5,pal:{s:'#f2b98a',r:'#e0452a',p:'#c98b4a',c:'#2f7bff',w:'#bfe4ff'},rows:["........","....ss..","...rrrp.","....rp..","rrrrrrrr","cccccccc","wcwcwcwc","cccccccc"]},
+ esc:{s:5,pal:{n:'#8a5a33',r:'#e0452a',s:'#f2b98a'},rows:["nnnnnnnn","nrnnnnrn","nnnsnnnn","nnsssnrn","nrnsnnnn","nnnnnrnn","nrnnnnnn","nnnnrnnn"]},
+ camp:{s:5,pal:{r:'#f47b20',d:'#2b1a10',g:'#5d7a2b'},rows:["...rr...","..rrrr..",".rrrrrr.","rrrddrrr","rrrddrrr","rrdddrrr","gggggggg","gggggggg"]}
+};
+var EMO={"sol":"☀️","mont":"⛰️","casc":"💦","caiq":"🛶","esc":"🧗","camp":"⛺"};
+function draw(cv,name){cv.width=96;cv.height=96;var x=cv.getContext('2d');x.clearRect(0,0,96,96);x.font='64px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(EMO[name]||'?',48,54);}
+
+/* ====== MINEU: fotos oficiais pixelizadas ====== */
+var IMG={},PIX={};
+function pixelar(img,w,niveis){
+  var h=Math.round(img.height*w/img.width),c=document.createElement('canvas');c.width=w;c.height=h;
+  var x=c.getContext('2d');x.imageSmoothingEnabled=true;x.drawImage(img,0,0,w,h);
+  var d=x.getImageData(0,0,w,h),p=d.data,q=255/(niveis-1);
+  if(niveis<256)for(var i=0;i<p.length;i+=4){p[i+3]=p[i+3]>110?255:0;p[i]=Math.round(p[i]/q)*q;p[i+1]=Math.round(p[i+1]/q)*q;p[i+2]=Math.round(p[i+2]/q)*q;}
+  x.putImageData(d,0,0);return c;
+}
+function carregaMineu(cb){
+  var nomes={face:'mineu-comemora.png',a1:'mineu-andar-1.png',a2:'mineu-andar-2.png',a3:'mineu-andar-3.png',est:'mineu-estilingue-1.png'},n=0,tot=5;
+  Object.keys(nomes).forEach(function(k){var im=new Image();im.onload=function(){IMG[k]=im;PIX[k]=pixelar(im,k==='face'?260:k==='est'?200:120,256);if(++n===tot)cb();};im.onerror=function(){if(++n===tot)cb();};im.src=nomes[k];});
+}
+
+function blit(cv,src){if(!src)return;cv.width=src.width;cv.height=src.height;cv.getContext('2d').drawImage(src,0,0);}
+
+/* ====== SOM ====== */
+var somOn=true,AC=null;
+function bip(f,d,t,delay){if(!somOn)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain();o.type=t||'square';o.frequency.value=f;var t0=AC.currentTime+(delay||0);g.gain.setValueAtTime(.08,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d);}catch(e){}}
+function sClick(){bip(660,.08)}function sCoin(){bip(988,.08);bip(1319,.18,'square',.08)}
+function sWin(){[523,659,784,1047,784,1047,1319].forEach(function(f,i){bip(f,.18,'square',i*.14)})}
+function sBad(){bip(200,.2,'sawtooth')}
+
+/* ====== ESTADO ====== */
+var KEY='mgo_arena_v2',ST=null;
+function load(){try{ST=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(!ST||!ST.ev){ST={ev:{},clima:{sab:'real',dom:'real'}};EVENTOS.forEach(function(e){ST.ev[e.id]={g:e.seed.g,i:e.seed.i,reachedAt:e.seed.h!=null?Date.now()-e.seed.h*3600000:null,mine:null};});save();}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){}}
+function E(id){return EVENTOS.filter(function(e){return e.id===id})[0]}
+function brl(v){return 'R$ '+v.toFixed(2).replace('.',',')}
+
+/* ====== CLIMA ====== */
+var PRESET={bom:{rain:5,cloud:20,wind:10,label:'Ceu aberto'},nub:{rain:20,cloud:90,wind:10,label:'Nublado, sem chuva'},chuva:{rain:85,cloud:100,wind:25,label:'Chuva'}};
+var REAL={sab:null,dom:null},DATAS={};
+function pad(n){return(n<10?'0':'')+n}
+function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+(function(){var t=new Date(),k=(6-t.getDay()+7)%7,sab=new Date(t.getFullYear(),t.getMonth(),t.getDate()+k),dom=new Date(sab.getFullYear(),sab.getMonth(),sab.getDate()+1);DATAS={sab:sab,dom:dom};})();
+function fetchClima(){
+  var u='https://api.open-meteo.com/v1/forecast?latitude=-30.03&longitude=-51.23&daily=precipitation_probability_max,cloud_cover_mean,wind_speed_10m_max,temperature_2m_max,sunset&timezone=America%2FSao_Paulo&forecast_days=14';
+  fetch(u).then(function(r){return r.json()}).then(function(j){
+    ['sab','dom'].forEach(function(k){var i=j.daily.time.indexOf(ymd(DATAS[k]));if(i<0)return;
+      var rain=j.daily.precipitation_probability_max[i],cl=j.daily.cloud_cover_mean?j.daily.cloud_cover_mean[i]:50,w=j.daily.wind_speed_10m_max[i];
+      REAL[k]={rain:rain==null?30:rain,cloud:cl==null?50:cl,wind:w==null?10:w,temp:j.daily.temperature_2m_max[i],sunset:(j.daily.sunset[i]||'').slice(11,16),
+        label:(rain>=60?'Chuva provavel':cl>=70?'Nublado':cl>=35?'Parcialmente nublado':'Ceu aberto')};});
+    render();}).catch(function(){render()});
+}
+function clima(k){var m=ST.clima[k];if(m!=='real'&&PRESET[m])return PRESET[m];return REAL[k]||{rain:30,cloud:50,wind:12,label:'Previsao indisponivel (exemplo)',temp:null};}
+function elegivel(ev,w){if(ev.req==='sol')return w.rain<40&&w.cloud<=65;if(ev.req==='seco')return w.rain<40;if(ev.req==='vento')return w.rain<40&&w.wind<30;return true;}
+
+/* ====== RANKING ====== */
+function ranking(){var arr=EVENTOS.slice();arr.sort(function(a,b){var A=ST.ev[a.id],B=ST.ev[b.id],ra=A.g>=a.min,rb=B.g>=b.min;
+  if(ra&&rb)return A.reachedAt-B.reachedAt;if(ra)return -1;if(rb)return 1;return B.g/b.min-A.g/a.min;});return arr;}
+function slots(rk){var res={sab:[],dom:[],jan:{}};rk.forEach(function(e){if(ST.ev[e.id].g<e.min)return;['sab','dom'].some(function(k){if(elegivel(e,clima(k))){res[k].push(e);res.jan[e.id]=k;return true;}return false;});});return res;}
+function fd(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}
+
+/* ====== MAPA ====== */
+var selected=null,MAP=null,MARKS=[],tourT=null,tourOn=false;
+var VISAO={center:[-51.14,-30.12],zoom:9.8,pitch:52,bearing:-15};
+function criaMapa(){
+  if(MAP||!window.maplibregl)return;
+  MAP=new maplibregl.Map({container:'map',center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,maxPitch:75,attributionControl:{compact:true},
+    style:{version:8,glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',sources:{
+      omt:{type:'vector',url:'https://tiles.openfreemap.org/planet'},
+      sat:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:18,attribution:'Esri, Maxar'},
+      dem:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14,attribution:'Mapzen/AWS | OpenFreeMap OSM'}},
+      layers:[
+        {id:'sat',type:'raster',source:'sat',layout:{visibility:'none'}},
+        {id:'l-bg',type:'background',paint:{'background-color':'#f3e2b8'}},
+        {id:'l-cover',type:'fill',source:'omt','source-layer':'landcover',paint:{'fill-color':['match',['get','class'],'wood','#8fbf5e','grass','#cfe39a','farmland','#ecdca0','wetland','#a9d6a0','sand','#f6e3a8','#d8e6a8'],'fill-opacity':.95}},
+        {id:'l-use',type:'fill',source:'omt','source-layer':'landuse',paint:{'fill-color':['match',['get','class'],'residential','#f1d9a4','industrial','#e5c48e','cemetery','#bfdc95','playground','#c8e48e','#ecd6a0'],'fill-opacity':.85}},
+        {id:'l-park',type:'fill',source:'omt','source-layer':'park',paint:{'fill-color':'#a7d36d','fill-opacity':.9}},
+        {id:'l-water',type:'fill',source:'omt','source-layer':'water',paint:{'fill-color':'#62bdd8'}},
+        {id:'l-waterway',type:'line',source:'omt','source-layer':'waterway',paint:{'line-color':'#62bdd8','line-width':['interpolate',['linear'],['zoom'],9,1,14,4]}},
+        {id:'hill',type:'hillshade',source:'dem',paint:{'hillshade-exaggeration':.8,'hillshade-shadow-color':'#7a4516','hillshade-highlight-color':'#fff3c8','hillshade-accent-color':'#9a6a2a'}},
+        {id:'l-road-big',type:'line',source:'omt','source-layer':'transportation',filter:['in',['get','class'],['literal',['motorway','trunk','primary']]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#f2a03a','line-width':['interpolate',['linear'],['zoom'],8,1.2,14,6]}},
+        {id:'l-road-mid',type:'line',source:'omt','source-layer':'transportation',minzoom:10,filter:['in',['get','class'],['literal',['secondary','tertiary']]],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fff0c8','line-width':['interpolate',['linear'],['zoom'],10,.8,14,4]}},
+        {id:'l-road-small',type:'line',source:'omt','source-layer':'transportation',minzoom:12,filter:['in',['get','class'],['literal',['minor','service']]],layout:{'line-cap':'round'},paint:{'line-color':'#fff8e0','line-width':['interpolate',['linear'],['zoom'],12,.5,16,3]}},
+        {id:'l-trail',type:'line',source:'omt','source-layer':'transportation',minzoom:11,filter:['in',['get','class'],['literal',['path','track']]],layout:{'line-cap':'round'},paint:{'line-color':'#b5551d','line-width':['interpolate',['linear'],['zoom'],11,1,16,2.6],'line-dasharray':[1.5,1.5]}},
+        {id:'l-build',type:'fill-extrusion',source:'omt','source-layer':'building',minzoom:14,paint:{'fill-extrusion-color':'#e6bf86','fill-extrusion-height':['coalesce',['get','render_height'],6],'fill-extrusion-base':0,'fill-extrusion-opacity':.9}},
+        {id:'l-water-name',type:'symbol',source:'omt','source-layer':'water_name',layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':['Noto Sans Italic'],'text-size':14,'text-letter-spacing':.2},paint:{'text-color':'#1f6f8f','text-halo-color':'#e4f6fb','text-halo-width':1.5}},
+        {id:'l-peak',type:'symbol',source:'omt','source-layer':'mountain_peak',minzoom:11,layout:{'text-field':['concat','\u25B2 ',['coalesce',['get','name:latin'],['get','name']]],'text-font':['Noto Sans Bold'],'text-size':11,'text-anchor':'top'},paint:{'text-color':'#8a3f0c','text-halo-color':'#fff3d0','text-halo-width':1.8}},
+        {id:'l-place',type:'symbol',source:'omt','source-layer':'place',filter:['in',['get','class'],['literal',['city','town','village','suburb','neighbourhood']]],minzoom:8,layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':['Noto Sans Bold'],'text-size':['match',['get','class'],'city',9,'town',7,6],'text-transform':'uppercase','text-letter-spacing':.08,'text-max-width':8},paint:{'text-color':'#6b3d14','text-halo-color':'#fff3d0','text-halo-width':2}}
+      ],
+      terrain:{source:'dem',exaggeration:2.4}}});
+  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
+  MAP.on('dragstart',pareTour);
+  MAP.on('zoom',zoomClasse);
+  // rota entre aventuras removida
+  window.addEventListener('resize',function(){MAP.resize()});
+}
+function curva(p,q){var mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2,dx=q[0]-p[0],dy=q[1]-p[1],cx=mx-dy*.22,cy=my+dx*.22,o=[];for(var t=0;t<=1.001;t+=.05){o.push([(1-t)*(1-t)*p[0]+2*(1-t)*t*cx+t*t*q[0],(1-t)*(1-t)*p[1]+2*(1-t)*t*cy+t*t*q[1]]);}return o;}
+function addRota(){var ordem=['escalada','cascatinha','gigantes','por-do-sol','minicamp','caiaque'],pts=ordem.map(function(id){var e=E(id);return [e.lng,e.lat]}),linha=[];
+  for(var i=0;i<pts.length-1;i++)linha=linha.concat(curva(pts[i],pts[i+1]));
+  MAP.addSource('rota',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linha}}});
+  MAP.addLayer({id:'rota-borda',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2a1708','line-width':7,'line-opacity':.35}});
+  MAP.addLayer({id:'rota',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffb347','line-width':3.5,'line-dasharray':[0.1,2.2]}});}
+var SAT=false;function trocaVisual(){SAT=!SAT;MAP.setLayoutProperty('sat','visibility',SAT?'visible':'none');MAP.getStyle().layers.forEach(function(l){if(l.id.indexOf('l-')===0)MAP.setLayoutProperty(l.id,'visibility',SAT?'none':'visible');});document.getElementById('btnVis').textContent=SAT?'Ver ludico':'Ver satelite';}
+function fitMap(){if(MAP)MAP.resize();}
+function renderMap(rk,sl){
+  criaMapa();if(!MAP)return;
+  MARKS.forEach(function(m){m.remove()});MARKS=[];
+  rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100);
+    var el=document.createElement('div');el.className='mk';
+    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div></div>';
+    draw(el.querySelector('canvas'),e.icone);
+    el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
+  if(typeof marcaMissoes==='function')marcaMissoes();
+}
+function andarPara(e,suave){if(!MAP)return;MAP.flyTo({center:[e.lng,e.lat],zoom:13.6,pitch:68,bearing:(MAP.getBearing()+55)%360-180+90,duration:suave?3500:2600,essential:true});}
+function visaoGeral(){if(MAP)MAP.flyTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,duration:2600,essential:true});}
+function pareTour(){tourOn=false;clearTimeout(tourT);var b=document.getElementById('btnTour');if(b){b.classList.remove('on');b.textContent='Tour 3D';}}
+function tour(){var b=document.getElementById('btnTour');if(tourOn){pareTour();return;}tourOn=true;b.classList.add('on');b.textContent='Parar tour';closeSheet(true);var i=0,lista=(window._rk||EVENTOS).slice();
+  (function passo(){if(!tourOn)return;var e=lista[i%lista.length];i++;andarPara(e,true);var s=ST.ev[e.id];mineuFala(e.curto+': '+(s.g>=e.min?'desbloqueada! '+e.local:s.g+' de '+e.min+' pra desbloquear.'));tourT=setTimeout(passo,5200);})();}
+document.getElementById('btnVisao').addEventListener('click',function(){pareTour();closeSheet();});
+document.getElementById('btnTour').addEventListener('click',tour);
+document.getElementById('btnVis').addEventListener('click',trocaVisual);
+
+
+/* ====== MISSOES AUTOGUIADAS (parques) ====== */
+var JOR={nome:'Jornada Parques de Porto Alegre',preco:29.90,n:5};
+var PARQUES=[
+  {id:'parcao',nome:'Parcao',lng:-51.2026,lat:-30.0268},
+  {id:'germania',nome:'Germania',lng:-51.1700,lat:-30.0236},
+  {id:'harmonia',nome:'Harmonia',lng:-51.2310,lat:-30.0405},
+  {id:'marinha',nome:'Marinha do Brasil',lng:-51.2265,lat:-30.0455},
+  {id:'farroupilha',nome:'Farroupilha',lng:-51.2160,lat:-30.0388}];
+EMO.mis='\uD83E\uDDED';
+var MARKS2=[];
+function zoomClasse(){if(!MAP)return;var m=document.getElementById('map');var far=MAP.getZoom()<11.2;m.classList.toggle('z-far',far);m.classList.toggle('z-near',!far);}
+function marcaMissoes(){
+  MARKS2.forEach(function(m){m.remove()});MARKS2=[];if(!MAP)return;
+  var lib=!!ST.jor;
+  PARQUES.forEach(function(p){var el=document.createElement('div');el.className='mk m ind';
+    el.innerHTML='<div class="mis" data-mis="'+p.id+'"><div class="sh"><div class="hx"><div class="hi"><canvas></canvas></div></div></div>'+(lib?'<span class="ok2">\u2713</span>':'')+'<span class="lb2">'+p.nome+'</span></div>';
+    draw(el.querySelector('canvas'),'mis');MARKS2.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(MAP));});
+  var cx=PARQUES.reduce(function(a,p){return a+p.lng},0)/PARQUES.length,cy=PARQUES.reduce(function(a,p){return a+p.lat},0)/PARQUES.length;
+  var c=document.createElement('div');c.className='mk m clu';
+  c.innerHTML='<div class="mis big" data-mis="cluster"><div class="sh"><div class="hx"><div class="hi"><canvas></canvas></div></div></div><span class="num">'+PARQUES.length+'</span><span class="lb2">PARQUES: missoes autoguiadas</span></div>';
+  draw(c.querySelector('canvas'),'mis');MARKS2.push(new maplibregl.Marker({element:c,anchor:'bottom'}).setLngLat([cx,cy]).addTo(MAP));
+  zoomClasse();
+}
+function abrirMis(id){
+  pareTour();
+  if(id==='cluster'){MAP.flyTo({center:[-51.195,-30.036],zoom:12.6,pitch:60,bearing:-10,duration:2200,essential:true});return;}
+  var p=PARQUES.filter(function(x){return x.id===id})[0];if(!p)return;
+  selected=null;document.body.classList.add('foco');setTimeout(fitMap,50);
+  MAP.flyTo({center:[p.lng,p.lat],zoom:15.2,pitch:66,bearing:(MAP.getBearing()+40)%360-180+90,duration:2600,essential:true});
+  var lib=!!ST.jor,sh=document.getElementById('sheet');sh.classList.add('sheetM');
+  sh.innerHTML='<div class="acts" style="margin:0 0 8px"><span class="muted">MISSAO AUTOGUIADA</span><button class="btn ghost" data-close="1" style="padding:6px">X Fechar</button></div>'+
+   '<div class="hd"><canvas id="shIc"></canvas><div><h3>Missao no Parque '+p.nome+'</h3><div class="stars">PAIS E FILHOS</div></div></div>'+
+   '<div class="loc">LOCAL: Parque '+p.nome+' - Porto Alegre</div>'+
+   '<span class="badge tm">AUTOGUIADA - SO A FAMILIA</span>'+(lib?'<span class="badge b-win">JORNADA LIBERADA</span>':'<span class="badge b-wait">BLOQUEADA</span>')+
+   '<div class="vs"><b>Como funciona:</b> voces fazem sozinhos, no seu ritmo, com o Mineu guiando pelo celular. Nao precisa juntar grupo nem esperar data: libera na hora.</div>'+
+   '<div class="price">'+JOR.nome+'<br><b>'+brl(JOR.preco)+'</b> - '+JOR.n+' missoes tematicas</div>'+
+   '<div class="vs"><b>Diferenca:</b> aventura <b>GUIADA</b> tem guia e so acontece quando o grupo bate o minimo. <b>AUTOGUIADA</b> e so a sua familia, quando quiser.</div>'+
+   '<div class="acts">'+(lib?'<button class="btn green full" id="btnIniciar">Comecar missao</button>':'<button class="btn green full" id="btnJor">Liberar jornada</button>')+'<button class="btn gold full" id="btnTreino">Treinar em casa (gratis)</button></div>';
+  sh.classList.add('on');draw(document.getElementById('shIc'),'mis');
+  mineuFala('Missao no '+p.nome+'! Voce e seu filho vao sozinhos, e eu guio.');
+  document.getElementById('btnTreino').onclick=function(){toast('Em breve: treino gratis com o Mineu!');sClick();};
+  var bi=document.getElementById('btnIniciar');if(bi)bi.onclick=function(){toast('Em breve: abre a missao no jogo.');};
+  var bj=document.getElementById('btnJor');if(bj)bj.onclick=jornadaPix;
+}
+function jornadaPix(){
+  openModal('<h3>Liberar jornada</h3><p>'+JOR.nome+'<br>'+JOR.n+' missoes tematicas nos parques</p><div class="total">'+brl(JOR.preco)+'</div><p class="muted" style="font-size:12px;text-align:center">Demonstracao: pagamento simulado.</p><div class="acts"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn green" id="mPaid">Simular Pix</button></div>');
+  document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();
+    if(ev.target.id==='mPaid'){ST.jor=true;save();closeModal();sWin();marcaMissoes();var p=document.querySelector('#sheet .hd h3');abrirMis(PARQUES[0].id);toast('Jornada liberada! 5 missoes desbloqueadas.');}};
+}
+document.addEventListener('click',function(ev){var m=ev.target.closest&&ev.target.closest('[data-mis]');if(m){ev.stopPropagation();abrirMis(m.getAttribute('data-mis'));}
+  var fb=ev.target.closest&&ev.target.closest('[data-f]');if(fb){var c=fb.getAttribute('data-f');document.body.classList.toggle(c);fb.classList.toggle('off');sClick();}});
+
+/* ====== RENDER ====== */
+function render(){
+  var rk=ranking(),sl=slots(rk);window._rk=rk;window._sl=sl;
+  var sh='';[['sab','SAB'],['dom','DOM']].forEach(function(p){var s=sl[p[0]],w=clima(p[0]);
+    sh+='<div class="slotChip'+(s.length?' on':'')+'"><b>'+p[1]+' '+fd(DATAS[p[0]])+' - '+w.label+'</b>'+(s.length?s.map(function(e){return e.curto}).join(', '):'nenhuma aventura liberada')+'</div>';});
+  document.getElementById('slots').innerHTML=sh;
+  (function(){var h='';[['sab','SAB'],['dom','DOM']].forEach(function(p){var w=clima(p[0]),ic=w.rain>=60?'\uD83C\uDF27\uFE0F':w.cloud>=70?'\u2601\uFE0F':w.cloud>=35?'\u26C5':'\u2600\uFE0F';h+='<span class="'+(sl[p[0]].length?'ok':'')+'">'+p[1]+' '+ic+(sl[p[0]].length?' '+sl[p[0]].length:'')+'</span>';});document.getElementById('wxMini').innerHTML=h;})();
+  var un=rk.filter(function(e){return ST.ev[e.id].g>=e.min}).length,ph='<div class="conqHd">AVENTURAS DESBLOQUEADAS <b>'+un+'/'+EVENTOS.length+'</b></div><div class="conq">';
+  EVENTOS.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),mp=e.min/e.max*100;
+    ph+='<div class="tile'+(reached?' on':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="tx"><div class="nm">'+e.curto+'</div><div class="mini"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+mp+'%"></u></div><small>'+(reached?'DESBLOQ.':s.g+'/'+e.min)+'</small></div></div>';});
+  document.getElementById('podium').innerHTML=ph+'</div>';document.getElementById('rest').innerHTML='';
+  Array.prototype.forEach.call(document.querySelectorAll('#podium canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
+  fitMap();renderMap(rk,sl);
+  var lh='';rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),k=sl.jan[e.id],jt='proximo finde bom';
+    lh+='<div class="rk-item'+(reached?' p1':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="grow">'+e.nome+'<div class="mini" style="margin-top:6px"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+(e.min/e.max*100)+'%"></u></div><span class="muted">'+s.g+' garantidos | min '+e.min+' | '+s.i+' interessados</span></div>'+(reached?'<span class="badge b-win">DESBLOQUEADA<br>'+jt+'</span>':'<span class="badge b-wait">FALTAM '+(e.min-s.g)+'</span>')+'</div>';});
+  document.getElementById('rankList').innerHTML=lh;
+  Array.prototype.forEach.call(document.querySelectorAll('#rankList canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
+  var wh='';[['sab','SABADO'],['dom','DOMINGO']].forEach(function(p){var w=clima(p[0]),s=sl[p[0]];
+    wh+='<div class="day"><b>'+p[1]+' '+fd(DATAS[p[0]])+'</b>'+w.label+'<br>Chuva: '+Math.round(w.rain)+'% | Nuvens: '+Math.round(w.cloud)+'% | Vento: '+Math.round(w.wind)+' km/h'+(w.temp!=null?'<br>Max: '+Math.round(w.temp)+'C':'')+(w.sunset?' | Por do sol: '+w.sunset:'')+'<br><br>COM TEMPO BOM NESSE DIA: '+(s.length?s.map(function(e){return e.nome}).join(', '):'nenhuma ainda')+'</div>';});
+  document.getElementById('weather').innerHTML=wh;
+  var tp='MODO MESTRE (teste do clima)<br><br>';['sab','dom'].forEach(function(k){tp+=(k==='sab'?'Sabado ':'Domingo ')+'<select data-k="'+k+'">'+[['real','Previsao real'],['bom','Ceu aberto'],['nub','Nublado'],['chuva','Chuva']].map(function(o){return '<option value="'+o[0]+'"'+(ST.clima[k]===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select><br><br>';});
+  tp+='<button class="btn ghost" id="btnReset">Zerar demo</button>';
+  document.getElementById('testPanel').innerHTML=tp;
+  if(selected&&document.getElementById('sheet').classList.contains('on'))sheetHtml(selected);
+}
+
+/* ====== PAINEL DO EVENTO ====== */
+function timelineHtml(reached,falta){
+  var nomes=['Juntando','Desbloqueada','Data confirmada','Aconteceu'],cur=reached?1:0,h='<div class="tl">';
+  nomes.forEach(function(n,i){h+='<div class="st'+(i<cur?' done':i===cur?' now':'')+'"><i>'+(i<cur?'\u2713':i+1)+'</i>'+n+'</div>';});
+  h+='</div><div class="tlcap">'+(reached?'<b>Desbloqueada!</b> Acontece no <b>proximo fim de semana de tempo bom</b>. A data confirmada sai na <b>segunda ou terca</b>, e voce acompanha tudo no <b>grupo do WhatsApp</b> do evento.':'Faltam <b>'+falta+'</b> pessoas pra desbloquear. Quando bater o minimo, ela entra no proximo fim de semana de tempo bom.')+'</div>';
+  return h;}
+function sheetHtml(id){
+  var e=E(id),s=ST.ev[id],rk=window._rk,sl=window._sl,idx=rk.indexOf(e),reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),mp=e.min/e.max*100;
+  var jk=sl.jan[id],jd=jk==='sab'?'SABADO '+fd(DATAS.sab):jk==='dom'?'DOMINGO '+fd(DATAS.dom):null,b='';
+  if(reached)b+='<span class="badge b-win">DESBLOQUEADA!</span>';
+  if(s.g>=e.max)b+='<span class="badge b-bad">LOTADO</span>';
+  var price=reached?'Adulto <b>'+brl(e.adulto)+'</b> | Crianca <b>'+brl(e.crianca)+'</b> (preco cheio)':
+    'Adulto <s>'+brl(e.adulto)+'</s> <b>'+brl(e.adulto*(1-DESCONTO))+'</b><br>Crianca <s>'+brl(e.crianca)+'</s> <b>'+brl(e.crianca*(1-DESCONTO))+'</b><br>(-20% ate fechar o minimo)';
+  var mine='';
+  if(s.mine&&s.mine.g)mine+='<div class="mine">VOCE GARANTIU '+s.mine.g+' VAGA(S). <a data-cancel="'+id+'">cancelar (estorno em 24h)</a></div>';
+  if(s.mine&&s.mine.i)mine+='<div class="mine">VOCE ESTA NO PRE-INTERESSE. <a data-cancelint="'+id+'">sair</a></div>';
+  var cs=clima('sab'),cd=clima('dom');
+  document.getElementById('sheet').innerHTML='<div class="acts" style="margin:0 0 8px"><span class="muted">'+(reached?'AVENTURA DESBLOQUEADA':'EM CONQUISTA')+'</span><button class="btn ghost" data-close="1" style="padding:6px">X Fechar</button></div>'+
+    '<div class="hd"><canvas id="shIc"></canvas><div><h3>'+e.nome+'</h3><div class="stars">'+('*'.repeat(e.nivel))+('-'.repeat(3-e.nivel))+' NIVEL '+e.nivel+'</div></div></div>'+
+    '<div class="loc">LOCAL: '+e.local+'</div><span class="badge tg">GUIADA - COM GUIA, EM GRUPO</span>'+b+
+    timelineHtml(reached,e.min-s.g)+'<div class="bar"><div class="fill'+(reached?' reached':'')+'" style="width:'+pct+'%"></div><div class="minmark" style="left:'+mp+'%"></div></div>'+
+    '<div class="nums"><span>GARANTIDOS <b>'+s.g+'</b>/'+e.max+'</span><span>MIN <b>'+e.min+'</b></span><span>INTERESSE <b>'+s.i+'</b></span></div>'+
+    '<div class="price">'+price+'</div>'+
+    '<div class="clim">'+(reached?'':'')+e.reqTxt.toUpperCase()+'<br>Sab: <b>'+(elegivel(e,cs)?'ok':'nao')+'</b> | Dom: <b>'+(elegivel(e,cd)?'ok':'nao')+'</b></div>'+
+    '<div class="acts"><button class="btn" data-join="'+id+'"'+(s.g>=e.max?' disabled':'')+'>Garantir vaga</button><button class="btn gold" data-int="'+id+'"'+(s.mine&&s.mine.i?' disabled':'')+'>Tenho interesse</button><button class="btn red full" data-share="'+id+'">Chamar um amigo</button></div>'+mine;
+  draw(document.getElementById('shIc'),e.icone);
+}
+function openSheet(id){document.getElementById('sheet').classList.remove('sheetM');pareTour();selected=id;document.body.classList.add('foco');setTimeout(fitMap,50);sheetHtml(id);document.getElementById('sheet').classList.add('on');andarPara(E(id));sClick();
+  var e=E(id),s=ST.ev[id];mineuFala(s.g>=e.min?e.curto+' ja fechou o minimo! '+(s.g<e.max?'Ainda tem '+(e.max-s.g)+' vagas.':'Lotado!'):'Faltam '+(e.min-s.g)+' pessoas pra '+e.curto+' acontecer!');}
+function closeSheet(keep){document.getElementById('sheet').classList.remove('on','sheetM');document.body.classList.remove('foco');setTimeout(fitMap,50);if(!keep&&MAP&&!tourOn)visaoGeral();}
+
+/* ====== INSCRICAO (simulada) ====== */
+function toast(t){var el=document.getElementById('toast');el.textContent=t;el.style.display='block';clearTimeout(toast._t);toast._t=setTimeout(function(){el.style.display='none'},2600)}
+function openModal(h){document.getElementById('modal').innerHTML=h;document.getElementById('ov').classList.add('on')}
+function closeModal(){document.getElementById('ov').classList.remove('on')}
+function joinModal(id){
+  var e=E(id),s=ST.ev[id],reached=s.g>=e.min,mult=reached?1:1-DESCONTO,left=e.max-s.g,a=1,k=0;
+  function body(){return '<h3>'+e.nome+'</h3><div class="row"><span>Adultos ('+brl(e.adulto*mult)+')</span><span class="qty"><button data-q="a-">-</button><b id="qa">'+a+'</b><button data-q="a+">+</button></span></div>'+
+    '<div class="row"><span>Criancas ('+brl(e.crianca*mult)+')</span><span class="qty"><button data-q="k-">-</button><b id="qk">'+k+'</b><button data-q="k+">+</button></span></div>'+
+    '<div class="muted">Vagas restantes: '+left+(reached?'':' | -20% ate fechar o minimo')+'</div><div class="total" id="tot">'+brl(a*e.adulto*mult+k*e.crianca*mult)+'</div>'+
+    '<div class="acts"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn" id="mPay">Pagar com Pix</button></div>';}
+  openModal(body());
+  document.getElementById('modal').onclick=function(ev){var t=ev.target,q=t.getAttribute('data-q');
+    if(q){if(q==='a+'&&a+k<left)a++;if(q==='a-'&&a>0)a--;if(q==='k+'&&a+k<left)k++;if(q==='k-'&&k>0)k--;
+      document.getElementById('qa').textContent=a;document.getElementById('qk').textContent=k;document.getElementById('tot').textContent=brl(a*e.adulto*mult+k*e.crianca*mult);sClick();}
+    if(t.id==='mCancel')closeModal();
+    if(t.id==='mPay'){if(a+k<1){toast('Escolha ao menos 1 pessoa');sBad();return;}if(LIVE)contatoStep(e,a,k,'garantida');else pixStep(e,a,k,a*e.adulto*mult+k*e.crianca*mult);}};
+}
+function pixStep(e,a,k,total){
+  openModal('<h3>Pague com Pix</h3><div style="text-align:center"><canvas id="qr" width="150" height="150"></canvas></div><div class="total">'+brl(total)+'</div><p class="muted" style="text-align:center;font-size:8px">Demonstracao: QR ilustrativo. Na versao real o pagamento confirma sozinho.</p><div class="acts"><button class="btn ghost" id="mCancel">Cancelar</button><button class="btn" id="mPaid">Simular pagamento</button></div>');
+  var c=document.getElementById('qr'),x=c.getContext('2d'),n=25,u=6,seed=7;x.fillStyle='#fff';x.fillRect(0,0,150,150);x.fillStyle='#111';
+  for(var yy=0;yy<n;yy++)for(var xx=0;xx<n;xx++){seed=(seed*9301+49297)%233280;if(seed/233280>.5)x.fillRect(xx*u,yy*u,u,u);}
+  [[0,0],[18,0],[0,18]].forEach(function(p){x.fillStyle='#111';x.fillRect(p[0]*u,p[1]*u,7*u,7*u);x.fillStyle='#fff';x.fillRect((p[0]+1)*u,(p[1]+1)*u,5*u,5*u);x.fillStyle='#111';x.fillRect((p[0]+2)*u,(p[1]+2)*u,3*u,3*u);});
+  document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();
+    if(ev.target.id==='mPaid'){ev.target.disabled=true;ev.target.textContent='Confirmando...';setTimeout(function(){confirmPay(e,a,k)},1200);}};
+}
+function confirmPay(e,a,k){
+  var s=ST.ev[e.id],before=s.g>=e.min,q=a+k;s.g+=q;s.mine=s.mine||{g:0,i:false};s.mine.g+=q;if(s.mine.i){s.mine.i=false;s.i=Math.max(0,s.i-1);}
+  var crossed=!before&&s.g>=e.min;if(crossed)s.reachedAt=Date.now();save();render();
+  if(crossed)victory(e);else{sCoin();openModal('<div class="win"><h3>VAGA GARANTIDA!</h3><p>'+q+' vaga(s) em '+e.nome+'. Faltam '+Math.max(0,e.min-s.g)+' para o minimo.</p><br><div class="acts"><button class="btn red full" id="mShare">Chamar um amigo</button><button class="btn ghost full" id="mCancel">Fechar</button></div></div>');
+    document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();if(ev.target.id==='mShare'){closeModal();share(e.id)}};}
+  mineuFala('Boa! '+e.curto+' esta com '+s.g+' garantidos.');
+}
+function victory(e){sWin();var sl=slots(ranking()),k=sl.jan[e.id],dia=k==='sab'?'SABADO '+fd(DATAS.sab):k==='dom'?'DOMINGO '+fd(DATAS.dom):null;
+  openModal('<div class="win"><canvas id="vi"></canvas><h3>AVENTURA DESBLOQUEADA!</h3><p>'+e.nome+'</p><br><p class="muted">Conquista de todas as familias que garantiram a vaga e chamaram amigos!<br><br>'+'Acontece no proximo fim de semana de tempo bom. A data confirmada sai na segunda ou terca, no grupo do WhatsApp.'+'</p><br><button class="btn gold full" id="mCancel">Bora!</button></div>');
+  blit(document.getElementById('vi'),PIX.face);document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal()};}
+function share(id){var e=E(id),url=location.href.split('?')[0]+'?evento='+id,txt='Quero fazer '+e.nome+' com voce! Ajuda a fechar o minimo: '+url;
+  if(navigator.share){navigator.share({title:'Universo MGO',text:txt,url:url}).catch(function(){})}else if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast('Link copiado! Cole no WhatsApp')},function(){toast(url)})}else toast(url);sClick();}
+
+/* ====== INSCRICAO REAL (Pix do Asaas via site Wix) ====== */
+function escA(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function zapLink(u){return u&&/^https:\/\/(chat\.whatsapp\.com|wa\.me|whatsapp\.com)\//.test(u)?u:null;}
+function grupoBtn(u){var l=zapLink(u);return l?'<a class="btn gold full lnk" href="'+escA(l)+'" target="_blank" rel="noopener">Entrar no grupo do WhatsApp</a>':'<p class="muted" style="text-align:center;font-size:12px">Em breve enviamos o link do grupo do WhatsApp pra voce.</p>';}
+function api(path,opt){return fetch(API+path,opt).then(function(r){return r.json().then(function(d){return{ok:r.ok,d:d}})});}
+function sync(cb){
+  api('/aventuras').then(function(x){var d=x.d;if(!x.ok||!d||!d.aventuras)return;LIVE=true;
+    d.aventuras.forEach(function(a){var e=E(a.id),st=ST.ev[a.id];if(!e||!st)return;AMB=a.ambiente;
+      e.min=a.minimo;e.max=a.maximo;e.adulto=a.adulto;e.crianca=a.crianca;st.g=a.garantidos;st.i=a.interesse;
+      if(st.g>=e.min){if(!st.reachedAt)st.reachedAt=Date.now();}else st.reachedAt=null;});
+    save();render();if(cb)cb();}).catch(function(){});
+}
+function contatoStep(e,a,k,tipo){
+  var c={};try{c=JSON.parse(localStorage.getItem('mgo_contato'))||{}}catch(x){}
+  var fin=tipo==='garantida';
+  openModal('<h3>'+(fin?'Seus dados':'Tenho interesse')+'</h3><p class="muted" style="font-size:12px">'+e.nome+(fin?'':'<br>Voce entra no grupo do WhatsApp e a gente avisa tudo por la.')+'</p>'+
+    '<input class="fld" id="fNome" placeholder="Seu nome" autocomplete="name" value="'+escA(c.nome)+'">'+
+    '<input class="fld" id="fEmail" type="email" placeholder="E-mail" autocomplete="email" value="'+escA(c.email)+'">'+
+    '<input class="fld" id="fZap" type="tel" placeholder="WhatsApp com DDD" autocomplete="tel" value="'+escA(c.whatsapp)+'">'+
+    '<div id="fErr" style="color:#c0392b;font-size:13px;min-height:16px"></div>'+
+    '<div class="acts"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn" id="mGo">'+(fin?'Gerar Pix':'Entrar no grupo')+'</button></div>');
+  document.getElementById('modal').onclick=function(ev){
+    if(ev.target.id==='mCancel'){closeModal();return;}
+    if(ev.target.id!=='mGo')return;
+    var nome=document.getElementById('fNome').value.trim(),email=document.getElementById('fEmail').value.trim(),zap=document.getElementById('fZap').value.trim(),er=document.getElementById('fErr'),btn=ev.target;
+    if(nome.length<3){er.textContent='Informe seu nome.';return;}
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){er.textContent='E-mail invalido.';return;}
+    if(zap.replace(/\D/g,'').length<10){er.textContent='WhatsApp invalido (com DDD).';return;}
+    try{localStorage.setItem('mgo_contato',JSON.stringify({nome:nome,email:email,whatsapp:zap}));}catch(x){}
+    er.textContent='';btn.disabled=true;btn.textContent='Aguarde...';
+    api('/inscrever',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventoId:e.id,tipo:tipo,nome:nome,email:email,whatsapp:zap,adultos:a,criancas:k,origem:new URLSearchParams(location.search).get('utm_source')||''})})
+    .then(function(x){
+      if(!x.ok){er.textContent=(x.d&&x.d.erro)||'Erro. Tente de novo.';btn.disabled=false;btn.textContent=fin?'Gerar Pix':'Entrar no grupo';sBad();return;}
+      if(!fin){var st=ST.ev[e.id];st.mine=st.mine||{g:0,i:false};st.mine.i=true;save();sync();sCoin();
+        openModal('<div class="win"><h3>ANOTADO!</h3><p>Voce esta na lista de interesse de '+e.nome+'.</p><br>'+grupoBtn(x.d.grupoWhatsapp)+'<br><button class="btn ghost full" id="mCancel">Fechar</button></div>');
+        document.getElementById('modal').onclick=function(ev2){if(ev2.target.id==='mCancel')closeModal();};return;}
+      pixReal(e,x.d,a+k);
+    }).catch(function(){er.textContent='Sem conexao. Tente de novo.';btn.disabled=false;btn.textContent=fin?'Gerar Pix':'Entrar no grupo';});
+  };
+}
+var pixTimer=null;
+function pixReal(e,d,pessoas){
+  try{localStorage.setItem('mgo_pend',JSON.stringify({id:d.inscricaoId,eventoId:e.id,pessoas:pessoas}));}catch(x){}
+  openModal('<h3>Pague com Pix</h3><div style="text-align:center">'+(d.qrImagem?'<img alt="QR Pix" style="width:170px;height:170px" src="data:image/png;base64,'+escA(d.qrImagem)+'">':'')+'</div><div class="total">'+brl(d.valor)+'</div>'+(d.comDesconto?'<p class="muted" style="text-align:center;font-size:12px">Com 20% de desconto ate fechar o minimo</p>':'')+
+    '<input class="fld" id="fCopia" readonly value="'+escA(d.copiaECola)+'"><div class="acts"><button class="btn gold full" id="mCopia">Copiar codigo Pix</button></div>'+
+    '<p class="muted" id="fSt" style="text-align:center;font-size:12px;margin-top:12px">Aguardando pagamento... confirma sozinho.</p>'+
+    (AMB==='sandbox'?'<div class="acts"><button class="btn ghost full" id="mSim">Simular pagamento (so teste)</button></div>':'')+
+    '<div class="acts"><button class="btn ghost full" id="mCancel">Fechar</button></div>');
+  clearInterval(pixTimer);
+  function checa(){if(!document.getElementById('ov').classList.contains('on')){clearInterval(pixTimer);return;}
+    api('/inscricao?id='+encodeURIComponent(d.inscricaoId)).then(function(x){if(x.ok&&x.d.status==='pago'){clearInterval(pixTimer);pagoReal(e,x.d,pessoas);}}).catch(function(){});}
+  pixTimer=setInterval(checa,4000);
+  document.getElementById('modal').onclick=function(ev){var id=ev.target.id;
+    if(id==='mCancel'){clearInterval(pixTimer);closeModal();}
+    if(id==='mCopia'){var inp=document.getElementById('fCopia');inp.select();if(navigator.clipboard)navigator.clipboard.writeText(d.copiaECola).catch(function(){});else document.execCommand('copy');toast('Codigo copiado! Cole no app do seu banco.');}
+    if(id==='mSim'){ev.target.disabled=true;fetch(API+'/confirmarPix?id='+encodeURIComponent(d.inscricaoId)).then(function(){setTimeout(checa,1500);});}};
+}
+function pagoReal(e,s,pessoas){
+  try{localStorage.removeItem('mgo_pend');}catch(x){}
+  var st=ST.ev[e.id],antes=st.g>=e.min;st.mine=st.mine||{g:0,i:false};st.mine.g=(st.mine.g||0)+(pessoas||1);if(st.mine.i){st.mine.i=false;}save();
+  sWin();
+  openModal('<div class="win"><h3>PAGAMENTO CONFIRMADO!</h3><p>'+e.nome+'</p><br><p class="muted">Sua vaga esta garantida. Todas as novidades e a data confirmada saem no grupo do WhatsApp.</p><br>'+grupoBtn(s.grupoWhatsapp)+'<br><button class="btn red full" id="mShare">Chamar um amigo</button><br><button class="btn ghost full" id="mCancel">Fechar</button></div>');
+  document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();if(ev.target.id==='mShare'){closeModal();share(e.id);}};
+  sync(function(){if(!antes&&ST.ev[e.id].g>=e.min)mineuFala(e.curto+' foi DESBLOQUEADA! Voce ajudou!');else mineuFala('Boa! '+e.curto+' esta com '+ST.ev[e.id].g+' garantidos.');});
+}
+function checkPend(){var p=null;try{p=JSON.parse(localStorage.getItem('mgo_pend'));}catch(x){}if(!p||!p.id)return;
+  api('/inscricao?id='+encodeURIComponent(p.id)).then(function(x){if(x.ok&&x.d.status==='pago'){var e=E(p.eventoId);if(e)pagoReal(e,x.d,p.pessoas);}else if(x.ok&&(x.d.status==='erro'||x.d.status==='cancelado'))localStorage.removeItem('mgo_pend');}).catch(function(){});}
+function cancelaInfo(){openModal('<h3>Cancelar e receber o estorno</h3><p class="muted" style="font-size:13px">Pra cancelar, mande um e-mail pra <b>contato@meuguiaoutdoor.com.br</b> com seu nome. Devolvemos o valor pelo Pix. Se preferir, o credito pode ser repassado pra qualquer pessoa.</p><div class="acts"><button class="btn ghost full" id="mCancel">Fechar</button></div>');document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();};}
+
+/* ====== EVENTOS DE TELA ====== */
+function showTab(id){Array.prototype.forEach.call(document.querySelectorAll('.view'),function(v){v.classList.toggle('on',v.id===id)});
+  Array.prototype.forEach.call(document.querySelectorAll('.tab[data-tab]'),function(t){t.classList.toggle('on',t.getAttribute('data-tab')===id)});closeSheet();if(id==='vHome')setTimeout(function(){fitMap();render()},0);sClick();}
+document.addEventListener('click',function(ev){
+  var t=ev.target,el=t.closest?t.closest('[data-open],[data-tab],[data-join],[data-int],[data-share],[data-cancel],[data-cancelint],[data-close],#btnReset,#btnSom,#bubble,#ov'):null;if(!el)return;
+  var g=function(a){return el.getAttribute(a)};
+  if(g('data-tab'))showTab(g('data-tab'));
+  else if(g('data-open')){if(el.closest('#vRank'))showTab('vHome');openSheet(g('data-open'));}
+  else if(g('data-close'))closeSheet();
+  else if(g('data-join')){sClick();joinModal(g('data-join'))}
+  else if(g('data-int')){if(LIVE){contatoStep(E(g('data-int')),0,0,'interesse');return;}var id=g('data-int'),s=ST.ev[id];s.i++;s.mine=s.mine||{g:0,i:false};s.mine.i=true;save();render();sCoin();mineuFala('Anotado! Voce sobe na fila se alguem desistir.');}
+  else if(g('data-share'))share(g('data-share'));
+  else if(g('data-cancel')){if(LIVE){cancelaInfo();return;}var id2=g('data-cancel'),s2=ST.ev[id2],e2=E(id2);s2.g-=s2.mine.g;s2.mine.g=0;if(s2.g<e2.min)s2.reachedAt=null;save();render();sBad();toast('Cancelado. Estorno em ate 24h.');}
+  else if(g('data-cancelint')){var id3=g('data-cancelint'),s3=ST.ev[id3];s3.i=Math.max(0,s3.i-1);s3.mine.i=false;save();render();}
+  else if(el.id==='btnReset'){localStorage.removeItem(KEY);load();render();toast('Demo zerada');}
+  else if(el.id==='btnSom'){somOn=!somOn;el.textContent=somOn?'SOM':'MUDO';if(somOn)sClick();}
+  else if(el.id==='ov'&&t===el)closeModal();
+  else if(el.id==='bubble')dica();
+});
+document.addEventListener('change',function(ev){var t=ev.target;if(t.tagName==='SELECT'&&t.getAttribute('data-k')){ST.clima[t.getAttribute('data-k')]=t.value;save();render();sClick();dica();}});
+window.addEventListener('resize',function(){fitMap()});
+
+/* ====== MINEU ====== */
+var full='',shown=0,dicaN=0,talkUntil=0,t0=Date.now();
+function mineuFala(txt){full=txt;shown=0;talkUntil=Date.now()+txt.length*45+300;}
+function dica(){var rk=window._rk||ranking(),sl=window._sl||slots(rk),L=[],un=rk.filter(function(e){return ST.ev[e.id].g>=e.min});
+  un.filter(function(e){return !sl.jan[e.id]}).forEach(function(e){L.push(e.curto+' ja foi desbloqueada! Acontece no proximo fim de semana de tempo bom.')});
+  var p=rk.filter(function(e){return ST.ev[e.id].g<e.min}).sort(function(a,b){return(a.min-ST.ev[a.id].g)-(b.min-ST.ev[b.id].g)})[0];
+  if(p)L.push('Faltam so '+(p.min-ST.ev[p.id].g)+' pra desbloquear '+p.curto+'. Chama um amigo!');
+  L.push('Ja desbloqueamos '+un.length+' de '+rk.length+' aventuras. Cada familia conta!');L.push('Pagou antes do minimo? 20% de desconto.');L.push('Cancelou? Devolvemos tudo em ate 24h.');mineuFala(L[(dicaN++)%L.length]);}
+function loop(){var cv=document.getElementById('mineu'),t=Date.now()-t0;
+  if(PIX.face&&cv.width!==PIX.face.width)blit(cv,PIX.face);
+  var talking=Date.now()<talkUntil,bob=talking?(Math.floor(t/150)%2?-3:0):(Math.floor(t/600)%2?-1:0);cv.style.transform='translateY('+bob+'px)';
+  if(shown<full.length){shown=Math.min(full.length,shown+.6);var n=Math.floor(shown);document.getElementById('bubbleTxt').textContent=full.slice(0,n);if(n!==loop._l&&n%3===0){bip(520+Math.random()*180,.03);}loop._l=n;}
+  requestAnimationFrame(loop);}
+
+load();
+carregaMineu(function(){render();mineuFala('Ola, aventureiro! Eu sou o Mineu. Arraste o mapa 3D e toque numa aventura. Ajude a desbloquear!');loop();
+  var q=new URLSearchParams(location.search).get('evento');if(q&&E(q))setTimeout(function(){openSheet(q)},1800);});
+fetchClima();
+sync(checkPend);
+</script>
+</body>
+</html>
