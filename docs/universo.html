@@ -480,7 +480,7 @@ function render(){
   Array.prototype.forEach.call(document.querySelectorAll('#podium canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
   fitMap();renderMap(rk,sl);
   var lh='';rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),k=sl.jan[e.id],jt='proximo finde bom';
-    lh+='<div class="rk-item'+(reached?' p1':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="grow">'+e.nome+'<div class="mini" style="margin-top:6px"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+(e.min/e.max*100)+'%"></u></div><span class="muted">'+s.g+' garantidos | min '+e.min+' | '+e.max+' vagas | '+s.i+' interessados</span></div>'+(reached?'<span class="badge b-win">DESBLOQUEADA<br>'+jt+'</span>':'<span class="badge b-wait">FALTAM '+(e.min-s.g)+'</span>')+'</div>';});
+    lh+='<div class="rk-item'+(reached?' p1':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="grow">'+e.nome+'<div class="mini" style="margin-top:6px"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+(e.min/e.max*100)+'%"></u></div><span class="muted">'+s.g+' garantidos | min '+e.min+' | '+e.max+' vagas</span></div>'+(reached?'<span class="badge b-win">DESBLOQUEADA<br>'+jt+'</span>':'<span class="badge b-wait">FALTAM '+(e.min-s.g)+'</span>')+'</div>';});
   document.getElementById('rankList').innerHTML=lh;
   Array.prototype.forEach.call(document.querySelectorAll('#rankList canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
   var wh='';[['sab','SABADO'],['dom','DOMINGO']].forEach(function(p){var w=clima(p[0]),s=sl[p[0]];
@@ -513,7 +513,7 @@ function sheetHtml(id){
     '<div class="banner" style="background-image:url('+IMGP+e.foto+')"></div><div class="hd"><canvas id="shIc"></canvas><div><h3>'+e.nome+'</h3><div class="stars">'+('*'.repeat(e.nivel))+('-'.repeat(3-e.nivel))+' NIVEL '+e.nivel+'</div></div></div>'+
     '<div class="loc">LOCAL: '+e.local+'</div><span class="badge tg">GUIADA - COM GUIA, EM GRUPO</span>'+b+
     timelineHtml(reached,e.min-s.g)+'<div class="bar"><div class="fill'+(reached?' reached':'')+'" style="width:'+pct+'%"></div><div class="minmark" style="left:'+mp+'%"></div></div>'+
-    '<div class="nums"><span>GARANTIDOS <b>'+s.g+'</b>/'+e.max+'</span><span>MIN <b>'+e.min+'</b></span><span>INTERESSE <b>'+s.i+'</b></span></div>'+
+    '<div class="nums"><span>VAGAS <b>'+s.g+'</b>/'+e.max+'</span><span>MINIMO <b>'+e.min+'</b></span></div>'+
     '<div class="price">'+price+'</div>'+
     '<div class="clim">'+(reached?'':'')+e.reqTxt.toUpperCase()+'<br>Sab: <b>'+(elegivel(e,cs)?'ok':'nao')+'</b> | Dom: <b>'+(elegivel(e,cd)?'ok':'nao')+'</b></div>'+
     '<div class="acts"><button class="btn" data-join="'+id+'"'+(s.g>=e.max?' disabled':'')+'>Garantir vaga</button><button class="btn gold" data-int="'+id+'"'+(s.mine&&s.mine.i?' disabled':'')+'>Tenho interesse</button><button class="btn red full" data-share="'+id+'">Chamar um amigo</button></div>'+mine;
