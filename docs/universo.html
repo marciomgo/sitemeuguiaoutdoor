@@ -353,7 +353,7 @@ function criaMapa(){
         {id:'l-place',type:'symbol',source:'omt','source-layer':'place',filter:['in',['get','class'],['literal',['city','town','village','suburb','neighbourhood']]],minzoom:8,layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':['Noto Sans Bold'],'text-size':['match',['get','class'],'city',9,'town',7,6],'text-transform':'uppercase','text-letter-spacing':.08,'text-max-width':8},paint:{'text-color':'#6b3d14','text-halo-color':'#fff3d0','text-halo-width':2}}
       ],
       terrain:{source:'dem',exaggeration:2.4}}});
-  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
+  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:false}),'bottom-right');
   MAP.on('dragstart',pareTour);
   MAP.once('load',enquadra);
   MAP.on('zoom',zoomClasse);
