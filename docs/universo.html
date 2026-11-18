@@ -137,6 +137,7 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .carro::-webkit-scrollbar{display:none}
 #vHome>div{min-width:0}
 .pin .fl{white-space:nowrap;padding:2px 5px}
+.pin .lb{border-radius:12px;line-height:1.1}.pin .tl2{display:block;font-size:8px;letter-spacing:1.5px;opacity:.8}
 .cc{flex:0 0 86%;scroll-snap-align:center;display:flex;gap:14px;align-items:center;background:var(--bg2);border:3px solid var(--line);border-radius:20px;padding:14px 16px;cursor:pointer;min-width:0;box-sizing:border-box}
 .cc canvas{width:60px;height:60px;flex:none;filter:grayscale(1);opacity:.55}
 .cc .tx{min-width:0;flex:1}
@@ -243,11 +244,11 @@ var DESCONTO = 0.20;
 var API='https://www.meuguiaoutdoor.com.br/_functions',LIVE=false,AMB='';
 var IMGP='';
 var EVENTOS = [
-  {id:'por-do-sol', foto:'evento-por-do-sol.webp', nome:'Trilha do Por do Sol', curto:'POR DO SOL', nivel:1, max:40, min:25, adulto:90, crianca:70, icone:'sol', req:'sol', reqTxt:'precisa de ceu aberto',
+  {id:'por-do-sol', foto:'evento-por-do-sol.webp', nome:'Trilha do Por do Sol', curto:'TRILHA POR DO SOL', nivel:1, max:40, min:25, adulto:90, crianca:70, icone:'sol', req:'sol', reqTxt:'precisa de ceu aberto',
    local:'Morro das Abertas - Zona Sul', lng:-51.20752512024942, lat:-30.15778067283662, seed:{g:19,i:14,h:null}},
-  {id:'gigantes', foto:'evento-gigantes.webp', nome:'Trilha dos Gigantes', curto:'GIGANTES', nivel:2, max:40, min:25, adulto:90, crianca:70, icone:'mont', req:'seco', reqTxt:'precisa de tempo seco',
+  {id:'gigantes', foto:'evento-gigantes.webp', nome:'Trilha dos Gigantes', curto:'TRILHA GIGANTES', nivel:2, max:40, min:25, adulto:90, crianca:70, icone:'mont', req:'seco', reqTxt:'precisa de tempo seco',
    local:'Morro da Tapera - Zona Sul', lng:-51.19096844423054, lat:-30.14279156463166, seed:{g:26,i:9,h:30}},
-  {id:'cascatinha', foto:'evento-cascatinha.webp', nome:'Trilha da Cachu', curto:'CACHU', nivel:3, max:40, min:25, adulto:90, crianca:70, icone:'casc', req:'seco', reqTxt:'precisa de tempo seco',
+  {id:'cascatinha', foto:'evento-cascatinha.webp', nome:'Trilha da Cachu', curto:'TRILHA CACHU', nivel:3, max:40, min:25, adulto:90, crianca:70, icone:'casc', req:'seco', reqTxt:'precisa de tempo seco',
    local:'Morro Santana - Zona Leste', lng:-51.1271085761942, lat:-30.053519320606025, seed:{g:11,i:6,h:null}},
 ];
 
@@ -365,7 +366,7 @@ function renderMap(rk,sl){
   MARKS.forEach(function(m){m.remove()});MARKS=[];
   rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100);
     var el=document.createElement('div');el.className='mk';
-    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':'faltam '+(e.min-s.g)+'<br>para desbloquear')+'</div></div>';
+    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb"><small class="tl2">TRILHA</small>'+e.curto.replace(/^TRILHA /,'')+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':'faltam '+(e.min-s.g)+'<br>para desbloquear')+'</div></div>';
     draw(el.querySelector('canvas'),e.icone);
     el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
 }
