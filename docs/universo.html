@@ -137,8 +137,7 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .carro::-webkit-scrollbar{display:none}
 #vHome>div{min-width:0}
 .pin .fl{white-space:nowrap;padding:2px 5px}
-.pin .lb{border-radius:12px;line-height:1.1}
-.mk .pin{transform:translate(-50%,-100%) scale(var(--ps,1));transform-origin:50% 100%}.pin .tl2{display:block;font-size:8px;letter-spacing:1.5px;opacity:.8}
+.pin .lb{border-radius:12px;line-height:1.1}.pin .tl2{display:block;font-size:8px;letter-spacing:1.5px;opacity:.8}
 .cc{flex:0 0 86%;scroll-snap-align:center;display:flex;gap:14px;align-items:center;background:var(--bg2);border:3px solid var(--line);border-radius:20px;padding:14px 16px;cursor:pointer;min-width:0;box-sizing:border-box}
 .cc canvas{width:60px;height:60px;flex:none;filter:grayscale(1);opacity:.55}
 .cc .tx{min-width:0;flex:1}
@@ -417,7 +416,7 @@ var PARQUES=[
   {id:'farroupilha',nome:'Farroupilha',lng:-51.2160,lat:-30.0388}];
 EMO.mis='\uD83E\uDDED';
 var MARKS2=[];
-function zoomClasse(){if(!MAP)return;var m=document.getElementById('map');var zz=MAP.getZoom(),sc=Math.max(.45,Math.min(1,.45+(zz-10.8)/(14-10.8)*.55));m.style.setProperty('--ps',sc.toFixed(3));var far=MAP.getZoom()<11.2;m.classList.toggle('z-far',far);m.classList.toggle('z-near',!far);}
+function zoomClasse(){if(!MAP)return;var m=document.getElementById('map');var far=MAP.getZoom()<11.2;m.classList.toggle('z-far',far);m.classList.toggle('z-near',!far);}
 function marcaMissoes(){
   MARKS2.forEach(function(m){m.remove()});MARKS2=[];if(!MAP)return;
   var lib=!!ST.jor;
