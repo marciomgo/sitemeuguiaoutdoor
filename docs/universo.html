@@ -541,6 +541,7 @@ function contatoStep(e,a,k,tipo){
     '<input class="fld" id="fNome" placeholder="Seu nome" autocomplete="name" value="'+escA(c.nome)+'">'+
     '<input class="fld" id="fEmail" type="email" placeholder="E-mail" autocomplete="email" value="'+escA(c.email)+'">'+
     '<input class="fld" id="fZap" type="tel" placeholder="WhatsApp com DDD" autocomplete="tel" value="'+escA(c.whatsapp)+'">'+
+    '<input class="fld" id="fInd" placeholder="Quem te indicou? (opcional)" maxlength="80">'+
     '<div id="fErr" style="color:#c0392b;font-size:13px;min-height:16px"></div>'+
     '<div class="acts"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn" id="mGo">'+(fin?'Gerar Pix':'Entrar no grupo')+'</button></div>');
   document.getElementById('modal').onclick=function(ev){
@@ -552,7 +553,7 @@ function contatoStep(e,a,k,tipo){
     if(zap.replace(/\D/g,'').length<10){er.textContent='WhatsApp invalido (com DDD).';return;}
     try{localStorage.setItem('mgo_contato',JSON.stringify({nome:nome,email:email,whatsapp:zap}));}catch(x){}
     er.textContent='';btn.disabled=true;btn.textContent='Aguarde...';
-    api('/inscrever',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventoId:e.id,tipo:tipo,nome:nome,email:email,whatsapp:zap,adultos:a,criancas:k,origem:new URLSearchParams(location.search).get('utm_source')||''})})
+    api('/inscrever',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventoId:e.id,tipo:tipo,nome:nome,email:email,whatsapp:zap,adultos:a,criancas:k,origem:new URLSearchParams(location.search).get('utm_source')||'',indicadoPor:(document.getElementById('fInd').value||'').trim()})})
     .then(function(x){
       if(!x.ok){er.textContent=(x.d&&x.d.erro)||'Erro. Tente de novo.';btn.disabled=false;btn.textContent=fin?'Gerar Pix':'Entrar no grupo';sBad();return;}
       if(!fin){var st=ST.ev[e.id];st.mine=st.mine||{g:0,i:false};st.mine.i=true;save();sync();sCoin();
