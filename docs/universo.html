@@ -558,7 +558,7 @@ function fichaStep(e){
   function chk(id){var el=document.getElementById(id);return el?el.checked:false;}
   function coleta(){if(!document.getElementById('fNome'))return;
     F.nome=val('fNome');F.nasc=val('fNasc');F.cpf=val('fCpf');F.cidade=val('fCidade');F.email=val('fEmail');F.zap=val('fZap');F.como=val('fComo');F.ind=val('fInd');
-    F.parts.forEach(function(p,i){p.nome=val('pN'+i);p.nasc=val('pD'+i);});
+    F.parts.forEach(function(p,i){p.nome=val('pN'+i);p.nasc=val('pD'+i);if(p.tipo!=='crianca')p.cpf=val('pC'+i);});
     var h=F.saude;h.gravidez=chk('sGrav');h.asma=chk('sAsma');h.cardiaco=chk('sCard');h.epilepsia=chk('sEpi');
     h.alergias=val('sAle');h.medicamentos=val('sMed');h.cirurgia=val('sCir');h.outros=val('sOut');h.assistencia=val('sAss');
     F.risco=chk('fRisco');F.imagem=chk('fImg');}
@@ -567,7 +567,7 @@ function fichaStep(e){
   function desenha(){
     var t=total(),h=F.saude,m=document.getElementById('modal'),topo=m?m.scrollTop:0;
     var parts='';F.parts.forEach(function(p,i){
-      parts+='<div class="prow"><div class="lbl">'+(p.tipo==='crianca'?'Criança':'Adulto')+' '+(i+1)+'</div>'+lin('pN'+i,'Nome completo',p.nome,'autocomplete="off"')+
+      parts+='<div class="prow"><div class="lbl">'+(p.tipo==='crianca'?'Criança':'Adulto')+' '+(i+1)+'</div>'+lin('pN'+i,'Nome completo',p.nome,'autocomplete="off"')+(p.tipo==='crianca'?'':lin('pC'+i,'CPF (só números)',p.cpf||'','inputmode="numeric" maxlength="14" autocomplete="off"'))+
         '<label class="lbl">Data de nascimento</label><input class="fld" type="date" id="pD'+i+'" value="'+escA(p.nasc)+'">'+
         '<button class="btn ghost" style="padding:6px 10px;font-size:12px" data-rm="'+i+'">Remover</button></div>';});
     function sel(v,txt){return '<option value="'+v+'"'+(F.como===v?' selected':'')+'>'+txt+'</option>';}
@@ -620,7 +620,8 @@ function fichaStep(e){
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(F.email.trim()))return erro('E-mail inválido.');
     if(F.zap.replace(/\D/g,'').length<10)return erro('WhatsApp inválido (com DDD).');
     if(!F.como)return erro('Conte como ficou sabendo do evento.');
-    for(i=0;i<F.parts.length;i++){if(F.parts[i].nome.trim().length<3)return erro('Informe o nome completo de todos os participantes.');if(!dataOk(F.parts[i].nasc))return erro('Informe a data de nascimento de todos os participantes.');}
+    for(i=0;i<F.parts.length;i++){if(F.parts[i].nome.trim().length<3)return erro('Informe o nome completo de todos os participantes.');if(!dataOk(F.parts[i].nasc))return erro('Informe a data de nascimento de todos os participantes.');
+      if(F.parts[i].tipo!=='crianca'){var pc=F.parts[i].cpf.replace(/\D/g,'');if(!cpfOk(pc))return erro('CPF inválido de um dos adultos.');if(pc===F.cpf.replace(/\D/g,''))return erro('O CPF de cada adulto deve ser diferente.');for(var j=0;j<i;j++){if(F.parts[j].tipo!=='crianca'&&F.parts[j].cpf.replace(/\D/g,'')===pc)return erro('O CPF de cada adulto deve ser diferente.');}}}
     if(!F.risco||!F.imagem)return erro('Para continuar, marque a ciência de risco e o uso de imagem.');
     try{localStorage.setItem('mgo_contato',JSON.stringify({nome:F.nome.trim(),email:F.email.trim(),whatsapp:F.zap.trim()}));}catch(x){}
     er.textContent='';btn.disabled=true;btn.textContent='Aguarde...';
@@ -628,7 +629,7 @@ function fichaStep(e){
     api('/inscrever',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       eventoId:e.id,tipo:'garantida',nome:F.nome.trim(),email:F.email.trim(),whatsapp:F.zap.trim(),cpf:F.cpf,nascimento:F.nasc,cidade:F.cidade.trim(),
       comoSoube:F.como,indicadoPor:F.como==='indicacao'?F.ind.trim():'',
-      participantes:F.parts.map(function(p){return{tipo:p.tipo,nome:p.nome.trim(),nascimento:p.nasc};}),
+      participantes:F.parts.map(function(p){return{tipo:p.tipo,nome:p.nome.trim(),nascimento:p.nasc,cpf:p.tipo==='crianca'?'':p.cpf};}),
       saude:F.saude,aceiteRisco:true,aceiteImagem:true,
       origem:new URLSearchParams(location.search).get('utm_source')||''})})
     .then(function(x){
