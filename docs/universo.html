@@ -137,7 +137,8 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .carro::-webkit-scrollbar{display:none}
 #vHome>div{min-width:0}
 .pin .fl{white-space:nowrap;padding:2px 5px}
-.pin .lb{border-radius:12px;line-height:1.1}.pin .tl2{display:block;font-size:8px;letter-spacing:1.5px;opacity:.8}
+.pin .lb{border-radius:12px;line-height:1.1}
+.mk .pin{transform:translate(-50%,-100%) scale(var(--ps,1));transform-origin:50% 100%}.pin .tl2{display:block;font-size:8px;letter-spacing:1.5px;opacity:.8}
 .cc{flex:0 0 86%;scroll-snap-align:center;display:flex;gap:14px;align-items:center;background:var(--bg2);border:3px solid var(--line);border-radius:20px;padding:14px 16px;cursor:pointer;min-width:0;box-sizing:border-box}
 .cc canvas{width:60px;height:60px;flex:none;filter:grayscale(1);opacity:.55}
 .cc .tx{min-width:0;flex:1}
@@ -199,7 +200,7 @@ select.fld{appearance:auto}
     <button class="tab" data-tab="vRank">METAS</button>
     <button class="tab" data-tab="vClima">CLIMA</button>
     <button class="tab" data-tab="vRegras">REGRAS</button>
-    <button class="tab" id="btnSom">SOM</button>
+    
   </div>
 
   <div class="view on" id="vHome">
@@ -281,7 +282,7 @@ function carregaMineu(cb){
 function blit(cv,src){if(!src)return;cv.width=src.width;cv.height=src.height;cv.getContext('2d').drawImage(src,0,0);}
 
 /* ====== SOM ====== */
-var somOn=true,AC=null;
+var somOn=false,AC=null;
 function bip(f,d,t,delay){if(!somOn)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();var o=AC.createOscillator(),g=AC.createGain();o.type=t||'square';o.frequency.value=f;var t0=AC.currentTime+(delay||0);g.gain.setValueAtTime(.08,t0);g.gain.exponentialRampToValueAtTime(.001,t0+d);o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d);}catch(e){}}
 function sClick(){bip(660,.08)}function sCoin(){bip(988,.08);bip(1319,.18,'square',.08)}
 function sWin(){[523,659,784,1047,784,1047,1319].forEach(function(f,i){bip(f,.18,'square',i*.14)})}
@@ -321,7 +322,12 @@ function fd(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit
 
 /* ====== MAPA ====== */
 var selected=null,MAP=null,MARKS=[],tourT=null,tourOn=false;
-var VISAO={center:[-51.14,-30.12],zoom:9.8,pitch:52,bearing:-15};
+var VISAO={center:[-51.168,-30.108],zoom:11.1,pitch:30,bearing:0};
+/* enquadra as aventuras na tela (com a altura/largura reais do mapa) */
+function enquadra(){if(!MAP)return;MAP.resize();ajustaVisao();MAP.jumpTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing});zoomClasse();}
+function ajustaVisao(){if(!MAP)return;var b=new maplibregl.LngLatBounds();EVENTOS.forEach(function(e){b.extend([e.lng,e.lat])});
+  var cam=MAP.cameraForBounds(b,{padding:{top:140,bottom:60,left:55,right:55},bearing:VISAO.bearing});
+  if(cam){VISAO.center=[cam.center.lng,cam.center.lat];VISAO.zoom=cam.zoom;}}
 function criaMapa(){
   if(MAP||!window.maplibregl)return;
   MAP=new maplibregl.Map({container:'map',center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,maxPitch:75,attributionControl:{compact:true},
@@ -350,6 +356,7 @@ function criaMapa(){
       terrain:{source:'dem',exaggeration:2.4}}});
   MAP.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
   MAP.on('dragstart',pareTour);
+  MAP.once('load',enquadra);
   MAP.on('zoom',zoomClasse);
   // rota entre aventuras removida
   window.addEventListener('resize',function(){MAP.resize()});
@@ -362,16 +369,16 @@ function addRota(){var ordem=['cascatinha','gigantes','por-do-sol'],pts=ordem.ma
   MAP.addLayer({id:'rota',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffb347','line-width':3.5,'line-dasharray':[0.1,2.2]}});}
 function fitMap(){if(MAP)MAP.resize();}
 function renderMap(rk,sl){
-  criaMapa();if(!MAP)return;
+  criaMapa();if(!MAP)return;if(!window._enq){window._enq=1;setTimeout(enquadra,0);}
   MARKS.forEach(function(m){m.remove()});MARKS=[];
   rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100);
     var el=document.createElement('div');el.className='mk';
-    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb"><small class="tl2">TRILHA</small>'+e.curto.replace(/^TRILHA /,'')+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':'faltam '+(e.min-s.g)+'<br>para desbloquear')+'</div></div>';
+    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb"><small class="tl2">TRILHA</small>'+e.curto.replace(/^TRILHA /,'')+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div></div>';
     draw(el.querySelector('canvas'),e.icone);
     el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
 }
 function andarPara(e,suave){if(!MAP)return;MAP.flyTo({center:[e.lng,e.lat],zoom:13.6,pitch:68,bearing:(MAP.getBearing()+55)%360-180+90,duration:suave?3500:2600,essential:true});}
-function visaoGeral(){if(MAP)MAP.flyTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,duration:2600,essential:true});}
+function visaoGeral(){ajustaVisao();if(MAP)MAP.flyTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,duration:2600,essential:true});}
 function pareTour(){tourOn=false;clearTimeout(tourT);var b=document.getElementById('btnTour');if(b){b.classList.remove('on');b.textContent='Tour 3D';}}
 function tour(){var b=document.getElementById('btnTour');if(tourOn){pareTour();return;}tourOn=true;b.classList.add('on');b.textContent='Parar tour';closeSheet(true);var i=0,lista=(window._rk||EVENTOS).slice();
   (function passo(){if(!tourOn)return;var e=lista[i%lista.length];i++;andarPara(e,true);var s=ST.ev[e.id];mineuFala(e.curto+': '+(s.g>=e.min?'desbloqueada! '+e.local:s.g+' de '+e.min+' pra desbloquear.'));tourT=setTimeout(passo,5200);})();}
@@ -410,7 +417,7 @@ var PARQUES=[
   {id:'farroupilha',nome:'Farroupilha',lng:-51.2160,lat:-30.0388}];
 EMO.mis='\uD83E\uDDED';
 var MARKS2=[];
-function zoomClasse(){if(!MAP)return;var m=document.getElementById('map');var far=MAP.getZoom()<11.2;m.classList.toggle('z-far',far);m.classList.toggle('z-near',!far);}
+function zoomClasse(){if(!MAP)return;var m=document.getElementById('map');var zz=MAP.getZoom(),sc=Math.max(.45,Math.min(1,.45+(zz-10.8)/(14-10.8)*.55));m.style.setProperty('--ps',sc.toFixed(3));var far=MAP.getZoom()<11.2;m.classList.toggle('z-far',far);m.classList.toggle('z-near',!far);}
 function marcaMissoes(){
   MARKS2.forEach(function(m){m.remove()});MARKS2=[];if(!MAP)return;
   var lib=!!ST.jor;
