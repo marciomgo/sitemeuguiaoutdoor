@@ -191,7 +191,7 @@ select.fld{appearance:auto}
     </div>
     <div class="mapArea" id="mapArea">
       <div class="map" id="map"></div>
-      <div class="tint"></div><div class="wxMini" id="wxMini" data-tab="vClima"></div><div class="mapCtl"><button id="btnVisao">Visao geral</button><button id="btnTour">Tour 3D</button><button id="btnVis">Ver satelite</button><button id="btnEu">Onde estou</button></div><div class="mapLeg"><button data-f="hideG"><i class="dot g"></i>Guiadas: com guia, em grupo</button><button data-f="hideM"><i class="dot m"></i>Autoguiadas: so a familia</button></div>
+      <div class="tint"></div><div class="wxMini" id="wxMini" data-tab="vClima"></div><div class="mapCtl"><button id="btnVisao">Visao geral</button><button id="btnTour">Tour 3D</button><button id="btnVis">Ver satelite</button><button id="btnEu">Onde estou</button></div><div class="mapLeg"><button data-f="hideG"><i class="dot g"></i>Guiadas: com guia, em grupo</button></div>
     </div>
   </div>
 
@@ -224,12 +224,6 @@ var EVENTOS = [
    local:'Morro da Tapera - Zona Sul', lng:-51.185, lat:-30.162, seed:{g:26,i:9,h:30}},
   {id:'cascatinha', nome:'Trilha da Cascatinha Escondida', curto:'CASCATINHA', nivel:3, max:40, min:25, adulto:90, crianca:70, icone:'casc', req:'seco', reqTxt:'precisa de tempo seco',
    local:'Morro Santana - Zona Leste', lng:-51.113, lat:-30.071, seed:{g:11,i:6,h:null}},
-  {id:'caiaque', nome:'Caiaque na Ilha Pirata', curto:'CAIAQUE', nivel:2, max:12, min:8, adulto:180, crianca:120, icone:'caiq', req:'vento', reqTxt:'precisa de tempo seco e pouco vento',
-   local:'Beira do Lami - Extremo Sul', lng:-51.08, lat:-30.23, seed:{g:6,i:4,h:null}},
-  {id:'escalada', nome:'Escalada e Rapel Indoor', curto:'ESCALADA', nivel:1, max:40, min:25, adulto:90, crianca:70, icone:'esc', req:'any', reqTxt:'funciona com qualquer clima',
-   local:'Zona Norte (local a confirmar)', lng:-51.15, lat:-30.005, seed:{g:27,i:12,h:18}},
-  {id:'minicamp', nome:'MiniCamp POA', curto:'MINICAMP', nivel:1, max:40, min:25, adulto:180, crianca:120, icone:'camp', req:'seco', reqTxt:'precisa de tempo seco',
-   local:'Vaca Bike Park - Lami', lng:-51.09, lat:-30.212, seed:{g:8,i:17,h:null}}
 ];
 
 /* ====== SPRITES (icones) ====== */
@@ -335,7 +329,7 @@ function criaMapa(){
   window.addEventListener('resize',function(){MAP.resize()});
 }
 function curva(p,q){var mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2,dx=q[0]-p[0],dy=q[1]-p[1],cx=mx-dy*.22,cy=my+dx*.22,o=[];for(var t=0;t<=1.001;t+=.05){o.push([(1-t)*(1-t)*p[0]+2*(1-t)*t*cx+t*t*q[0],(1-t)*(1-t)*p[1]+2*(1-t)*t*cy+t*t*q[1]]);}return o;}
-function addRota(){var ordem=['escalada','cascatinha','gigantes','por-do-sol','minicamp','caiaque'],pts=ordem.map(function(id){var e=E(id);return [e.lng,e.lat]}),linha=[];
+function addRota(){var ordem=['cascatinha','gigantes','por-do-sol'],pts=ordem.map(function(id){var e=E(id);return [e.lng,e.lat]}),linha=[];
   for(var i=0;i<pts.length-1;i++)linha=linha.concat(curva(pts[i],pts[i+1]));
   MAP.addSource('rota',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linha}}});
   MAP.addLayer({id:'rota-borda',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2a1708','line-width':7,'line-opacity':.35}});
@@ -350,7 +344,6 @@ function renderMap(rk,sl){
     el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div></div>';
     draw(el.querySelector('canvas'),e.icone);
     el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
-  if(typeof marcaMissoes==='function')marcaMissoes();
 }
 function andarPara(e,suave){if(!MAP)return;MAP.flyTo({center:[e.lng,e.lat],zoom:13.6,pitch:68,bearing:(MAP.getBearing()+55)%360-180+90,duration:suave?3500:2600,essential:true});}
 function visaoGeral(){if(MAP)MAP.flyTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing,duration:2600,essential:true});}
