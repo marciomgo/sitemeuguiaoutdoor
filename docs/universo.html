@@ -189,6 +189,14 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .chk input{margin-top:3px}
 .termo{max-height:130px;overflow:auto;font-size:12px;background:var(--bg2);border-radius:10px;padding:8px;margin:6px 0}
 select.fld{appearance:auto}
+.passo{display:flex;gap:12px;align-items:flex-start;margin:12px 0}
+.passo>b{flex:none;width:30px;height:30px;border-radius:50%;background:var(--or);color:#fff;text-align:center;line-height:30px;font-size:16px;font-family:var(--tt)}
+.passo h4,.caixa h4{margin:0 0 3px;font-size:16px;color:var(--ink)}
+.passo p,.caixa p{margin:0;font-size:14px;color:var(--mut);line-height:1.35}
+.passo.ok>b{background:var(--gold);color:var(--ink)}
+.caixa{background:var(--bg2);border:2px solid var(--line);border-radius:14px;padding:10px 12px;margin:12px 0}
+.caixa details summary{cursor:pointer;font-weight:700;color:var(--ink)}
+.saiba{display:block;margin-top:6px;padding:3px 10px;border-radius:99px;background:var(--or);color:#fff;font-weight:700;font-size:12px;cursor:pointer;border:0;font-family:inherit}
 </style>
 </head>
 <body>
@@ -206,7 +214,7 @@ select.fld{appearance:auto}
     <div>
       <div class="hero">
         <div class="mineuWrap"><canvas id="mineu"></canvas></div>
-        <div class="bubble" id="bubble"><span id="bubbleTxt"></span></div>
+        <div class="bubble" id="bubble"><span id="bubbleTxt"></span> <button class="saiba" id="btnSaiba">Saiba mais</button></div>
       </div>
       <div class="slots" id="slots"></div>
     </div>
@@ -222,16 +230,7 @@ select.fld{appearance:auto}
 
   <div class="view" id="vRank"><div class="pad"><h2>&gt; AVENTURAS E CONQUISTAS</h2><div id="rankList"></div></div></div>
   <div class="view" id="vClima"><div class="pad"><h2>&gt; PREVISAO - PORTO ALEGRE</h2><div id="weather"></div><div id="testPanel" class="muted"></div></div></div>
-  <div class="view" id="vRegras"><div class="pad"><h2>&gt; COMO FUNCIONA</h2>
-    <ul class="legend">
-      <li><b>1.</b> Cada aventura tem um <b>minimo</b> de pessoas pagas (marca branca na barra).</li>
-      <li><b>2.</b> Quem paga <b>antes do minimo</b> ganha <b>20% de desconto</b> e garante que o evento saia. Depois, preco cheio.</li>
-      <li><b>3.</b> Nao existe data marcada. Bateu o minimo, a aventura e <b>DESBLOQUEADA</b> e acontece no <b>proximo fim de semana de tempo bom</b>. E uma conquista de todas as familias que garantiram e chamaram amigos!</li>
-      <li><b>4.</b> Sem pagar? Entre no <b>pre-interesse</b> e suba na fila quando alguem cancelar.</li>
-      <li><b>5.</b> Cancelou? Devolvemos tudo em ate <b>24h</b>.</li>
-      <li><b>6.</b> A data exata sai na segunda ou terca, com aviso no WhatsApp.</li>
-    </ul>
-    <p class="muted" style="margin-top:12px;font-size:8px">Demonstracao: dados de exemplo e pagamento simulado.</p></div></div>
+  <div class="view" id="vRegras"><div class="pad"><h2>&gt; COMO FUNCIONA</h2><div id="regrasBox"></div></div></div>
 </div>
 
 <div class="sheet" id="sheet"></div>
@@ -745,7 +744,7 @@ function cancelaInfo(){openModal('<h3>Cancelar ou pedir estorno</h3><div class="
 function showTab(id){Array.prototype.forEach.call(document.querySelectorAll('.view'),function(v){v.classList.toggle('on',v.id===id)});
   Array.prototype.forEach.call(document.querySelectorAll('.tab[data-tab]'),function(t){t.classList.toggle('on',t.getAttribute('data-tab')===id)});closeSheet();if(id==='vHome')setTimeout(function(){fitMap();render()},0);sClick();}
 document.addEventListener('click',function(ev){
-  var t=ev.target,el=t.closest?t.closest('[data-open],[data-tab],[data-join],[data-int],[data-share],[data-cancel],[data-cancelint],[data-close],#btnReset,#btnSom,#bubble,#ov'):null;if(!el)return;
+  var t=ev.target,el=t.closest?t.closest('[data-open],[data-tab],[data-join],[data-int],[data-share],[data-cancel],[data-cancelint],[data-close],#btnReset,#btnSom,#btnSaiba,#bubble,#ov'):null;if(!el)return;
   var g=function(a){return el.getAttribute(a)};
   if(g('data-tab'))showTab(g('data-tab'));
   else if(g('data-open')){if(el.closest('#vRank'))showTab('vHome');openSheet(g('data-open'));}
@@ -758,6 +757,7 @@ document.addEventListener('click',function(ev){
   else if(el.id==='btnReset'){localStorage.removeItem(KEY);load();render();toast('Demo zerada');}
   else if(el.id==='btnSom'){somOn=!somOn;el.textContent=somOn?'SOM':'MUDO';if(somOn)sClick();}
   else if(el.id==='ov'&&t===el)closeModal();
+  else if(el.id==='btnSaiba')saibaMais();
   else if(el.id==='bubble')dica();
 });
 document.addEventListener('change',function(ev){var t=ev.target;if(t.tagName==='SELECT'&&t.getAttribute('data-k')){ST.clima[t.getAttribute('data-k')]=t.value;save();render();sClick();dica();}});
@@ -765,6 +765,17 @@ window.addEventListener('resize',function(){fitMap()});
 
 /* ====== MINEU ====== */
 var full='',shown=0,dicaN=0,talkUntil=0,t0=Date.now();
+function comoFuncionaHtml(){var mn=EVENTOS[0]?EVENTOS[0].min:25;
+  return '<div class="passo"><b>1</b><div><h4>Escolha uma trilha</h4><p>Cada trilha só acontece se juntar um <b>mínimo de pessoas</b> (hoje, '+mn+').</p></div></div>'+
+  '<div class="passo"><b>2</b><div><h4>Garanta a sua vaga</h4><p>Toque em <b>Garantir vaga</b> e pague pelo Pix. Você entra no grupo de WhatsApp da trilha.</p></div></div>'+
+  '<div class="passo"><b>3</b><div><h4>Chame outras pessoas</h4><p>Quanto mais rápido a trilha juntar o mínimo, mais rápido ela é agendada. Use o botão <b>Chamar um amigo</b> e convide a sua turma.</p></div></div>'+
+  '<div class="passo ok"><b>4</b><div><h4>Bateu o mínimo? Desbloqueada!</h4><p>Quando o número de pessoas chega no mínimo, a trilha é <b>DESBLOQUEADA</b>. Ainda sem data marcada.</p></div></div>'+
+  '<div class="passo"><b>5</b><div><h4>A data vem depois</h4><p>Desbloqueada, a trilha acontece no <b>próximo fim de semana de tempo bom</b>. Na segunda ou terça confirmamos a data no grupo do WhatsApp, e você reconfirma a sua presença.</p></div></div>'+
+  '<div class="caixa"><h4>Desconto de 20%</h4><p>Quem garante a vaga <b>antes</b> de a trilha ser desbloqueada paga 20% a menos. Depois que bate o mínimo, vale o preço cheio.</p></div>'+
+  '<div class="caixa"><h4>Ainda não pode pagar?</h4><p>Toque em <b>Tenho interesse</b>: você entra na lista de interessados e no grupo do WhatsApp, e a gente avisa as novidades. Não tem desconto e não garante a vaga.</p></div>'+
+  '<div class="caixa"><details><summary>Cancelamento e reembolso</summary><div style="margin-top:8px;font-size:13px">'+POLITICA_HTML+'</div></details></div>';}
+function regrasInit(){var b=document.getElementById('regrasBox');if(b)b.innerHTML=comoFuncionaHtml();}
+function saibaMais(){openModal('<h3>Como funciona</h3><div style="max-height:62vh;overflow:auto">'+comoFuncionaHtml()+'</div><div class="acts"><button class="btn ghost full" id="mCancel">Fechar</button></div>');document.getElementById('modal').onclick=function(ev){if(ev.target.id==='mCancel')closeModal();};}
 function mineuFala(txt){full=txt;shown=0;talkUntil=Date.now()+txt.length*45+300;}
 function dica(){var rk=window._rk||ranking(),sl=window._sl||slots(rk),L=[],un=rk.filter(function(e){return ST.ev[e.id].g>=e.min});
   un.filter(function(e){return !sl.jan[e.id]}).forEach(function(e){L.push(e.curto+' ja foi desbloqueada! Acontece no proximo fim de semana de tempo bom.')});
@@ -778,7 +789,7 @@ function loop(){var cv=document.getElementById('mineu'),t=Date.now()-t0;
   requestAnimationFrame(loop);}
 
 load();
-carregaMineu(function(){render();mineuFala('Ola, aventureiro! Eu sou o Mineu. Arraste o mapa 3D e toque numa aventura. Ajude a desbloquear!');loop();
+carregaMineu(function(){render();regrasInit();mineuFala('Garanta sua vaga e chame amigos! Quanto mais rápido a trilha DESBLOQUEAR, mais cedo ela acontece.');loop();
   var q=new URLSearchParams(location.search).get('evento');if(q&&E(q))setTimeout(function(){openSheet(q)},1800);});
 fetchClima();
 sync(checkPend);
