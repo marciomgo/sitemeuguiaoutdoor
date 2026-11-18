@@ -132,6 +132,22 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 
 #vHome.on{grid-template-rows:auto auto 1fr;gap:8px;padding:8px}
 .conq .tile small{white-space:normal;line-height:1.2}
+.conqHd{font-size:19px!important;margin-bottom:8px!important}
+.carro{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 7% 6px;margin:0 -8px;-webkit-overflow-scrolling:touch}
+.carro::-webkit-scrollbar{display:none}
+#vHome>div{min-width:0}
+.pin .fl{white-space:nowrap;padding:2px 5px}
+.cc{flex:0 0 86%;scroll-snap-align:center;display:flex;gap:14px;align-items:center;background:var(--bg2);border:3px solid var(--line);border-radius:20px;padding:14px 16px;cursor:pointer;min-width:0;box-sizing:border-box}
+.cc canvas{width:60px;height:60px;flex:none;filter:grayscale(1);opacity:.55}
+.cc .tx{min-width:0;flex:1}
+.cc .nm{font-family:var(--tt);font-size:19px;line-height:1.1;color:var(--ink);margin-bottom:8px}
+.cc .mini{height:12px}
+.cc .fq{margin-top:8px;font-size:15px;font-weight:700;color:var(--or2);line-height:1.15}
+.cc.on{border-color:var(--gold);background:linear-gradient(#fff8e0,#ffe9a8);box-shadow:0 0 0 3px #fff3c0,0 6px 14px rgba(224,162,26,.55)}
+.cc.on canvas{filter:none;opacity:1}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:2px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#d8c29c}.dots i.on{background:var(--or);width:18px;border-radius:99px}
+@media(min-width:760px){.carro{padding:2px 0 6px;margin:0}.cc{flex:0 0 340px;scroll-snap-align:start}.dots{display:none}}
 .pin .fl{display:inline-block;margin-top:3px;font-size:10px;font-weight:700;line-height:1.15;background:#fffdf5;color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:2px 6px}
 .pin.p1 .fl{background:var(--gold);border-color:var(--or)}
 #slots{display:none}
@@ -342,7 +358,7 @@ function renderMap(rk,sl){
   MARKS.forEach(function(m){m.remove()});MARKS=[];
   rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100);
     var el=document.createElement('div');el.className='mk';
-    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':s.g+'/'+e.min+'<br>faltam '+(e.min-s.g))+'</div></div>';
+    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':'faltam '+(e.min-s.g)+'<br>para desbloquear')+'</div></div>';
     draw(el.querySelector('canvas'),e.icone);
     el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
 }
@@ -429,20 +445,28 @@ document.addEventListener('click',function(ev){var m=ev.target.closest&&ev.targe
   var fb=ev.target.closest&&ev.target.closest('[data-f]');if(fb){var c=fb.getAttribute('data-f');document.body.classList.toggle(c);fb.classList.toggle('off');sClick();}});
 
 /* ====== RENDER ====== */
+var carroT=null,carroPausa=0;
+function carroInit(sl0){var c=document.getElementById('carro');if(!c)return;if(sl0)c.scrollLeft=sl0;
+  function dots(){var cs=c.children,w=(cs[0]?cs[0].offsetWidth:1)+10,i=Math.round(c.scrollLeft/w);Array.prototype.forEach.call(document.querySelectorAll('#dots i'),function(d,k){d.classList.toggle('on',k===i);});}
+  c.addEventListener('scroll',dots,{passive:true});
+  ['touchstart','pointerdown','wheel'].forEach(function(ev){c.addEventListener(ev,function(){carroPausa=Date.now()+12000;},{passive:true});});
+  dots();
+  if(!carroT)carroT=setInterval(function(){var cc=document.getElementById('carro');if(!cc||Date.now()<carroPausa||document.hidden||cc.offsetParent===null)return;var n=cc.children.length;if(n<2)return;var w=cc.children[0].offsetWidth+10,i=(Math.round(cc.scrollLeft/w)+1)%n;cc.scrollTo({left:i*w,behavior:'smooth'});},4500);}
 function render(){
   var rk=ranking(),sl=slots(rk);window._rk=rk;window._sl=sl;
   var sh='';[['sab','SAB'],['dom','DOM']].forEach(function(p){var s=sl[p[0]],w=clima(p[0]);
     sh+='<div class="slotChip'+(s.length?' on':'')+'"><b>'+p[1]+' '+fd(DATAS[p[0]])+' - '+w.label+'</b>'+(s.length?s.map(function(e){return e.curto}).join(', '):'nenhuma aventura liberada')+'</div>';});
   document.getElementById('slots').innerHTML=sh;
   (function(){var h='';[['sab','SAB'],['dom','DOM']].forEach(function(p){var w=clima(p[0]),ic=w.rain>=60?'\uD83C\uDF27\uFE0F':w.cloud>=70?'\u2601\uFE0F':w.cloud>=35?'\u26C5':'\u2600\uFE0F';h+='<span class="'+(sl[p[0]].length?'ok':'')+'">'+p[1]+' '+ic+(sl[p[0]].length?' '+sl[p[0]].length:'')+'</span>';});document.getElementById('wxMini').innerHTML=h;})();
-  var un=rk.filter(function(e){return ST.ev[e.id].g>=e.min}).length,ph='<div class="conqHd">AVENTURAS DESBLOQUEADAS <b>'+un+'/'+EVENTOS.length+'</b></div><div class="conq">';
+  var un=rk.filter(function(e){return ST.ev[e.id].g>=e.min}).length,ph='<div class="conqHd">AVENTURAS DESBLOQUEADAS <b>'+un+'/'+EVENTOS.length+'</b></div><div class="carro" id="carro">',old=document.getElementById('carro'),sl0=old?old.scrollLeft:0;
   EVENTOS.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),mp=e.min/e.max*100;
-    ph+='<div class="tile'+(reached?' on':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="tx"><div class="nm">'+e.curto+'</div><div class="mini"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+mp+'%"></u></div><small>'+(reached?'DESBLOQ.':s.g+'/'+e.min+'<br>faltam '+(e.min-s.g))+'</small></div></div>';});
-  document.getElementById('podium').innerHTML=ph+'</div>';document.getElementById('rest').innerHTML='';
+    ph+='<div class="cc'+(reached?' on':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="tx"><div class="nm">'+e.nome+'</div><div class="mini"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+mp+'%"></u></div><div class="fq">'+(reached?'DESBLOQUEADA!':'faltam '+(e.min-s.g)+' para desbloquear')+'</div></div></div>';});
+  ph+='</div><div class="dots" id="dots">'+EVENTOS.map(function(e,i){return '<i'+(i===0?' class="on"':'')+'></i>';}).join('')+'</div>';
+  document.getElementById('podium').innerHTML=ph;carroInit(sl0);document.getElementById('rest').innerHTML='';
   Array.prototype.forEach.call(document.querySelectorAll('#podium canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
   fitMap();renderMap(rk,sl);
   var lh='';rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),k=sl.jan[e.id],jt='proximo finde bom';
-    lh+='<div class="rk-item'+(reached?' p1':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="grow">'+e.nome+'<div class="mini" style="margin-top:6px"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+(e.min/e.max*100)+'%"></u></div><span class="muted">'+s.g+' garantidos | min '+e.min+' | '+s.i+' interessados</span></div>'+(reached?'<span class="badge b-win">DESBLOQUEADA<br>'+jt+'</span>':'<span class="badge b-wait">FALTAM '+(e.min-s.g)+'</span>')+'</div>';});
+    lh+='<div class="rk-item'+(reached?' p1':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="grow">'+e.nome+'<div class="mini" style="margin-top:6px"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+(e.min/e.max*100)+'%"></u></div><span class="muted">'+s.g+' garantidos | min '+e.min+' | '+e.max+' vagas | '+s.i+' interessados</span></div>'+(reached?'<span class="badge b-win">DESBLOQUEADA<br>'+jt+'</span>':'<span class="badge b-wait">FALTAM '+(e.min-s.g)+'</span>')+'</div>';});
   document.getElementById('rankList').innerHTML=lh;
   Array.prototype.forEach.call(document.querySelectorAll('#rankList canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
   var wh='';[['sab','SABADO'],['dom','DOMINGO']].forEach(function(p){var w=clima(p[0]),s=sl[p[0]];
