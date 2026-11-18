@@ -156,6 +156,14 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .eu i{display:block;width:18px;height:18px;margin:0 auto;border-radius:50%;background:#2f7bff;border:3px solid #fff;box-shadow:0 0 0 0 rgba(47,123,255,.55),0 2px 4px rgba(0,0,0,.4);animation:euP 2s infinite}
 .eu b{display:inline-block;margin-top:2px;font-size:10px;color:#fff;background:#2f7bff;border-radius:6px;padding:1px 5px}
 @keyframes euP{70%{box-shadow:0 0 0 16px rgba(47,123,255,0),0 2px 4px rgba(0,0,0,.4)}100%{box-shadow:0 0 0 0 rgba(47,123,255,0),0 2px 4px rgba(0,0,0,.4)}}
+
+.sec{font-weight:700;margin:16px 0 4px;color:var(--ink)}
+.lbl{display:block;font-size:11px;color:var(--mut);margin-top:6px}
+.prow{border:2px dashed var(--line);border-radius:12px;padding:6px 8px;margin:8px 0}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:8px 0}
+.chk input{margin-top:3px}
+.termo{max-height:130px;overflow:auto;font-size:12px;background:var(--bg2);border-radius:10px;padding:8px;margin:6px 0}
+select.fld{appearance:auto}
 </style>
 </head>
 <body>
@@ -490,6 +498,7 @@ function openModal(h){document.getElementById('modal').innerHTML=h;document.getE
 function closeModal(){document.getElementById('ov').classList.remove('on')}
 function joinModal(id){
   var e=E(id),s=ST.ev[id],reached=s.g>=e.min,mult=reached?1:1-DESCONTO,left=e.max-s.g,a=1,k=0;
+  if(LIVE){fichaStep(e);return;}
   function body(){return '<h3>'+e.nome+'</h3><div class="row"><span>Adultos ('+brl(e.adulto*mult)+')</span><span class="qty"><button data-q="a-">-</button><b id="qa">'+a+'</b><button data-q="a+">+</button></span></div>'+
     '<div class="row"><span>Criancas ('+brl(e.crianca*mult)+')</span><span class="qty"><button data-q="k-">-</button><b id="qk">'+k+'</b><button data-q="k+">+</button></span></div>'+
     '<div class="muted">Vagas restantes: '+left+(reached?'':' | -20% ate fechar o minimo')+'</div><div class="total" id="tot">'+brl(a*e.adulto*mult+k*e.crianca*mult)+'</div>'+
@@ -534,6 +543,106 @@ function sync(cb){
       if(st.g>=e.min){if(!st.reachedAt)st.reachedAt=Date.now();}else st.reachedAt=null;});
     save();render();if(cb)cb();}).catch(function(){});
 }
+/* ====== FICHA DE INSCRICAO (garantir vaga) ====== */
+var TXT_RISCO=[
+'Estou ciente de que as atividades realizadas no evento envolvem riscos inerentes, e assumo plena responsabilidade pela minha segurança e pela segurança de todos os meus dependentes listados acima durante toda a participação no evento.',
+'Autorizo a CONTRATADA a tomar providências em caso de emergência médica, isentando-a de responsabilidade pelas consequências de tais ações, tanto para mim quanto para os menores sob minha responsabilidade.',
+'Concordo que qualquer atividade poderá ser cancelada ou substituída, caso seja identificado risco ou impossibilidade de alcançar os objetivos do evento, sem gerar ressarcimento ou crédito.',
+'Declaro que todas as informações fornecidas são verdadeiras e completas, e que a participação de todos os membros da minha família nas atividades do evento é de minha inteira responsabilidade.',
+'Estou ciente de que a não prestação de informações corretas neste termo incorre no artigo 299 do Código Penal e pode inviabilizar o acionamento do seguro.'];
+var TXT_IMAGEM='Ao participar do evento, você autoriza o uso de fotos, vídeos e outras mídias de sua imagem e de seus dependentes para fins comerciais, promocionais e publicitários, incluindo redes sociais e materiais impressos, sem direito a remuneração. A organização se compromete a utilizar as imagens de forma ética e a preservar a privacidade dos participantes.';
+function cpfOk(c){c=String(c||'').replace(/\D/g,'');if(c.length!==11||/^(\d)\1+$/.test(c))return false;
+  for(var t=9;t<11;t++){var s=0;for(var i=0;i<t;i++)s+=parseInt(c[i],10)*(t+1-i);if(((s*10)%11)%10!==parseInt(c[t],10))return false;}return true;}
+function dataOk(v){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');if(!m)return false;var d=new Date(+m[1],+m[2]-1,+m[3]);return d.getMonth()===+m[2]-1&&d.getDate()===+m[3]&&+m[1]>=1900&&d.getTime()<=Date.now();}
+function idadeOk18(v){var p=v.split('-'),n=new Date(+p[0]+18,+p[1]-1,+p[2]);return n.getTime()<=Date.now();}
+function fichaStep(e){
+  var s=ST.ev[e.id],reached=s.g>=e.min,mult=reached?1:1-DESCONTO,left=e.max-s.g;
+  var c={};try{c=JSON.parse(localStorage.getItem('mgo_contato'))||{}}catch(x){}
+  var F={nome:c.nome||'',nasc:'',cpf:'',cidade:'',email:c.email||'',zap:c.whatsapp||'',como:'',ind:'',parts:[],
+    saude:{gravidez:false,asma:false,cardiaco:false,epilepsia:false,alergias:'',medicamentos:'',cirurgia:'',outros:'',assistencia:''},risco:false,imagem:false};
+  function val(id){var el=document.getElementById(id);return el?el.value:'';}
+  function chk(id){var el=document.getElementById(id);return el?el.checked:false;}
+  function coleta(){if(!document.getElementById('fNome'))return;
+    F.nome=val('fNome');F.nasc=val('fNasc');F.cpf=val('fCpf');F.cidade=val('fCidade');F.email=val('fEmail');F.zap=val('fZap');F.como=val('fComo');F.ind=val('fInd');
+    F.parts.forEach(function(p,i){p.nome=val('pN'+i);p.nasc=val('pD'+i);});
+    var h=F.saude;h.gravidez=chk('sGrav');h.asma=chk('sAsma');h.cardiaco=chk('sCard');h.epilepsia=chk('sEpi');
+    h.alergias=val('sAle');h.medicamentos=val('sMed');h.cirurgia=val('sCir');h.outros=val('sOut');h.assistencia=val('sAss');
+    F.risco=chk('fRisco');F.imagem=chk('fImg');}
+  function total(){var a=1,k=0;F.parts.forEach(function(p){if(p.tipo==='crianca')k++;else a++;});return{a:a,k:k,v:a*e.adulto*mult+k*e.crianca*mult};}
+  function lin(id,ph,v,extra){return '<input class="fld" id="'+id+'" placeholder="'+ph+'" value="'+escA(v)+'" '+(extra||'')+'>';}
+  function desenha(){
+    var t=total(),h=F.saude,m=document.getElementById('modal'),topo=m?m.scrollTop:0;
+    var parts='';F.parts.forEach(function(p,i){
+      parts+='<div class="prow"><div class="lbl">'+(p.tipo==='crianca'?'Criança':'Adulto')+' '+(i+1)+'</div>'+lin('pN'+i,'Nome completo',p.nome,'autocomplete="off"')+
+        '<label class="lbl">Data de nascimento</label><input class="fld" type="date" id="pD'+i+'" value="'+escA(p.nasc)+'">'+
+        '<button class="btn ghost" style="padding:6px 10px;font-size:12px" data-rm="'+i+'">Remover</button></div>';});
+    function sel(v,txt){return '<option value="'+v+'"'+(F.como===v?' selected':'')+'>'+txt+'</option>';}
+    function ck(id,txt,on){return '<label class="chk"><input type="checkbox" id="'+id+'"'+(on?' checked':'')+'><span>'+txt+'</span></label>';}
+    var risco='';TXT_RISCO.forEach(function(x){risco+='<p style="margin:0 0 6px">'+escA(x)+'</p>';});
+    openModal('<h3>Ficha de inscrição</h3><p class="muted" style="font-size:12px">'+e.nome+'</p>'+
+      '<div class="sec">Responsável que vai inscrever todos</div>'+
+      lin('fNome','Nome completo',F.nome,'autocomplete="name"')+
+      '<label class="lbl">Data de nascimento</label><input class="fld" type="date" id="fNasc" value="'+escA(F.nasc)+'">'+
+      lin('fCpf','CPF (só números)',F.cpf,'inputmode="numeric" maxlength="14" autocomplete="off"')+
+      lin('fCidade','Cidade',F.cidade,'autocomplete="address-level2"')+
+      lin('fEmail','E-mail',F.email,'type="email" autocomplete="email"')+
+      lin('fZap','WhatsApp com DDD',F.zap,'type="tel" autocomplete="tel"')+
+      '<label class="lbl">Como ficou sabendo do evento</label><select class="fld" id="fComo"><option value="">Selecione</option>'+sel('indicacao','Indicação')+sel('instagram','Post no Instagram')+sel('grupo_whatsapp','Grupo do WhatsApp')+sel('outro','Outro')+'</select>'+
+      (F.como==='indicacao'?lin('fInd','Quem te indicou?',F.ind,'maxlength="80"'):'')+
+      '<div class="sec">Quem vai participar</div><p class="muted" style="font-size:12px;margin:0">Você já está incluído como adulto. Adicione os demais.</p>'+parts+
+      '<div class="acts"><button class="btn ghost" data-add="adulto">+ adicionar adulto</button><button class="btn ghost" data-add="crianca">+ adicionar criança</button></div>'+
+      '<div class="total">'+brl(t.v)+'</div><p class="muted" style="text-align:center;font-size:12px;margin:0">'+(t.a+t.k)+' pessoa(s)'+(reached?'':' | 20% de desconto até fechar o mínimo')+' | vagas restantes: '+left+'</p>'+
+      '<div class="sec">Dados de saúde</div><p class="muted" style="font-size:12px;margin:0">Alguém da família com (marque se sim):</p>'+
+      ck('sGrav','Gravidez',h.gravidez)+ck('sAsma','Asma',h.asma)+ck('sCard','Cardíaco',h.cardiaco)+ck('sEpi','Epilepsia',h.epilepsia)+
+      lin('sAle','Alergias? Quais? (deixe vazio se não)',h.alergias,'maxlength="200"')+
+      lin('sMed','Faz uso de medicamentos? Quais?',h.medicamentos,'maxlength="200"')+
+      lin('sCir','Cirurgia recente? Qual?',h.cirurgia,'maxlength="200"')+
+      lin('sOut','Outros problemas de saúde? Quais?',h.outros,'maxlength="200"')+
+      lin('sAss','Assistência especial necessária? Qual?',h.assistencia,'maxlength="200"')+
+      '<div class="sec">Ciência de risco</div><div class="termo">'+risco+'</div>'+ck('fRisco','Li e estou de acordo com a ciência de risco.',F.risco)+
+      '<div class="sec">Uso de imagem</div><div class="termo">'+escA(TXT_IMAGEM)+'</div>'+ck('fImg','Estou ciente e de acordo com o uso de imagem.',F.imagem)+
+      '<div id="fErr" style="color:#c0392b;font-size:13px;min-height:16px;margin-top:6px"></div>'+
+      '<div class="acts"><button class="btn ghost" id="mCancel">Voltar</button><button class="btn" id="mGo">Gerar Pix</button></div>');
+    if(m)m.scrollTop=topo;
+  }
+  desenha();
+  var modal=document.getElementById('modal');
+  modal.onchange=function(ev){if(ev.target.id==='fComo'){coleta();desenha();}};
+  modal.onclick=function(ev){
+    var t=ev.target,add=t.getAttribute('data-add'),rm=t.getAttribute('data-rm');
+    if(t.id==='mCancel'){closeModal();return;}
+    if(add){coleta();var tt=total();if(tt.a+tt.k>=left){toast('Não há mais vagas.');sBad();return;}if(tt.a+tt.k>=20){toast('Máximo de 20 pessoas por inscrição.');return;}
+      F.parts.push({tipo:add,nome:'',nasc:''});desenha();sClick();return;}
+    if(rm!==null&&rm!==''&&t.hasAttribute('data-rm')){coleta();F.parts.splice(+rm,1);desenha();return;}
+    if(t.id!=='mGo')return;
+    coleta();var er=document.getElementById('fErr'),btn=t,i;
+    function erro(m){er.textContent=m;sBad();}
+    if(F.nome.trim().length<3)return erro('Informe seu nome completo.');
+    if(!dataOk(F.nasc))return erro('Informe sua data de nascimento.');
+    if(!idadeOk18(F.nasc))return erro('O responsável precisa ter 18 anos ou mais.');
+    if(!cpfOk(F.cpf))return erro('CPF inválido.');
+    if(F.cidade.trim().length<2)return erro('Informe a cidade.');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(F.email.trim()))return erro('E-mail inválido.');
+    if(F.zap.replace(/\D/g,'').length<10)return erro('WhatsApp inválido (com DDD).');
+    if(!F.como)return erro('Conte como ficou sabendo do evento.');
+    for(i=0;i<F.parts.length;i++){if(F.parts[i].nome.trim().length<3)return erro('Informe o nome completo de todos os participantes.');if(!dataOk(F.parts[i].nasc))return erro('Informe a data de nascimento de todos os participantes.');}
+    if(!F.risco||!F.imagem)return erro('Para continuar, marque a ciência de risco e o uso de imagem.');
+    try{localStorage.setItem('mgo_contato',JSON.stringify({nome:F.nome.trim(),email:F.email.trim(),whatsapp:F.zap.trim()}));}catch(x){}
+    er.textContent='';btn.disabled=true;btn.textContent='Aguarde...';
+    var tt2=total();
+    api('/inscrever',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      eventoId:e.id,tipo:'garantida',nome:F.nome.trim(),email:F.email.trim(),whatsapp:F.zap.trim(),cpf:F.cpf,nascimento:F.nasc,cidade:F.cidade.trim(),
+      comoSoube:F.como,indicadoPor:F.como==='indicacao'?F.ind.trim():'',
+      participantes:F.parts.map(function(p){return{tipo:p.tipo,nome:p.nome.trim(),nascimento:p.nasc};}),
+      saude:F.saude,aceiteRisco:true,aceiteImagem:true,
+      origem:new URLSearchParams(location.search).get('utm_source')||''})})
+    .then(function(x){
+      if(!x.ok){er.textContent=(x.d&&x.d.erro)||'Erro. Tente de novo.';btn.disabled=false;btn.textContent='Gerar Pix';sBad();return;}
+      pixReal(e,x.d,tt2.a+tt2.k);
+    }).catch(function(){er.textContent='Sem conexão. Tente de novo.';btn.disabled=false;btn.textContent='Gerar Pix';});
+  };
+}
+
 function contatoStep(e,a,k,tipo){
   var c={};try{c=JSON.parse(localStorage.getItem('mgo_contato'))||{}}catch(x){}
   var fin=tipo==='garantida';
