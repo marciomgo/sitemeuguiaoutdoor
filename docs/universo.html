@@ -130,8 +130,10 @@ body.hideG .mk.g{display:none}body.hideM .mk.m{display:none}
 .vs{margin:10px 0;background:var(--bg2);border-radius:14px;padding:9px 11px;font-size:13px;color:var(--mut)}.vs b{color:var(--ink)}
 .btn.green{background:linear-gradient(#5fbb70,#2c7539);color:#fff;box-shadow:0 5px 0 #1d5226,0 8px 10px rgba(74,44,20,.25)}
 
-#vHome.on{grid-template-rows:auto 1fr;gap:8px;padding:8px}
-#vHome>div:nth-child(2){display:none}
+#vHome.on{grid-template-rows:auto auto 1fr;gap:8px;padding:8px}
+.conq .tile small{white-space:normal;line-height:1.2}
+.pin .fl{display:inline-block;margin-top:3px;font-size:10px;font-weight:700;line-height:1.15;background:#fffdf5;color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:2px 6px}
+.pin.p1 .fl{background:var(--gold);border-color:var(--or)}
 #slots{display:none}
 .mineuWrap{width:60px}.mineuWrap canvas{width:60px;height:60px;border-width:3px}
 .bubble{font-size:13px;min-height:48px;padding:7px 10px}
@@ -191,7 +193,7 @@ select.fld{appearance:auto}
     </div>
     <div class="mapArea" id="mapArea">
       <div class="map" id="map"></div>
-      <div class="tint"></div><div class="wxMini" id="wxMini" data-tab="vClima"></div><div class="mapCtl"><button id="btnVisao">Visao geral</button><button id="btnTour">Tour 3D</button><button id="btnVis">Ver satelite</button><button id="btnEu">Onde estou</button></div><div class="mapLeg"><button data-f="hideG"><i class="dot g"></i>Guiadas: com guia, em grupo</button></div>
+      <div class="tint"></div><div class="wxMini" id="wxMini" data-tab="vClima"></div><div class="mapCtl"><button id="btnVisao">Visao geral</button><button id="btnTour">Tour 3D</button><button id="btnEu">Onde estou</button></div><div class="mapLeg"><button data-f="hideG"><i class="dot g"></i>Guiadas: com guia, em grupo</button></div>
     </div>
   </div>
 
@@ -334,14 +336,13 @@ function addRota(){var ordem=['cascatinha','gigantes','por-do-sol'],pts=ordem.ma
   MAP.addSource('rota',{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:linha}}});
   MAP.addLayer({id:'rota-borda',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#2a1708','line-width':7,'line-opacity':.35}});
   MAP.addLayer({id:'rota',type:'line',source:'rota',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#ffb347','line-width':3.5,'line-dasharray':[0.1,2.2]}});}
-var SAT=false;function trocaVisual(){SAT=!SAT;MAP.setLayoutProperty('sat','visibility',SAT?'visible':'none');MAP.getStyle().layers.forEach(function(l){if(l.id.indexOf('l-')===0)MAP.setLayoutProperty(l.id,'visibility',SAT?'none':'visible');});document.getElementById('btnVis').textContent=SAT?'Ver ludico':'Ver satelite';}
 function fitMap(){if(MAP)MAP.resize();}
 function renderMap(rk,sl){
   criaMapa();if(!MAP)return;
   MARKS.forEach(function(m){m.remove()});MARKS=[];
   rk.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100);
     var el=document.createElement('div');el.className='mk';
-    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div></div>';
+    el.innerHTML='<div class="pin'+(reached?' p1':'')+'" data-open="'+e.id+'">'+(reached?'<span class="rk">\u2713</span>':'')+'<canvas class="ic" data-spr="'+e.icone+'"></canvas><span class="lb">'+e.curto+'</span><div class="pbar"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i></div><div class="fl">'+(reached?'DESBLOQUEADA':s.g+'/'+e.min+'<br>faltam '+(e.min-s.g))+'</div></div>';
     draw(el.querySelector('canvas'),e.icone);
     el.className='mk g';MARKS.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([e.lng,e.lat]).addTo(MAP));});
 }
@@ -373,7 +374,6 @@ function ondeEstou(){
   },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
 }
 document.getElementById('btnEu').addEventListener('click',ondeEstou);
-document.getElementById('btnVis').addEventListener('click',trocaVisual);
 
 
 /* ====== MISSOES AUTOGUIADAS (parques) ====== */
@@ -437,7 +437,7 @@ function render(){
   (function(){var h='';[['sab','SAB'],['dom','DOM']].forEach(function(p){var w=clima(p[0]),ic=w.rain>=60?'\uD83C\uDF27\uFE0F':w.cloud>=70?'\u2601\uFE0F':w.cloud>=35?'\u26C5':'\u2600\uFE0F';h+='<span class="'+(sl[p[0]].length?'ok':'')+'">'+p[1]+' '+ic+(sl[p[0]].length?' '+sl[p[0]].length:'')+'</span>';});document.getElementById('wxMini').innerHTML=h;})();
   var un=rk.filter(function(e){return ST.ev[e.id].g>=e.min}).length,ph='<div class="conqHd">AVENTURAS DESBLOQUEADAS <b>'+un+'/'+EVENTOS.length+'</b></div><div class="conq">';
   EVENTOS.forEach(function(e){var s=ST.ev[e.id],reached=s.g>=e.min,pct=Math.min(100,s.g/e.max*100),mp=e.min/e.max*100;
-    ph+='<div class="tile'+(reached?' on':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="tx"><div class="nm">'+e.curto+'</div><div class="mini"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+mp+'%"></u></div><small>'+(reached?'DESBLOQ.':s.g+'/'+e.min)+'</small></div></div>';});
+    ph+='<div class="tile'+(reached?' on':'')+'" data-open="'+e.id+'"><canvas data-spr="'+e.icone+'"></canvas><div class="tx"><div class="nm">'+e.curto+'</div><div class="mini"><i class="'+(reached?'r':'')+'" style="width:'+pct+'%"></i><u style="left:'+mp+'%"></u></div><small>'+(reached?'DESBLOQ.':s.g+'/'+e.min+'<br>faltam '+(e.min-s.g))+'</small></div></div>';});
   document.getElementById('podium').innerHTML=ph+'</div>';document.getElementById('rest').innerHTML='';
   Array.prototype.forEach.call(document.querySelectorAll('#podium canvas[data-spr]'),function(c){draw(c,c.getAttribute('data-spr'))});
   fitMap();renderMap(rk,sl);
