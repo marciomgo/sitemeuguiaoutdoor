@@ -262,7 +262,13 @@ var SPR = {
  camp:{s:5,pal:{r:'#f47b20',d:'#2b1a10',g:'#5d7a2b'},rows:["...rr...","..rrrr..",".rrrrrr.","rrrddrrr","rrrddrrr","rrdddrrr","gggggggg","gggggggg"]}
 };
 var EMO={"sol":"☀️","mont":"⛰️","casc":"💦","caiq":"🛶","esc":"🧗","camp":"⛺"};
-function draw(cv,name){cv.width=96;cv.height=96;var x=cv.getContext('2d');x.clearRect(0,0,96,96);x.font='64px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(EMO[name]||'?',48,54);}
+function draw(cv,name){cv.width=96;cv.height=96;var x=cv.getContext('2d');
+  function pinta(dx,dy){x.clearRect(0,0,96,96);x.font='64px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(EMO[name]||'?',48+dx,54+dy);}
+  pinta(0,0);
+  /* cada aparelho tem uma fonte de emoji diferente: mede o desenho real e centraliza pelo miolo */
+  try{var d=x.getImageData(0,0,96,96).data,x0=96,y0=96,x1=-1,y1=-1,i,j;
+    for(j=0;j<96;j++)for(i=0;i<96;i++){if(d[(j*96+i)*4+3]>20){if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j;}}
+    if(x1>=0){var dx=Math.round(48-(x0+x1)/2),dy=Math.round(48-(y0+y1)/2);if(dx||dy)pinta(dx,dy);}}catch(e){}}
 
 /* ====== MINEU: fotos oficiais pixelizadas ====== */
 var IMG={},PIX={};
@@ -353,7 +359,7 @@ function criaMapa(){
         {id:'l-place',type:'symbol',source:'omt','source-layer':'place',filter:['in',['get','class'],['literal',['city','town','village','suburb','neighbourhood']]],minzoom:8,layout:{'text-field':['coalesce',['get','name:latin'],['get','name']],'text-font':['Noto Sans Bold'],'text-size':['match',['get','class'],'city',9,'town',7,6],'text-transform':'uppercase','text-letter-spacing':.08,'text-max-width':8},paint:{'text-color':'#6b3d14','text-halo-color':'#fff3d0','text-halo-width':2}}
       ],
       terrain:{source:'dem',exaggeration:2.4}}});
-  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:false}),'bottom-right');
+  MAP.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
   MAP.on('dragstart',pareTour);
   MAP.once('load',enquadra);
   MAP.on('zoom',zoomClasse);
