@@ -321,11 +321,11 @@ function fd(d){return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit
 
 /* ====== MAPA ====== */
 var selected=null,MAP=null,MARKS=[],tourT=null,tourOn=false;
-var VISAO={center:[-51.168,-30.108],zoom:11.1,pitch:30,bearing:0};
+var VISAO={center:[-51.168,-30.108],zoom:11.1,pitch:52,bearing:0};
 /* enquadra as aventuras na tela (com a altura/largura reais do mapa) */
 function enquadra(){if(!MAP)return;MAP.resize();ajustaVisao();MAP.jumpTo({center:VISAO.center,zoom:VISAO.zoom,pitch:VISAO.pitch,bearing:VISAO.bearing});zoomClasse();}
 function ajustaVisao(){if(!MAP)return;var b=new maplibregl.LngLatBounds();EVENTOS.forEach(function(e){b.extend([e.lng,e.lat])});
-  var cam=MAP.cameraForBounds(b,{padding:{top:140,bottom:60,left:55,right:55},bearing:VISAO.bearing});
+  var cam=MAP.cameraForBounds(b,{padding:{top:140,bottom:60,left:55,right:55},bearing:VISAO.bearing,pitch:VISAO.pitch});
   if(cam){VISAO.center=[cam.center.lng,cam.center.lat];VISAO.zoom=cam.zoom;}}
 function criaMapa(){
   if(MAP||!window.maplibregl)return;
