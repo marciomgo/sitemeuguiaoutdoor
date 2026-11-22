@@ -859,7 +859,9 @@ function quandoMapaPronto(cb) {
   var tentativas = 0;
   (function espera() {
     tentativas++;
-    if ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25) cb(); else setTimeout(espera, 300);
+    // so vale 'sem tiles carregando' DEPOIS que o estilo do mapa existe (na 1a abertura, com a rede lenta, antes disso tambem nao ha tiles e o codigo desenhava a area antes do mapa existir)
+    var estiloPronto = !!mapa.getSource('area-fora');
+    if ((estiloPronto && ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25)) || tentativas > 100) cb(); else setTimeout(espera, 300);
   })();
 }
 function ajustarInimigosFixos() {
@@ -880,6 +882,7 @@ function pintarArea() {
   quandoMapaPronto(function () {
     var anel = anelDaArea(), mundo = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
     var extras = AREA.extras || []; /* parques com mais de uma parte (ex.: Parcao): cada parte e um buraco no "fora da area" e uma linha de borda */
+    if (!mapa.getSource('area-fora') || !mapa.getSource('area-linha')) return; /* estilo ainda nao carregou (rede muito lenta): sem a area escurecida, mas sem erro */
     mapa.getSource('area-fora').setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [mundo, anel].concat(extras) } });
     mapa.getSource('area-linha').setData(extras.length ? { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: [anel].concat(extras) } } : { type: 'Feature', geometry: { type: 'LineString', coordinates: anel } });
   });
@@ -1478,9 +1481,16 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   btn.onclick = baixar;
 })();
 </script>
-
-<style>/* layout do modo livre: botoes da pedra a direita do estilingue */#trocaPedraWrap{left:calc(50% + 52px)}.pedra-reserva{left:auto;right:-22px}#pedraReserva2{left:auto;right:-24px}</style>
+<!-- blocos do modo "combate": monstros3d, pedraDireita, travaVoltar -->
+<style>/* bloco pedraDireita */
+/* bloco pedraDireita: botoes da pedra a direita do estilingue (o estilingue fica centralizado) */
+#trocaPedraWrap{left:calc(50% + 52px)}
+.pedra-reserva{left:auto;right:-22px}
+#pedraReserva2{left:auto;right:-24px}
+</style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="camada3d.js"></script>
+<script type="module" src="monstros-3d.js"></script>
+<script src="trava-voltar.js"></script>
+
 </body>
 </html>

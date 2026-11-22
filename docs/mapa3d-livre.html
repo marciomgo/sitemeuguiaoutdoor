@@ -126,6 +126,7 @@
   .statsP span{font-size:12px;color:#7a6a45}
   #bDeNovo{font-size:18px;font-weight:bold;padding:14px 26px;border:0;border-radius:999px;background:#ffd54f;color:#2b2110;box-shadow:0 4px 0 #c99a00;cursor:pointer;touch-action:manipulation}
   #bDeNovo:active{transform:translateY(2px);box-shadow:0 2px 0 #c99a00}
+  #bPesquisaFim{display:block;width:100%;margin-top:12px;font-size:15px;font-weight:bold;padding:12px 16px;border:2px solid #2e7d32;border-radius:999px;background:#fff;color:#1b5e20;cursor:pointer;touch-action:manipulation}
   #btnTrocaPedra img{height:38px;width:auto;display:block}
   .pedra-reserva img{height:22px;width:auto;display:block}
   .fantasma .em{opacity:.6}
@@ -162,6 +163,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.1/maplibre-gl.js"></script>
 <script>
 const DADOS = {"largada":{"lat":-30.0598501,"lng":-51.1684861},"pontos":[],"curas":[],"pedras":[],"bombas":[],"chefoes":[],"zumbis":[],"livre":true};
+
 
 var rad = Math.PI / 180;
 var MOSTRAR_ZONAS = false; // círculos/nuvens de alcance dos monstros: desligados; só o círculo do Mineu aparece (true = volta a mostrar)
@@ -513,7 +515,8 @@ function ordenarProfundidade() {
 }
 var estat = { zumbis: 0, monstros: 0, t0: performance.now() }, celebrou = false;
 function verificarFim() {
-  if (!DADOS.livre || celebrou) return;
+  /* modo livre: sempre celebra ao limpar. Missão de parque: só se a missão pedir (DADOS.celebraAoLimpar, usado no teste de combate) */
+  if ((!DADOS.livre && !DADOS.celebraAoLimpar) || celebrou) return;
   if (inimigos.length && inimigos.every(function (i) { return !i.vivo; })) celebrar();
 }
 function confete() {
@@ -747,7 +750,9 @@ function quandoMapaPronto(cb) {
   var tentativas = 0;
   (function espera() {
     tentativas++;
-    if ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25) cb(); else setTimeout(espera, 300);
+    // so vale 'sem tiles carregando' DEPOIS que o estilo do mapa existe (na 1a abertura, com a rede lenta, antes disso tambem nao ha tiles e o codigo desenhava a area antes do mapa existir)
+    var estiloPronto = !!mapa.getSource('area-fora');
+    if ((estiloPronto && ((mapa.areTilesLoaded() && tentativas > 2) || tentativas > 25)) || tentativas > 100) cb(); else setTimeout(espera, 300);
   })();
 }
 function ajustarInimigosFixos() {
@@ -767,8 +772,10 @@ function pintarArea() {
   if (!AREA) return;
   quandoMapaPronto(function () {
     var anel = anelDaArea(), mundo = [[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]];
-    mapa.getSource('area-fora').setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [mundo, anel] } });
-    mapa.getSource('area-linha').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: anel } });
+    var extras = AREA.extras || []; /* parques com mais de uma parte (ex.: Parcao): cada parte e um buraco no "fora da area" e uma linha de borda */
+    if (!mapa.getSource('area-fora') || !mapa.getSource('area-linha')) return; /* estilo ainda nao carregou (rede muito lenta): sem a area escurecida, mas sem erro */
+    mapa.getSource('area-fora').setData({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [mundo, anel].concat(extras) } });
+    mapa.getSource('area-linha').setData(extras.length ? { type: 'Feature', geometry: { type: 'MultiLineString', coordinates: [anel].concat(extras) } } : { type: 'Feature', geometry: { type: 'LineString', coordinates: anel } });
   });
 }
 function definirAreaLivre(lat, lng) { // modo livre/dupla: círculo de 150 m em volta de onde o jogo começa
@@ -778,7 +785,10 @@ function definirAreaLivre(lat, lng) { // modo livre/dupla: círculo de 150 m em 
 function dentroDaArea(lat, lng) {
   if (!AREA) return true;
   if (AREA.raio) return Math.hypot((lat - AREA.lat) * 111320, (lng - AREA.lng) * 111320 * Math.cos(AREA.lat * rad)) <= AREA.raio;
-  var a = AREA.anel, dentro = false;
+  return dentroDoAnel(AREA.anel, lat, lng) || (AREA.extras || []).some(function (r) { return dentroDoAnel(r, lat, lng); });
+}
+function dentroDoAnel(a, lat, lng) {
+  var dentro = false;
   for (var i = 0, j = a.length - 1; i < a.length; j = i++) { if (((a[i][1] > lat) !== (a[j][1] > lat)) && (lng < (a[j][0] - a[i][0]) * (lat - a[i][1]) / (a[j][1] - a[i][1]) + a[i][0])) dentro = !dentro; }
   return dentro;
 }
@@ -788,7 +798,7 @@ function checarArea() {
   foraDaArea = fora; document.body.classList.toggle('fora-area', fora);
   if (fora && navigator.vibrate) navigator.vibrate([120, 80, 120]);
 }
-if (DADOS.perimetro) { AREA = { anel: DADOS.perimetro }; pintarArea(); }
+if (DADOS.perimetro) { AREA = { anel: DADOS.perimetro, extras: DADOS.perimetroExtra || [] }; pintarArea(); }
 function spawnAoRedor(lat, lng) {
   if (DADOS.livre) definirAreaLivre(lat, lng);
   quandoMapaPronto(function () { if (carregarObstaculos(lat, lng)) construirGrade(lat, lng); spawnBase(lat, lng); });
@@ -829,15 +839,33 @@ function spawnBase(lat, lng) {
   atualizarZonas(chefoes);
 }
 
+/* LARGADA LIVRE (DADOS.dinamico): nao ha ponto de largada fixo. O combate e montado em volta de onde a pessoa esta, a partir do 1o sinal de GPS dentro do parque. */
+var combateMontado = false, popularMissao = null, missaoPendente = null;
+function montarCombateAqui(lat, lng, semGps) {
+  if (combateMontado) return true;
+  if (!semGps && !dentroDaArea(lat, lng)) { aviso('Você ainda não está dentro do parque. Vá até a área de jogo para começar.'); return false; }
+  var c = null;
+  try { c = gerarCombateDinamico({ lat: lat, lng: lng }, DADOS.arena, DADOS.regrasDinamicas); } catch (e) { c = null; }
+  if (!c || !c.pontos.length) { aviso('Não achei onde montar as bases perto de você. Vá para uma parte mais aberta do parque.'); return false; }
+  combateMontado = true; aviso('');
+  if (popularMissao) { popularMissao(c); quandoMapaPronto(ajustarInimigosFixos); } else missaoPendente = c;
+  return true;
+}
 mapa.on('load', function () {
   if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng);
   var ICONES_NUMERADOS = ["https://static.wixstatic.com/media/f02643_48f7c1d977754b23977fd2e7f58c6c27~mv2.png","https://static.wixstatic.com/media/f02643_f14858e9c66d43feae48eff43148759e~mv2.png","https://static.wixstatic.com/media/f02643_cba7ab04f17845d98a60cbdb48466302~mv2.png","https://static.wixstatic.com/media/f02643_ea984cd4c0fc44aead08ba7a5af6b383~mv2.png","https://static.wixstatic.com/media/f02643_6a69d7baa0794d37848b3948fed51e44~mv2.png","https://static.wixstatic.com/media/f02643_801dffdc2e554552a5c134e097d91ea6~mv2.png","https://static.wixstatic.com/media/f02643_cd0ee07d3fcd40fb9a33810c88f2d851~mv2.png","https://static.wixstatic.com/media/f02643_91b88885a5c44c8c833417bc1190b7b5~mv2.png","https://static.wixstatic.com/media/f02643_1b89172049664af79ec14bce19a83033~mv2.png","https://static.wixstatic.com/media/f02643_033f68da0d1044bcbd9a97da09181820~mv2.png","https://static.wixstatic.com/media/f02643_193c340555f24225b4d92d767d84255a~mv2.png","https://static.wixstatic.com/media/f02643_1ff212affeb84c9584f484f04ba0535e~mv2.png","https://static.wixstatic.com/media/f02643_741fb6aae44744de8ed6e009fb318faf~mv2.png","https://static.wixstatic.com/media/f02643_b1b9ad3701be4696815636ec5dc6cedc~mv2.png","https://static.wixstatic.com/media/f02643_ed5489163f5f4182b136c62a8f93eb33~mv2.png","https://static.wixstatic.com/media/f02643_7ccdf03c1f824bea8af5c7f17a999e96~mv2.png","https://static.wixstatic.com/media/f02643_c8fe0d4b091b49f7aba79ef064ecfbae~mv2.png","https://static.wixstatic.com/media/f02643_77ea1b50292947b7adb0c8eac523973d~mv2.png","https://static.wixstatic.com/media/f02643_4695d3ce6947477ca8a54cf26fda87c6~mv2.png","https://static.wixstatic.com/media/f02643_5bc20c9e31a9428980ffd69a42beb7bb~mv2.png","https://static.wixstatic.com/media/f02643_514f5fbaf6134390b721277b01a65366~mv2.png","https://static.wixstatic.com/media/f02643_4c05aa018fc8463393cd0d9f0d63e102~mv2.png","https://static.wixstatic.com/media/f02643_8530ccc59ad743e78a7ad6977226335e~mv2.png","https://static.wixstatic.com/media/f02643_e692002f886449efb41c97bf50166f45~mv2.png","https://static.wixstatic.com/media/f02643_81eaeefadf2744878569f4cb8b6d73f1~mv2.png","https://static.wixstatic.com/media/f02643_c2baf60987ef4598af4bdc0d73e2fbd9~mv2.png","https://static.wixstatic.com/media/f02643_845aec3fa20e4ff595646def8a93b08c~mv2.png","https://static.wixstatic.com/media/f02643_009e01b80a6e4289adcbe915449e9652~mv2.png","https://static.wixstatic.com/media/f02643_37e8e810d5c248b5893ee19c8bceeba5~mv2.png","https://static.wixstatic.com/media/f02643_d2909286d264450c9c8321282b3e2c9e~mv2.png"]; // desenhos oficiais do jogo, 1 a 30
-  DADOS.pontos.forEach(function (p, i) { var u = ICONES_NUMERADOS[i]; pino('p-ponto', u ? '<img src="' + u + '" alt="' + (i + 1) + '">' : (i + 1), p.lat, p.lng); }); /* o desenho segue a ORDEM do ponto no percurso, nao o codigo */
-  DADOS.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
-  DADOS.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), (p.esp ? '<span class="pe-amarela">🪨</span>' : '🪨'), p.lat, p.lng); });
-  DADOS.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
-  DADOS.zumbis.forEach(function (z) { novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
-  (DADOS.chefoes || []).forEach(function (c) { novoInimigo(c.lat, c.lng, 'p-chefao', c.final ? '👿' : '👹', c.final ? 200 : 25); });
+  popularMissao = function (d) {
+    d.pontos.forEach(function (p, i) { var u = ICONES_NUMERADOS[i]; pino('p-ponto', u ? '<img src="' + u + '" alt="' + (i + 1) + '">' : (i + 1), p.lat, p.lng); }); /* o desenho segue a ORDEM do ponto no percurso, nao o codigo */
+    d.curas.forEach(function (c) { pino('p-cura', '✚', c.lat, c.lng); });
+    d.pedras.forEach(function (p) { pino('p-pedra' + (p.esp ? ' esp' : ''), (p.esp ? '<span class="pe-amarela">🪨</span>' : '🪨'), p.lat, p.lng); });
+    d.bombas.forEach(function (b) { pino('p-bomba', b.e, b.lat, b.lng); });
+    d.zumbis.forEach(function (z) { novoInimigo(z.lat, z.lng, 'p-zumbi', '🧟', 5); });
+    (d.chefoes || []).forEach(function (c) { novoInimigo(c.lat, c.lng, 'p-chefao', c.final ? '👿' : '👹', c.final ? 200 : 25); });
+  
+  };
+  popularMissao(DADOS);
+  if (missaoPendente) { popularMissao(missaoPendente); missaoPendente = null; quandoMapaPronto(ajustarInimigosFixos); }
+  if (DADOS.dinamico && location.search.indexOf('teste=1') >= 0) montarCombateAqui(DADOS.largada.lat, DADOS.largada.lng, true); /* ?teste=1: testar de casa, monta no ponto padrao do parque */
 });
 
 // o Mineu (cartaz em pé, sempre virado pra câmera)
@@ -943,10 +971,12 @@ document.getElementById('bInc').onclick = function () { if (satelite) return; /*
 pintaInc();
 
 // ---------- botões de combate (só visual, igual ao jogo; sem inimigo de verdade ainda) ----------
-var municao = { normal: 150, esp: 24 }, ativa = "normal";
+/* DADOS.semEspecial (teste de combate): só o estilingue com pedra normal e o galho; a pedra amarela nem aparece na troca de arma */
+var ESP_INICIAL = DADOS.semEspecial ? 0 : 24;
+var municao = { normal: 150, esp: ESP_INICIAL }, ativa = "normal";
 // jogar de novo: tudo volta ao padrão do começo do jogo (pedras normais e amarelas, vida e arma na mão = pedra normal)
-function reiniciarEstoques() { municao.normal = 150; municao.esp = 24; vidaMineu = 100; ativa = "normal"; pintaVidaMineu(); pintaMunicao(); }
-var ORDEM_ARMAS = ["normal", "esp", "galho"];
+function reiniciarEstoques() { municao.normal = 150; municao.esp = ESP_INICIAL; vidaMineu = 100; ativa = "normal"; pintaVidaMineu(); pintaMunicao(); }
+var ORDEM_ARMAS = DADOS.semEspecial ? ["normal", "galho"] : ["normal", "esp", "galho"];
 var ESTILINGUE_HTML = document.getElementById("btnAtirar").innerHTML;
 var elGalho = document.getElementById("galhoMineu"), elTroca = document.getElementById("btnTrocaPedra"), elReserva = document.getElementById("pedraReserva"), elReserva2 = document.getElementById("pedraReserva2");
 var ICONE_PAU = '<img src="icone-pau.png" alt="Pau">';
@@ -961,6 +991,7 @@ function pintaMunicao() {
   elReserva.innerHTML = iconeArma(prox); elReserva._arma = prox;
   elReserva2.className = "pedra-reserva" + (prox2 === "esp" ? " esp" : "") + (prox2 === "galho" ? " galho" : "");
   elReserva2.innerHTML = iconeArma(prox2); elReserva2._arma = prox2;
+  elReserva2.style.display = ORDEM_ARMAS.length > 2 ? "" : "none"; /* com só 2 armas não há segunda bolinha de reserva */
   document.getElementById("btnAtirar").innerHTML = ativa === "galho" ? ICONE_PAU : ESTILINGUE_HTML;
   document.getElementById("btnAtirar").setAttribute("aria-label", ativa === "galho" ? "Bater com o galho" : "Atirar");
   elGalho.style.display = ativa === "galho" ? "block" : "none";
@@ -989,10 +1020,19 @@ pintaMunicao();
 // ---------- GPS e bússola de verdade (no celular) ----------
 var modoReal = false;
 document.getElementById('bDeNovo').onclick = function () { // nova rodada em volta de onde você está
+  if (!DADOS.livre) { location.reload(); return; } /* missão de parque: recomeça a missão inteira, com os monstros nos lugares de origem */
   document.getElementById('parabens').style.display = 'none'; reiniciarEstoques(); spawnAoRedor(POS.lat, POS.lng);
 };
+/* pesquisa rápida (teste com famílias): botão no menu e na tela de fim, abre o formulário em outra aba sem sair do jogo */
+if (DADOS.pesquisaUrl) {
+  var abrirPesquisa = function () { try { window.open(DADOS.pesquisaUrl, '_blank', 'noopener'); } catch (e) { location.href = DADOS.pesquisaUrl; } };
+  var bPesq = document.createElement('button'); bPesq.id = 'bPesquisa'; bPesq.title = 'Pesquisa rápida'; bPesq.innerHTML = '📝'; bPesq.onclick = abrirPesquisa;
+  document.getElementById('painel').appendChild(bPesq);
+  var bPesq2 = document.createElement('button'); bPesq2.id = 'bPesquisaFim'; bPesq2.textContent = '📝 Responder a pesquisa rápida'; bPesq2.onclick = abrirPesquisa;
+  document.querySelector('#parabens .caixaP').appendChild(bPesq2);
+}
 document.getElementById('bInicio').onclick = function () {
-  jogoIniciado = true;
+  jogoIniciado = true; estat.t0 = performance.now(); /* o tempo da partida conta a partir do toque em "Ativar GPS", não de quando a página abriu */
   document.getElementById('inicio').style.display = 'none';
   document.getElementById('bGps').click(); // liga GPS e bússola (precisa ser dentro do toque)
 };
@@ -1005,7 +1045,8 @@ document.getElementById('bGps').onclick = function () {
     navigator.geolocation.watchPosition(function (p) {
       ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
       if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng); }
-    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; }, { enableHighAccuracy: true });
+      if (DADOS.dinamico && !combateMontado) montarCombateAqui(ALVO.lat, ALVO.lng);
+    }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; if (DADOS.dinamico && !combateMontado) montarCombateAqui(DADOS.largada.lat, DADOS.largada.lng, true); }, { enableHighAccuracy: true });
   }
   ligarBussola();
 };
@@ -1278,7 +1319,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 // ---------- jogar sem internet ----------
 (function offline() {
   var ARM_APP = 'mgo-app-v1', ARM_MAPA = 'mgo-tiles-v1', TJ = 'https://tiles.openfreemap.org/planet';
-  var CHAVE = 'mgo-offline-' + (DADOS.livre ? 'livre' : 'parque');
+  var CHAVE = 'mgo-offline-' + (DADOS.livre ? 'livre' : 'parque' + (DADOS.slug ? '-' + DADOS.slug : '')); /* cada parque guarda o seu "já baixei" (antes todos dividiam o mesmo) */
   if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw-mgo.js').catch(function () {}); }); }
   window.testeOffline = function (v) { // só pra teste: finge que está sem internet
     if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ t: 'offline-teste', v: !!v });
@@ -1331,10 +1372,17 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   btn.onclick = baixar;
 })();
 </script>
-<!--MONSTROS-3D-->
+<!-- blocos do modo "livre": monstros3d, pedraDireita, joystick, travaVoltar -->
+<style>/* bloco pedraDireita */
+/* bloco pedraDireita: botoes da pedra a direita do estilingue (o estilingue fica centralizado) */
+#trocaPedraWrap{left:calc(50% + 52px)}
+.pedra-reserva{left:auto;right:-22px}
+#pedraReserva2{left:auto;right:-24px}
+</style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="camada3d.js"></script>
-<!--JOYSTICK-LIVRE-->
-<script src="joystick-livre.js"></script>
+<script type="module" src="monstros-3d.js"></script>
+<script src="joystick.js"></script>
+<script src="trava-voltar.js"></script>
+
 </body>
 </html>
