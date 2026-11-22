@@ -1152,7 +1152,7 @@ document.getElementById('bGps').onclick = function () {
   aviso('Procurando o GPS... (permita a localização)');
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(function (p) {
-      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; aviso('');
+      ALVO.lat = p.coords.latitude; ALVO.lng = p.coords.longitude; ALVO.prec = p.coords.accuracy; aviso('');
       if (!ALVO.visto) { ALVO.visto = true; POS.lat = ALVO.lat; POS.lng = ALVO.lng; if (DADOS.livre) spawnAoRedor(POS.lat, POS.lng); }
       if (DADOS.dinamico && !combateMontado) montarCombateAqui(ALVO.lat, ALVO.lng);
     }, function () { aviso('Sem GPS. Verifique se a localização está ligada e permitida.'); modoReal = false; if (DADOS.dinamico && !combateMontado) montarCombateAqui(DADOS.largada.lat, DADOS.largada.lng, true); }, { enableHighAccuracy: true });
@@ -1435,7 +1435,9 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   };
   window.addEventListener('offline', function () { if (typeof aviso === 'function') { aviso('Sem internet: jogando com o mapa baixado.'); setTimeout(function () { aviso(''); }, 4000); } });
   var btn = document.getElementById('bOffline'), msg = document.getElementById('msgOff');
+  function ativosDosBlocos() { return window.MGO_ATIVOS || { proprios: [], externos: [], modulos: [] }; } // lida NA HORA (os blocos declaram a lista depois deste codigo): o que o 3D etc. precisam ter guardado
   if (!btn) return; // páginas sem o botão (ex.: dupla) só ganham o service worker
+  function prog(pct, txt) { msg.textContent = txt; try { document.dispatchEvent(new CustomEvent('mgo:offline', { detail: { pct: pct, texto: txt } })); } catch (e) {} }
   function lerRegistro() { try { return JSON.parse(localStorage.getItem(CHAVE) || 'null'); } catch (e) { return null; } }
   function mostrarRegistro() {
     var rg = lerRegistro();
@@ -1450,8 +1452,8 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
     return out;
   }
   async function baixar() {
-    if (!('caches' in window)) { msg.textContent = 'Este navegador não deixa guardar o parque.'; return; }
-    if (!navigator.onLine) { msg.textContent = 'Sem internet agora. Conecte pra baixar o parque.'; return; }
+    if (!('caches' in window)) { msg.textContent = 'Este navegador não deixa guardar o parque.'; return { ok: false, motivo: 'sem-cache' }; }
+    if (!navigator.onLine) { msg.textContent = 'Sem internet agora. Conecte pra baixar o parque.'; return { ok: false, motivo: 'sem-internet' }; }
     btn.disabled = true; msg.textContent = 'Baixando...';
     try {
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
@@ -1462,35 +1464,100 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
       for (var i = 0; i < lista.length; i++) {
         var u = modelo.replace('{z}', lista[i][0]).replace('{x}', lista[i][1]).replace('{y}', lista[i][2]);
         try { var rr = await fetch(u); if (rr.ok) { bytes += (await rr.clone().blob()).size; await cT.put(u, rr); } } catch (e) {}
-        feitos++; msg.textContent = 'Baixando o mapa... ' + feitos + '/' + lista.length;
+        feitos++; prog(Math.round(70 * feitos / lista.length), 'Baixando o mapa... ' + feitos + '/' + lista.length);
       }
       // arquivos do jogo: a página, imagens e as bibliotecas que ela usa
       var arquivos = ['mineu-costas.png', 'mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png', 'mineu-estilingue-1.png', 'mineu-estilingue-2.png', 'mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png', 'mineu-comemora.png', 'icone-pau.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'].concat(typeof ICONES_NUMERADOS !== 'undefined' ? ICONES_NUMERADOS : []).concat([location.pathname.split('/').pop() || 'index.html']);
       var man = document.querySelector('link[rel=manifest]'); if (man) arquivos.push(man.getAttribute('href'));
       document.querySelectorAll('script[src], link[rel=stylesheet], img[src]').forEach(function (el) { var s = el.src || el.href; if (s && arquivos.indexOf(s) < 0) arquivos.push(s); });
-      msg.textContent = 'Guardando o jogo no celular...';
+      var ATIVOS = ativosDosBlocos(), falhas = [], total2 = arquivos.length + ATIVOS.proprios.length + ATIVOS.externos.length + ATIVOS.modulos.length, feitos2 = 0, bytes2 = 0;
+      function passo2(txt) { feitos2++; prog(70 + Math.round(30 * feitos2 / Math.max(1, total2)), txt); }
       for (var k = 0; k < arquivos.length; k++) {
         var a = arquivos[k], externo = /^https?:\/\//.test(a) && a.indexOf(location.origin) !== 0;
         try { var r2 = await fetch(a, externo ? { mode: 'no-cors' } : { cache: 'reload' }); await cA.put(a, r2); } catch (e) {}
+        passo2('Guardando o jogo no celular...');
       }
-      localStorage.setItem(CHAVE, JSON.stringify({ t: Date.now(), mb: Math.round(bytes / 1e5) / 10, n: lista.length }));
+      for (var p = 0; p < ATIVOS.proprios.length; p++) { // peças dos blocos (monstros 3D, modelos...): guardadas inteiras
+        try { var r3 = await fetch(ATIVOS.proprios[p], { cache: 'reload' }); if (!r3.ok) throw 0; bytes2 += (await r3.clone().blob()).size; await cA.put(ATIVOS.proprios[p], r3); } catch (e) { falhas.push(ATIVOS.proprios[p]); }
+        passo2('Guardando os monstros 3D...');
+      }
+      for (var q = 0; q < ATIVOS.externos.length; q++) { // bibliotecas externas dos blocos (three.js)
+        try { var r4 = await fetch(ATIVOS.externos[q]); if (!r4.ok) throw 0; bytes2 += (await r4.clone().blob()).size; await cA.put(ATIVOS.externos[q], r4); } catch (e) { falhas.push(ATIVOS.externos[q]); }
+        passo2('Guardando a biblioteca 3D...');
+      }
+      for (var w = 0; w < ATIVOS.modulos.length; w++) { try { await import(ATIVOS.modulos[w]); } catch (e) {} passo2('Preparando o 3D...'); } // aquece os módulos
+      localStorage.setItem(CHAVE, JSON.stringify({ t: Date.now(), mb: Math.round(bytes / 1e5) / 10, mbTotal: Math.round((bytes + bytes2) / 1e5) / 10, n: lista.length, falhou: falhas.length }));
+      prog(100, 'Pronto!');
+      if (falhas.length) { msg.textContent = 'Baixado, mas faltaram ' + falhas.length + ' arquivo(s). Tente baixar de novo.'; }
       mostrarRegistro();
-    } catch (e) { msg.textContent = 'Não consegui baixar agora. Tente de novo com internet.'; }
-    btn.disabled = false;
+      btn.disabled = false;
+      var rg2 = lerRegistro(); return { ok: !!rg2 && !rg2.falhou };
+    } catch (e) { msg.textContent = 'Não consegui baixar agora. Tente de novo com internet.'; btn.disabled = false; return { ok: false, motivo: 'erro' }; }
   }
+  // O pacote ainda esta inteiro? (o iPhone apaga dados de sites que ficam dias sem uso)
+  async function verificar() {
+    var ATIVOS = ativosDosBlocos(), rg = lerRegistro(); if (!rg) return { ok: false, motivo: 'nao-baixado' };
+    if (rg.falhou) return { ok: false, motivo: 'incompleto' };
+    if (!('caches' in window)) return { ok: false, motivo: 'sem-cache' };
+    if (Date.now() - rg.t > 30 * 86400000) return { ok: false, motivo: 'antigo' };
+    try {
+      var cT = await caches.open(ARM_MAPA), ks = await cT.keys(); if (ks.length < 5) return { ok: false, motivo: 'mapa-apagado' };
+      var lista = ATIVOS.proprios.concat(ATIVOS.externos), falta = [];
+      for (var i = 0; i < lista.length; i++) { if (!(await caches.match(lista[i], { ignoreSearch: true }))) falta.push(lista[i]); }
+      return falta.length ? { ok: false, motivo: 'arquivos-apagados', falta: falta } : { ok: true, registro: rg };
+    } catch (e) { return { ok: false, motivo: 'erro' }; }
+  }
+  window.MGO_OFFLINE = { baixar: baixar, verificar: verificar, registro: lerRegistro }; // usado pelos blocos (ex.: pacoteObrigatorio)
   btn.onclick = baixar;
 })();
 </script>
-<!-- blocos do modo "combate": monstros3d, pedraDireita, travaVoltar -->
+<!-- blocos do modo "combate": monstros3d, pedraDireita, travaVoltar, telemetria, pesquisa, pacoteObrigatorio -->
 <style>/* bloco pedraDireita */
 /* bloco pedraDireita: botoes da pedra a direita do estilingue (o estilingue fica centralizado) */
 #trocaPedraWrap{left:calc(50% + 52px)}
 .pedra-reserva{left:auto;right:-22px}
 #pedraReserva2{left:auto;right:-24px}
 </style>
+<style>/* bloco pesquisa */
+/* bloco pesquisa: tela de perguntas dentro do jogo */
+#pesquisaJogo{position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#pesquisaJogo .pq-card{background:#fff;border-radius:18px;padding:18px 16px;width:100%;max-width:360px;max-height:94vh;overflow:auto;box-shadow:0 8px 30px rgba(0,0,0,.5);color:#1b1b1b}
+#pesquisaJogo h2{margin:0;text-align:center;font-size:21px}
+#pesquisaJogo .pq-sub{margin:4px 0 8px;text-align:center;font-size:13px;color:#555}
+#pesquisaJogo .pq-pergunta{margin:12px 0 6px;font-weight:bold;font-size:15px}
+#pesquisaJogo .pq-pergunta small{font-weight:normal;color:#777;font-size:11px}
+#pesquisaJogo .pq-linha{display:flex;gap:8px}
+#pesquisaJogo .pq-cara{flex:1;padding:8px 2px;border:2px solid #cfd8dc;border-radius:12px;background:#fff;cursor:pointer;touch-action:manipulation}
+#pesquisaJogo .pq-cara span{display:block;font-size:28px;line-height:1.1}
+#pesquisaJogo .pq-cara small{display:block;font-size:11px;color:#444;margin-top:2px}
+#pesquisaJogo .pq-cara.on{border-color:#2e7d32;background:#e8f5e9}
+#pesquisaJogo .pq-chips{display:flex;flex-wrap:wrap;gap:6px}
+#pesquisaJogo .pq-chip{padding:7px 11px;border:2px solid #cfd8dc;border-radius:999px;background:#fff;font-size:13px;cursor:pointer;touch-action:manipulation}
+#pesquisaJogo .pq-chip.on{border-color:#ef6c00;background:#fff3e0}
+#pesquisaJogo textarea{width:100%;box-sizing:border-box;border:2px solid #cfd8dc;border-radius:10px;padding:8px;font:inherit;font-size:14px;resize:none}
+#pesquisaJogo .pq-nota{margin:8px 0 10px;font-size:11px;color:#666;text-align:center}
+#pesquisaJogo #pqEnviar{display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#2e7d32;color:#fff;font-size:16px;font-weight:bold;cursor:pointer}
+#pesquisaJogo #pqEnviar:disabled{background:#b0bec5}
+#pesquisaJogo #pqPular{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#555;font-size:14px;text-decoration:underline;cursor:pointer}
+#pesquisaJogo .pq-obrigado{padding:34px 10px;text-align:center;font-size:24px;font-weight:bold}
+/* botao da tela de parabens */
+#bPesquisaFim{display:block;width:100%;margin-top:12px;font-size:15px;font-weight:bold;padding:12px 16px;border:2px solid #2e7d32;border-radius:999px;background:#fff;color:#2e7d32;cursor:pointer;touch-action:manipulation}
+</style>
+<style>/* bloco pacoteObrigatorio */
+/* bloco pacoteObrigatorio: tela inicial com o download em primeiro lugar */
+#barraPacote{display:none;width:100%;height:10px;border-radius:6px;background:rgba(255,255,255,.28);overflow:hidden}
+#barraPacote i{display:block;height:100%;width:0;background:#ffd54f;transition:width .25s}
+#bOffline.pacotePrincipal{background:#ffd54f;color:#3b2a00;border-color:#ffd54f;font-size:16px;padding:14px 18px}
+#bInicio.pacoteTrava{opacity:.45;filter:grayscale(.6)}
+#bAssimMesmo{display:none;background:none;border:0;color:#fff;text-decoration:underline;font-size:12px;text-align:center;opacity:.85;cursor:pointer;touch-action:manipulation;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+</style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/Demon.gltf","modelos/Orc_Skull.gltf","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script src="trava-voltar.js"></script>
+<script src="telemetria.js"></script>
+<script src="pesquisa.js"></script>
+<script src="pacote-obrigatorio.js"></script>
 
 </body>
 </html>

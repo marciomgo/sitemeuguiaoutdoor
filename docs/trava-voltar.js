@@ -17,6 +17,7 @@
   }
   function sair() {
     saindo = true; desarmar();
+    try { document.dispatchEvent(new CustomEvent('mgo:saiu')); } catch (e) {} // avisa os outros blocos (ex.: pesquisa registra que desistiu)
     history.go(-(nivelAtual() + 1)); // desfaz as entradas de reserva e volta a pagina anterior
     setTimeout(function () { location.replace(destinoDeSaida()); }, 900); // nao havia pagina anterior (abriu por link/QR): vai para o destino
   }

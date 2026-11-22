@@ -6,7 +6,7 @@
 const APP = 'mgo-app-v1', TILES = 'mgo-tiles-v1', FLAGS = 'mgo-flags-v1';
 const PRE = ['mineu-costas.png', 'mineu-golpe-1.png', 'mineu-golpe-2.png', 'mineu-golpe-3.png', 'mineu-estilingue-1.png', 'mineu-estilingue-2.png',
   'mineu-andar-1.png', 'mineu-andar-2.png', 'mineu-andar-3.png', 'mineu-comemora.png', 'icone-pau.png', 'icon-192.png'];
-const HOSTS_CACHE_FIRST = ['cdnjs.cloudflare.com', 'unpkg.com', 'static.wixstatic.com'];
+const HOSTS_CACHE_FIRST = ['cdnjs.cloudflare.com', 'unpkg.com', 'static.wixstatic.com', 'cdn.jsdelivr.net']; // jsdelivr: biblioteca 3D (three.js) do bloco monstros3d
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(APP).then((c) => Promise.all(PRE.map((u) => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
