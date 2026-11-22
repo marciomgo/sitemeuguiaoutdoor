@@ -390,7 +390,9 @@ function mordida(agora) {
   }
 }
 var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
-var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_ALCANCE_M = 35, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20;
+var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_ALCANCE_M = 35, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20, ATRASO_FOGO_MS = 500;
+/* Golpes de perto dos chefões (sem fogo no chefão comum; o final também golpeia se o Mineu chegar perto). Dano = o mesmo da bola de fogo do chefão comum. */
+var DANO_GOLPE_CHEFAO = DANO_FOGO, CONTATO_CHEFAO_M = 3, INTERVALO_GOLPE_CHEFAO = 2500;
 function tocarSomTiroChefao(final) {
   var g = final ? 0.75 : 1;
   tocarTom(150 * g, 45 * g, final ? 520 : 380, 'sawtooth', 0.22);
@@ -410,20 +412,23 @@ function levarDano(v) {
 /* O fogo do chefão sai na direção de quem ele mirou e segue reto, a 2,9 m/s, até o limite do alcance dele (35 m, 12 s): não para no lugar do alvo e some só no fim do alcance.
    Quem estiver a menos de 3 m do fogo, em qualquer ponto do caminho, leva o dano. */
 function dispararFogo(i) {
-  i.balaEmVoo = true;
+  i.balaEmVoo = true; i.tCabecada = performance.now(); // o dragão dá UMA cabeçada (bloco monstros-3d) e o fogo sai no meio do gesto
+  setTimeout(function () { if (i.vivo) soltarFogo(i); else i.balaEmVoo = false; }, ATRASO_FOGO_MS);
+}
+function soltarFogo(i) {
   tocarSomTiroChefao(i.final);
   var cl = Math.cos(i.lat * rad), dl = (POS.lat - i.lat) * 111320, dn = (POS.lng - i.lng) * 111320 * cl, dd = Math.hypot(dl, dn) || 1;
   var de = { lat: i.lat, lng: i.lng }, fim = { lat: i.lat + (dl / dd * FOGO_ALCANCE_M) / 111320, lng: i.lng + (dn / dd * FOGO_ALCANCE_M) / (111320 * cl) };
   var dur = (FOGO_ALCANCE_M / FOGO_VEL_MS) * 1000;
   var fora = document.createElement('div'); fora.style.zIndex = 99990;
-  var el = document.createElement('div'); el.className = 'fogo' + (i.final ? ' roxo' : ''); el.textContent = '🔥'; fora.appendChild(el);
+  var el = document.createElement('div'); el.className = 'fogo'; el.textContent = '🔥'; fora.appendChild(el); // fogo sempre laranja
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now(), ultRastro = 0;
   (function voo(agora) {
     var t = Math.min(1, (agora - t0) / dur), plat = de.lat + (fim.lat - de.lat) * t, plng = de.lng + (fim.lng - de.lng) * t;
     mk.setLngLat([plng, plat]);
     el.style.transform = 'translateY(' + (-(34 - 22 * t)) + 'px)';
-    if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, i.final ? 'roxo' : 'fogo'); }
+    if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, 'fogo'); }
     var ex = (plat - POS.lat) * 111320, ey = (plng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
     if (Math.sqrt(ex * ex + ey * ey) <= RAIO_ACERTO_FOGO_M) { mk.remove(); i.balaEmVoo = false; tocarSomAtingido(); levarDano(i.final ? DANO_FOGO_FINAL : DANO_FOGO); return; }
     if (t < 1) { requestAnimationFrame(voo); return; }
@@ -455,7 +460,7 @@ function moverInimigos(dt, agora) {
     var naArea = m.d <= GALHO_ALCANCE_M && Math.abs(difAng(heading, m.ang)) <= GALHO_CONE;
     if (naArea && !i.naArea) i.tEntrada = agora;
     i.naArea = naArea;
-    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = i.chefao ? (DADOS.livre ? CHEFAO_PARA_LIVRE_M : CHEFAO_PARA_M) : ZUMBI_PARA_M;
+    var aggro = i.chefao ? (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : CHEFAO_AGGRO_M) : (DADOS.livre ? CHEFAO_AGGRO_LIVRE_M : ZUMBI_AGGRO_M), para = (i.chefao && i.final) ? (DADOS.livre ? CHEFAO_PARA_LIVRE_M : CHEFAO_PARA_M) : ZUMBI_PARA_M; // só o chefão final fica à distância (solta fogo); o comum vem até você para golpear
     var vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
     // destravar: se ele deveria estar andando e não saiu do lugar em 3 s (preso atrás de parede ou dentro de construção), vira "fantasma" por 8 s e vai reto até o jogador
     if (m.d <= aggro && m.d > para + 0.5) {
@@ -501,9 +506,12 @@ function moverInimigos(dt, agora) {
     i.el.firstChild.classList.toggle('anda-z', anda);
     if (!i.chefao) {
       if (m.d <= CONTATO_M && agora - ultimaMordida > INTERVALO_MORDIDA) mordida(agora);
-    } else if (m.d <= CHEFAO_AGGRO_M) {
-      if (!i.proximoFogo) i.proximoFogo = agora + GRACA_PRIMEIRO_FOGO_MS;
-      if (agora >= i.proximoFogo && !i.balaEmVoo) { i.proximoFogo = agora + RECARGA_FOGO_MS; dispararFogo(i); }
+    } else {
+      if (m.d <= CONTATO_CHEFAO_M && agora - (i.ultGolpe || 0) > INTERVALO_GOLPE_CHEFAO) { i.ultGolpe = agora; tocarSomAtingido(); levarDano(DANO_GOLPE_CHEFAO); }
+      if (i.final && m.d <= CHEFAO_AGGRO_M && m.d > CONTATO_CHEFAO_M) { // só o chefão final solta fogo (e não enquanto você está colado nele)
+        if (!i.proximoFogo) i.proximoFogo = agora + GRACA_PRIMEIRO_FOGO_MS;
+        if (agora >= i.proximoFogo && !i.balaEmVoo) { i.proximoFogo = agora + RECARGA_FOGO_MS; dispararFogo(i); }
+      }
     }
   });
 }
@@ -1429,13 +1437,10 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #pesquisaJogo .pq-nota{margin:8px 0 10px;font-size:11px;color:#666;text-align:center}
 #pesquisaJogo #pqEnviar{display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#2e7d32;color:#fff;font-size:16px;font-weight:bold;cursor:pointer}
 #pesquisaJogo #pqEnviar:disabled{background:#b0bec5}
-#pesquisaJogo #pqPular{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#555;font-size:14px;text-decoration:underline;cursor:pointer}
 #pesquisaJogo .pq-obrigado{padding:34px 10px;text-align:center;font-size:24px;font-weight:bold}
-/* botao da tela de parabens */
-#bPesquisaFim{display:block;width:100%;margin-top:12px;font-size:15px;font-weight:bold;padding:12px 16px;border:2px solid #2e7d32;border-radius:999px;background:#fff;color:#2e7d32;cursor:pointer;touch-action:manipulation}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/Demon.gltf","modelos/Orc_Skull.gltf","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script src="joystick.js"></script>
 <script src="trava-voltar.js"></script>
