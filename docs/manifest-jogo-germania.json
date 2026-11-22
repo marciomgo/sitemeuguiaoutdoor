@@ -1,7 +1,7 @@
 {
- "name": "MGO · Combate · Harmonia",
+ "name": "MGO · Combate · Germânia",
  "short_name": "MGO",
- "start_url": "./combate-harmonia.html",
+ "start_url": "./jogo-germania.html",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",

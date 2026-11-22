@@ -3,7 +3,7 @@
 // Mesma tecnica ja testada no iPhone (docs/trava-voltar-elemento.js): so arma depois do 1o toque (regra do navegador) e empilha 4 entradas de reserva
 // no historico, repostas a cada voltar (1 so furava com voltar rapido). Roda na pagina do jogo inteira (nao em iframe), por isso funciona no Safari do iPhone.
 // Sem aviso quando nao ha o que perder: jogo ainda nao comecou ou ja terminado (tela de parabens).
-// Saida: volta no historico ate a pagina de onde o jogador veio (ex.: a escolha de parques); se nao houver, vai para ?volta=<endereco> ou para combate.html.
+// Saida: volta no historico ate a pagina de onde o jogador veio (ex.: a escolha de parques); se nao houver, vai para ?volta=<endereco> ou para jogo.html.
 (function travaVoltar() {
   var PROFUNDIDADE = 4, armado = false, urlTrava = '', saindo = false, aberto = false, jogoAntes = false;
 
@@ -13,7 +13,7 @@
 
   function destinoDeSaida() {
     try { var v = new URLSearchParams(location.search).get('volta'); if (v && /^https?:\/\//i.test(v)) return v; } catch (e) {}
-    return 'combate.html';
+    return 'jogo.html';
   }
   function sair() {
     saindo = true; desarmar();

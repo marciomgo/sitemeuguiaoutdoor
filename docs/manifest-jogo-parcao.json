@@ -1,7 +1,7 @@
 {
- "name": "MGO · Combate · Germânia",
+ "name": "MGO · Combate · Parcão",
  "short_name": "MGO",
- "start_url": "./combate-germania.html",
+ "start_url": "./jogo-parcao.html",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",

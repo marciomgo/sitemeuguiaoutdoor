@@ -1,7 +1,7 @@
 {
- "name": "MGO · Combate · Marinha do Brasil",
+ "name": "MGO · Combate · Farroupilha (Redenção)",
  "short_name": "MGO",
- "start_url": "./combate-marinha-do-brasil.html",
+ "start_url": "./jogo-farroupilha.html",
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",
