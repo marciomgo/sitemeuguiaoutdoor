@@ -8,18 +8,39 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const TIPOS = {
   zumbi: { arquivo: 'modelos/Orc_Skull.gltf', altura: 1.7, fonte: 36 },
-  chefao: { arquivo: 'modelos/Demon.gltf', altura: 3.0, fonte: 68 },
-  final: { arquivo: 'modelos/Demon.gltf', altura: 4.2, fonte: 90 }
+  chefao: { arquivo: 'modelos/Demon.gltf', altura: 3.0, fonte: 68, cor: { matiz: 0, luz: 1.65, sat: 1.1 } }, // vermelho vivo (o original e um carmim muito escuro)
+  final: { arquivo: 'modelos/Demon.gltf', altura: 4.2, fonte: 90, cor: { matiz: 280, luz: 1.9, sat: 1.15 } } // lilas, igual ao fogo roxo do chefao final. cor: matiz = gira a cor (graus); luz/sat = multiplicam claridade e saturacao
 };
 const rad = Math.PI / 180;
 const cena = new THREE.Scene();
-cena.add(new THREE.AmbientLight(0xffffff, 1.1));
-const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(-20, 40, 30); cena.add(sol);
+cena.add(new THREE.AmbientLight(0xffffff, 2.4)); // luz fisica: ~0,75 da cor do modelo vem do ambiente + ~0,5 do sol = cor fiel ao modelo (antes 1.1/1.6 deixava tudo escuro)
+const sol = new THREE.DirectionalLight(0xffffff, 1.5); sol.position.set(-20, 40, 30); cena.add(sol);
 const camera = new THREE.Camera();
 const relogio = new THREE.Clock();
 const modelos = {}; // arquivo -> { cena, animacoes, altura }
 const corpos = new Map(); // inimigo do jogo -> corpo 3D
 
+// troca a cor do modelo: copia os materiais e ajusta matiz/claridade/saturacao da textura (pixel a pixel, funciona em qualquer navegador). Cinza, branco e preto nao mudam (contornos, olhos).
+function texturaComMatiz(tex, cor) {
+  const img = tex.image, w = img.width, h = img.height, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
+  const d = cx.getImageData(0, 0, w, h), p = d.data, dh = cor.matiz / 360;
+  for (let k = 0; k < p.length; k += 4) {
+    const r = p[k] / 255, g = p[k + 1] / 255, b = p[k + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, dd = mx - mn;
+    if (dd < 0.02) continue; // cinza/branco/preto: nao tem cor para girar
+    const s0 = l > 0.5 ? dd / (2 - mx - mn) : dd / (mx + mn), s = Math.min(1, s0 * cor.sat), lc = Math.min(0.78, l * cor.luz);
+    let hh = mx === r ? ((g - b) / dd + (g < b ? 6 : 0)) : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4; hh = ((hh / 6 + dh) % 1 + 1) % 1;
+    const q = lc < 0.5 ? lc * (1 + s) : lc + s - lc * s, pp = 2 * lc - q, f = (tt) => { tt = (tt % 1 + 1) % 1; return tt < 1 / 6 ? pp + (q - pp) * 6 * tt : tt < 1 / 2 ? q : tt < 2 / 3 ? pp + (q - pp) * (2 / 3 - tt) * 6 : pp; };
+    p[k] = Math.round(f(hh + 1 / 3) * 255); p[k + 1] = Math.round(f(hh) * 255); p[k + 2] = Math.round(f(hh - 1 / 3) * 255);
+  }
+  cx.putImageData(d, 0, 0);
+  const t = new THREE.CanvasTexture(cv); t.flipY = tex.flipY; t.colorSpace = tex.colorSpace; t.wrapS = tex.wrapS; t.wrapT = tex.wrapT; t.anisotropy = tex.anisotropy; return t;
+}
+function comMatiz(cenaOrig, cor) {
+  const c = SkeletonUtils.clone(cenaOrig);
+  c.traverse((o) => { if (o.isMesh) { const m = o.material.clone(); if (m.map && m.map.image) m.map = texturaComMatiz(m.map, cor); o.material = m; } });
+  return c;
+}
 new Set(Object.values(TIPOS).map((t) => t.arquivo)).forEach((arq) => {
   new GLTFLoader().load(arq, (g) => {
     const caixa = new THREE.Box3().setFromObject(g.scene), tam = caixa.getSize(new THREE.Vector3());
@@ -31,7 +52,9 @@ new Set(Object.values(TIPOS).map((t) => t.arquivo)).forEach((arq) => {
 
 function criar(i) {
   const tipo = i.chefao ? (i.final ? TIPOS.final : TIPOS.chefao) : TIPOS.zumbi, m = modelos[tipo.arquivo]; if (!m) return null;
-  const corpo = SkeletonUtils.clone(m.cena), k = tipo.altura / m.altura;
+  const chave = i.final ? 'final' : 'chefao'; m.copias = m.copias || {};
+  const origem = tipo.cor ? (m.copias[chave] || (m.copias[chave] = comMatiz(m.cena, tipo.cor))) : m.cena; // chefao comum = copia vermelha, final = copia lilas (cada uma feita uma vez)
+  const corpo = SkeletonUtils.clone(origem), k = tipo.altura / m.altura;
   corpo.scale.setScalar(k); corpo.position.y = -m.base * k; // em pe no chao
   const grupo = new THREE.Group(); grupo.add(corpo); cena.add(grupo);
   const mixer = new THREE.AnimationMixer(corpo), acoes = {};
