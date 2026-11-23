@@ -51,12 +51,14 @@ function iniciar(marco, esperaJogo) {
     L.pop(); U.pop(); return L.concat(U);
   };
   const dentroPoligono = (x, y, poli) => { let d = false; for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) { const xi = poli[i][0], yi = poli[i][1], xj = poli[j][0], yj = poli[j][1]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) d = !d; } return d; };
-  let clipAtivo = false;
+  let clipAtivo = false, clipLogoAtivo = false, clipMonstroAtivo = false, barraOculta = false; // barraOculta: a barra de vida do Mineu some se ele esta tapado pela rocha, pelo logo OU por um monstro (cada um so liga; quem aplica e aplicarBarra)
+  const aplicarBarra = () => { const el = (typeof elMineu !== 'undefined') ? elMineu : null, b = el && el.querySelector('.mine-vida'); if (b) b.style.visibility = barraOculta ? 'hidden' : ''; };
+  const furoStr = (poli, ox, oy) => 'polygon(evenodd, -3000px -3000px, 3000px -3000px, 3000px 3000px, -3000px 3000px, -3000px -3000px, ' + poli.map((p) => (p[0] + ox).toFixed(1) + 'px ' + (p[1] + oy).toFixed(1) + 'px').join(', ') + ', ' + (poli[0][0] + ox).toFixed(1) + 'px ' + (poli[0][1] + oy).toFixed(1) + 'px)';
   const escondidos = new Set(); // monstros escondidos atras da rocha neste quadro: o jogo NAO trava a mira neles (ver escolherAlvo)
   window.MGO_ESCONDIDO = (inimigo) => escondidos.has(inimigo);
   function oclusao(M, W, H, gx, gz, dMarco) {
     const elM = (typeof elMineu !== 'undefined') ? elMineu : null, corpos = window.__monstros3d ? window.__monstros3d.corpos : null;
-    if (!pontosRocha || dMarco > 70) { escondidos.clear(); if (clipAtivo && elM) { elM.style.clipPath = ''; const barra = elM.querySelector('.mine-vida'); if (barra) barra.style.visibility = ''; clipAtivo = false; } if (corpos) corpos.forEach((c) => { if (c.vida && c.vida.style.visibility) c.vida.style.visibility = ''; }); if (typeof elMira !== 'undefined' && elMira.style.visibility) elMira.style.visibility = ''; return; }
+    if (!pontosRocha || dMarco > 70) { escondidos.clear(); if (clipLogoAtivo && elM) { const inn = elM.querySelector('.interno'); if (inn) inn.style.clipPath = ''; clipLogoAtivo = false; } if (clipAtivo && elM) { elM.style.clipPath = ''; clipAtivo = false; } aplicarBarra(); if (corpos) corpos.forEach((c) => { if (c.vida && c.vida.style.visibility) c.vida.style.visibility = ''; }); if (typeof elMira !== 'undefined' && elMira.style.visibility) elMira.style.visibility = ''; return; }
     const proj = (x, y, z) => { const cx = M[0] * x + M[4] * y + M[8] * z + M[12], cy = M[1] * x + M[5] * y + M[9] * z + M[13], cw = M[3] * x + M[7] * y + M[11] * z + M[15]; return [((cx / cw + 1) / 2) * W, ((1 - cy / cw) / 2) * H, cw]; };
     const wRocha = proj(gx, 0, gz)[2], pts = [];
     for (let i = 0; i < pontosRocha.length; i += 3) { const p = proj(pontosRocha[i] + gx, pontosRocha[i + 1], pontosRocha[i + 2] + gz); pts.push([p[0], p[1]]); }
@@ -64,8 +66,20 @@ function iniciar(marco, esperaJogo) {
     // Mineu (na origem do mundo): atras da rocha se a rocha esta mais perto da camera (w menor)
     if (elM) {
       const wM = proj(0, 0, 0)[2];
-      if (wM > wRocha + 0.5) { const r = elM.getBoundingClientRect(), ox = cv.left - r.left, oy = cv.top - r.top; elM.style.clipPath = 'polygon(evenodd, -3000px -3000px, 3000px -3000px, 3000px 3000px, -3000px 3000px, -3000px -3000px, ' + contorno.map((p) => (p[0] + ox).toFixed(1) + 'px ' + (p[1] + oy).toFixed(1) + 'px').join(', ') + ', ' + (contorno[0][0] + ox).toFixed(1) + 'px ' + (contorno[0][1] + oy).toFixed(1) + 'px)'; clipAtivo = true; const barra = elM.querySelector('.mine-vida'); if (barra) { const rb = barra.getBoundingClientRect(); barra.style.visibility = dentroPoligono(rb.left + rb.width / 2 - cv.left, rb.top + rb.height / 2 - cv.top + 14, contorno) ? 'hidden' : ''; } /* a barra fica um pouco acima da cabeca: some junto quando ele esta escondido */ }
-      else if (clipAtivo) { elM.style.clipPath = ''; const barra = elM.querySelector('.mine-vida'); if (barra) barra.style.visibility = ''; clipAtivo = false; }
+      if (wM > wRocha + 0.5) { const r = elM.getBoundingClientRect(), ox = cv.left - r.left, oy = cv.top - r.top; elM.style.clipPath = 'polygon(evenodd, -3000px -3000px, 3000px -3000px, 3000px 3000px, -3000px 3000px, -3000px -3000px, ' + contorno.map((p) => (p[0] + ox).toFixed(1) + 'px ' + (p[1] + oy).toFixed(1) + 'px').join(', ') + ', ' + (contorno[0][0] + ox).toFixed(1) + 'px ' + (contorno[0][1] + oy).toFixed(1) + 'px)'; clipAtivo = true; const barra = elM.querySelector('.mine-vida'); if (barra) { const rb = barra.getBoundingClientRect(); if (dentroPoligono(rb.left + rb.width / 2 - cv.left, rb.top + rb.height / 2 - cv.top + 14, contorno)) barraOculta = true; } /* a barra fica um pouco acima da cabeca: some junto quando ele esta escondido */ }
+      else if (clipAtivo) { elM.style.clipPath = ''; clipAtivo = false; }
+    }
+    // LOGO MGO (plano girando em cima da rocha): tambem tapa o Mineu quando ele esta atras dele. O clip vai no elemento interno (os dois recortes se somam).
+    if (elM) {
+      const wM2 = proj(0, 0, 0)[2], ang = moeda.rotation.y, cy0 = moeda.position.y, hw = LARGURA_LOGO / 2, hh = LARGURA_LOGO / 4, rx = Math.cos(ang), rz = -Math.sin(ang);
+      const quad = [[-hw, hh], [hw, hh], [hw, -hh], [-hw, -hh]].map((q) => proj(gx + q[0] * rx, cy0 + q[1], gz + q[0] * rz)), wLogo = proj(gx, cy0, gz)[2];
+      const poliLogo = quad.map((p) => [p[0], p[1]]), inn = elM.querySelector('.interno');
+      if (inn && wM2 > wLogo + 0.5) { const r = inn.getBoundingClientRect(); inn.style.clipPath = furoStr(poliLogo, cv.left - r.left, cv.top - r.top); clipLogoAtivo = true; }
+      else if (inn && clipLogoAtivo) { inn.style.clipPath = ''; clipLogoAtivo = false; }
+      const barra = elM.querySelector('.mine-vida');
+      if (barra && wM2 > wLogo + 0.5) { const rb = barra.getBoundingClientRect(); if (dentroPoligono(rb.left + rb.width / 2 - cv.left, rb.top + rb.height / 2 - cv.top + 14, poliLogo)) barraOculta = true; }
+      if (window.MGO_MARCO) window.MGO_MARCO.ultimo = { logo: poliLogo, rocha: contorno }; // (so para conferir em testes)
+      aplicarBarra();
     }
     // monstros escondidos (centro do corpo dentro do contorno e mais longe que a rocha): nao podem ser mirados
     escondidos.clear(); if (corpos) corpos.forEach((c) => { const g = c.grupo.position, pm = proj(g.x, 0, g.z), pc = proj(g.x, (c.altura || 2) * 0.5, g.z); if (pm[2] > wRocha + 0.5 && dentroPoligono(pc[0], pc[1], contorno)) escondidos.add(c.i); });
@@ -77,6 +91,27 @@ function iniciar(marco, esperaJogo) {
       if (alvoAtual && corpos) { const c = corpos.get(alvoAtual); if (c) { const g = c.grupo.position, pm = proj(g.x, 0, g.z), r = elMira.getBoundingClientRect(); escondido = pm[2] > wRocha + 0.5 && dentroPoligono(r.left + r.width / 2 - cv.left, r.top + r.height / 2 - cv.top, contorno); } }
       elMira.style.visibility = escondido ? 'hidden' : '';
     }
+  }
+
+  // ---- MONSTROS tapam o Mineu: o Mineu e 2D (sem profundidade); um monstro 3D que esteja ENTRE a camera e ele recorta o Mineu pelo contorno do corpo (caixa do corpo projetada na tela). Vale o monstro que mais cobre o Mineu; o clip vai nos .corpo (3o nivel, soma com o da rocha e o do logo). ----
+  function monstrosTapamMineu(M, W, H) {
+    const elM = (typeof elMineu !== 'undefined') ? elMineu : null, corpos = window.__monstros3d ? window.__monstros3d.corpos : null; if (!elM) return;
+    barraOculta = false;
+    const limpar = () => { if (clipMonstroAtivo) { elM.querySelectorAll('.corpo').forEach((e) => { e.style.clipPath = ''; }); clipMonstroAtivo = false; } };
+    if (!corpos || !corpos.size) { limpar(); return; }
+    const proj = (x, y, z) => { const cx = M[0] * x + M[4] * y + M[8] * z + M[12], cy = M[1] * x + M[5] * y + M[9] * z + M[13], cw = M[3] * x + M[7] * y + M[11] * z + M[15]; return [((cx / cw + 1) / 2) * W, ((1 - cy / cw) / 2) * H, cw]; };
+    const cv = mapa.getCanvas().getBoundingClientRect(), rm = elM.getBoundingClientRect(), wM = proj(0, 0, 0)[2];
+    const mx0 = rm.left - cv.left, mx1 = rm.right - cv.left, my0 = rm.top - cv.top, my1 = rm.bottom - cv.top;
+    let melhor = null, melhorA = 0;
+    corpos.forEach((c) => {
+      const g = c.grupo.position; if (Math.hypot(g.x, g.z) < 0.5) return; const pm = proj(g.x, 0, g.z); if (pm[2] >= wM - 0.3) return; // so quem esta MAIS PERTO da camera que o Mineu
+      const alt = c.altura || 2, r = alt * 0.32, pts = []; [0, alt].forEach((y) => [[-r, -r], [r, -r], [r, r], [-r, r]].forEach((q) => { const p = proj(g.x + q[0], y, g.z + q[1]); pts.push([p[0], p[1]]); }));
+      let a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9; pts.forEach((p) => { a0 = Math.min(a0, p[0]); a1 = Math.max(a1, p[0]); b0 = Math.min(b0, p[1]); b1 = Math.max(b1, p[1]); });
+      const ov = Math.max(0, Math.min(a1, mx1) - Math.max(a0, mx0)) * Math.max(0, Math.min(b1, my1) - Math.max(b0, my0)); if (ov > melhorA) { melhorA = ov; melhor = hull(pts); }
+    });
+    if (!melhor || melhorA < 20) { limpar(); return; }
+    elM.querySelectorAll('.corpo').forEach((e) => { const r = e.getBoundingClientRect(); e.style.clipPath = furoStr(melhor, cv.left - r.left, cv.top - r.top); }); clipMonstroAtivo = true;
+    const barra = elM.querySelector('.mine-vida'); if (barra) { const rb = barra.getBoundingClientRect(); if (dentroPoligono(rb.left + rb.width / 2 - cv.left, rb.top + rb.height / 2 - cv.top + 14, melhor)) barraOculta = true; }
   }
 
   const camada = {
@@ -94,7 +129,10 @@ function iniciar(marco, esperaJogo) {
       const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
       const l = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
       camera.projectionMatrix = m.multiply(l);
-      oclusao(camera.projectionMatrix.elements, this.map.getCanvas().clientWidth, this.map.getCanvas().clientHeight, grupo.position.x, grupo.position.z, dMarco);
+      try { // a oclusao e so um detalhe visual: se der erro, o jogo segue (e o erro aparece no console)
+        monstrosTapamMineu(camera.projectionMatrix.elements, this.map.getCanvas().clientWidth, this.map.getCanvas().clientHeight);
+        oclusao(camera.projectionMatrix.elements, this.map.getCanvas().clientWidth, this.map.getCanvas().clientHeight, grupo.position.x, grupo.position.z, dMarco);
+      } catch (e) { if (!window.__marcoErro) { window.__marcoErro = e; console.error('[marco] erro na oclusao', e); } }
       this.renderer.resetState();
       this.renderer.render(cena, camera);
       this.map.triggerRepaint();
