@@ -379,7 +379,7 @@ function tiroDoMineu() {
     if (alvo && alvo.vivo) { tocarSomImpacto(); estouro(alvo.el); acertou(alvo, DANO[tipo]); }
   })(t0);
 }
-var ZUMBI_VEL = 0.5, ZUMBI_AGGRO_M = ALCANCE_TIRO_M, /* nas missões de parque os monstros só se mexem dentro do raio do Mineu (o mesmo do tiro); no modo livre todos vêm */ ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
+var ZUMBI_VEL = 0.65, /* era 0,5 m/s; +30% em 22/11 a pedido do Marcio */ ZUMBI_AGGRO_M = ALCANCE_TIRO_M, /* nas missões de parque os monstros só se mexem dentro do raio do Mineu (o mesmo do tiro); no modo livre todos vêm */ ZUMBI_PARA_M = 1.5, CONTATO_M = 2, INTERVALO_MORDIDA = 2500, DANO_MORDIDA = 5;
 var vidaMineu = 100, ultimaMordida = 0;
 function pintaVidaMineu() { elMineu.querySelector('.mine-vida i').style.width = Math.max(0, vidaMineu) + '%'; }
 function mordida(agora) {
@@ -391,7 +391,7 @@ function mordida(agora) {
     vidaMineu = 100; pintaVidaMineu();
   }
 }
-var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.5, CHEFAO_FINAL_VEL = 0.5;
+var CHEFAO_PARA_LIVRE_M = 25, CHEFAO_AGGRO_LIVRE_M = 300, CHEFAO_AGGRO_M = ALCANCE_TIRO_M, CHEFAO_PARA_M = CHEFAO_PARA_LIVRE_M, CHEFAO_VEL = 0.65, CHEFAO_FINAL_VEL = 0.65;
 var GRACA_PRIMEIRO_FOGO_MS = 4000, RECARGA_FOGO_MS = 9000, TEMPO_VOO_FOGO_MS = 12000, FOGO_VEL_MS = 2.9, FOGO_ALCANCE_M = 35, RAIO_ACERTO_FOGO_M = 3, DANO_FOGO = 10, DANO_FOGO_FINAL = 20, ATRASO_FOGO_MS = 500;
 /* Golpes de perto dos chefões (sem fogo no chefão comum; o final também golpeia se o Mineu chegar perto). Dano = o mesmo da bola de fogo do chefão comum. */
 var DANO_GOLPE_CHEFAO = DANO_FOGO, CONTATO_CHEFAO_M = 3, INTERVALO_GOLPE_CHEFAO = 2500;
@@ -497,6 +497,7 @@ function moverInimigos(dt, agora) {
         var passo = Math.min(vel * (i.vf || 1) * dt, m.d - para);
         i.lat += (passo * Math.cos(i._ang * rad)) / 111320;
         i.lng += (passo * Math.sin(i._ang * rad)) / (111320 * Math.cos(i.lat * rad));
+        if (obstaculosFixos.length) empurrarFora(i, 0.8);
         if (AREA && AREA.raio) { /* modo livre: nenhum monstro sai do círculo do jogo */
           var dlA = (i.lat - AREA.lat) * 111320, dnA = (i.lng - AREA.lng) * 111320 * Math.cos(AREA.lat * rad), dA = Math.hypot(dlA, dnA);
           if (dA > AREA.raio - 1) { var fA = (AREA.raio - 1) / dA; i.lat = AREA.lat + (dlA * fA) / 111320; i.lng = AREA.lng + (dnA * fA) / (111320 * Math.cos(AREA.lat * rad)); }
@@ -636,6 +637,22 @@ function atualizarZonas(lista) {
   mapa.getSource('zona-borda').setData({ type: 'FeatureCollection', features: b });
 }
 // ---------- água: os monstros não nascem nem andam dentro dela (as construções são planas, não atrapalham) ----------
+/* OBSTACULOS FIXOS (ex.: a montanha do bloco marcoMoeda): circulos que NINGUEM atravessa (jogador, monstros). Entram na grade de caminhos (todos dao a volta) e empurram para fora quem tentar entrar. */
+var obstaculosFixos = [];
+function registrarObstaculoCircular(lat, lng, raioM) {
+  var anel = circulo(lat, lng, raioM, 24), minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+  anel.forEach(function (c) { if (c[0] < minx) minx = c[0]; if (c[0] > maxx) maxx = c[0]; if (c[1] < miny) miny = c[1]; if (c[1] > maxy) maxy = c[1]; });
+  obstaculosFixos.push({ p: [anel], bb: [minx, miny, maxx, maxy], c: { lat: lat, lng: lng, raio: raioM } });
+  quandoMapaPronto(function () { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); }); /* refaz a grade de caminhos já com o obstaculo */
+}
+function empurrarFora(o, folga) { /* tira o objeto (POS ou monstro, com lat/lng) de dentro dos obstaculos fixos: ele desliza pela borda */
+  for (var k = 0; k < obstaculosFixos.length; k++) {
+    var c = obstaculosFixos[k].c, cl = Math.cos(c.lat * rad), dl = (o.lat - c.lat) * 111320, dn = (o.lng - c.lng) * 111320 * cl, d = Math.sqrt(dl * dl + dn * dn), r = c.raio + (folga || 0);
+    if (d >= r) continue;
+    if (d < 0.01) { dl = r; dn = 0; d = r; }
+    var f = r / d; o.lat = c.lat + (dl * f) / 111320; o.lng = c.lng + (dn * f) / (111320 * cl);
+  }
+}
 var obstaculos = [];
 function carregarObstaculos(lat, lng) {
   obstaculos = [];
@@ -652,6 +669,7 @@ function carregarObstaculos(lat, lng) {
       obstaculos.push({ p: p, bb: [minx, miny, maxx, maxy] });
     });
   });
+  obstaculosFixos.forEach(function (o) { obstaculos.push(o); }); /* a montanha etc. contam como obstaculo (a grade de caminhos desvia delas) */
   return obstaculos.length;
 }
 function dentroDoAnel(x, y, anel) {
@@ -1125,6 +1143,7 @@ function quadro(agora) {
     POS.lat += (ALVO.lat - POS.lat) * k; POS.lng += (ALVO.lng - POS.lng) * k;
     andando = Math.abs((POS.lat + POS.lng) - antes) > 1e-8;
   }
+  if (obstaculosFixos.length) empurrarFora(POS, 0.8); /* nao atravessa a montanha: com GPS o Mineu fica na borda ate voce dar a volta */
   heading = (heading + 360) % 360;
   bearing += difAng(bearing, heading) * (1 - Math.exp(-7 * dt));
   mkMineu.setLngLat([POS.lng, POS.lat]);
@@ -1419,7 +1438,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   btn.onclick = baixar;
 })();
 </script>
-<!-- blocos do modo "livre": monstros3d, bauFinal, joystick, travaVoltar, telemetria, pesquisa -->
+<!-- blocos do modo "livre": monstros3d, bauFinal, marcoMoeda, joystick, travaVoltar, telemetria, pesquisa -->
 <style>/* bloco pesquisa */
 /* bloco pesquisa: tela de perguntas dentro do jogo */
 #pesquisaJogo{position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -1443,9 +1462,10 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #pesquisaJogo .pq-obrigado{padding:34px 10px;text-align:center;font-size:24px;font-weight:bold}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script type="module" src="bau-final.js"></script>
+<script type="module" src="marco-moeda.js"></script>
 <script src="joystick.js"></script>
 <script src="trava-voltar.js"></script>
 <script src="telemetria.js"></script>
