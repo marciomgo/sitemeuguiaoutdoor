@@ -1548,7 +1548,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   btn.onclick = baixar;
 })();
 </script>
-<!-- blocos do modo "combate": monstros3d, bauFinal, marcoMoeda, travaVoltar, telemetria, pesquisa, pacoteObrigatorio -->
+<!-- blocos do modo "combate": monstros3d, bauFinal, marcoMoeda, mineu3d, travaVoltar, telemetria, pesquisa, pacoteObrigatorio -->
 <style>/* bloco pesquisa */
 /* bloco pesquisa: tela de perguntas dentro do jogo */
 #pesquisaJogo{position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -1580,10 +1580,11 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #bAssimMesmo{display:none;background:none;border:0;color:#fff;text-decoration:underline;font-size:12px;text-align:center;opacity:.85;cursor:pointer;touch-action:manipulation;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","mineu-3d.js","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script type="module" src="bau-final.js"></script>
 <script type="module" src="marco-moeda.js"></script>
+<script type="module" src="mineu-3d.js"></script>
 <script src="trava-voltar.js"></script>
 <script src="telemetria.js"></script>
 <script src="pesquisa.js"></script>
