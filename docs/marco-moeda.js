@@ -52,9 +52,11 @@ function iniciar(marco, esperaJogo) {
   };
   const dentroPoligono = (x, y, poli) => { let d = false; for (let i = 0, j = poli.length - 1; i < poli.length; j = i++) { const xi = poli[i][0], yi = poli[i][1], xj = poli[j][0], yj = poli[j][1]; if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) d = !d; } return d; };
   let clipAtivo = false;
+  const escondidos = new Set(); // monstros escondidos atras da rocha neste quadro: o jogo NAO trava a mira neles (ver escolherAlvo)
+  window.MGO_ESCONDIDO = (inimigo) => escondidos.has(inimigo);
   function oclusao(M, W, H, gx, gz, dMarco) {
     const elM = (typeof elMineu !== 'undefined') ? elMineu : null, corpos = window.__monstros3d ? window.__monstros3d.corpos : null;
-    if (!pontosRocha || dMarco > 70) { if (clipAtivo && elM) { elM.style.clipPath = ''; const barra = elM.querySelector('.mine-vida'); if (barra) barra.style.visibility = ''; clipAtivo = false; } if (corpos) corpos.forEach((c) => { if (c.vida && c.vida.style.visibility) c.vida.style.visibility = ''; }); if (typeof elMira !== 'undefined' && elMira.style.visibility) elMira.style.visibility = ''; return; }
+    if (!pontosRocha || dMarco > 70) { escondidos.clear(); if (clipAtivo && elM) { elM.style.clipPath = ''; const barra = elM.querySelector('.mine-vida'); if (barra) barra.style.visibility = ''; clipAtivo = false; } if (corpos) corpos.forEach((c) => { if (c.vida && c.vida.style.visibility) c.vida.style.visibility = ''; }); if (typeof elMira !== 'undefined' && elMira.style.visibility) elMira.style.visibility = ''; return; }
     const proj = (x, y, z) => { const cx = M[0] * x + M[4] * y + M[8] * z + M[12], cy = M[1] * x + M[5] * y + M[9] * z + M[13], cw = M[3] * x + M[7] * y + M[11] * z + M[15]; return [((cx / cw + 1) / 2) * W, ((1 - cy / cw) / 2) * H, cw]; };
     const wRocha = proj(gx, 0, gz)[2], pts = [];
     for (let i = 0; i < pontosRocha.length; i += 3) { const p = proj(pontosRocha[i] + gx, pontosRocha[i + 1], pontosRocha[i + 2] + gz); pts.push([p[0], p[1]]); }
@@ -65,6 +67,8 @@ function iniciar(marco, esperaJogo) {
       if (wM > wRocha + 0.5) { const r = elM.getBoundingClientRect(), ox = cv.left - r.left, oy = cv.top - r.top; elM.style.clipPath = 'polygon(evenodd, -3000px -3000px, 3000px -3000px, 3000px 3000px, -3000px 3000px, -3000px -3000px, ' + contorno.map((p) => (p[0] + ox).toFixed(1) + 'px ' + (p[1] + oy).toFixed(1) + 'px').join(', ') + ', ' + (contorno[0][0] + ox).toFixed(1) + 'px ' + (contorno[0][1] + oy).toFixed(1) + 'px)'; clipAtivo = true; const barra = elM.querySelector('.mine-vida'); if (barra) { const rb = barra.getBoundingClientRect(); barra.style.visibility = dentroPoligono(rb.left + rb.width / 2 - cv.left, rb.top + rb.height / 2 - cv.top + 14, contorno) ? 'hidden' : ''; } /* a barra fica um pouco acima da cabeca: some junto quando ele esta escondido */ }
       else if (clipAtivo) { elM.style.clipPath = ''; const barra = elM.querySelector('.mine-vida'); if (barra) barra.style.visibility = ''; clipAtivo = false; }
     }
+    // monstros escondidos (centro do corpo dentro do contorno e mais longe que a rocha): nao podem ser mirados
+    escondidos.clear(); if (corpos) corpos.forEach((c) => { const g = c.grupo.position, pm = proj(g.x, 0, g.z), pc = proj(g.x, (c.altura || 2) * 0.5, g.z); if (pm[2] > wRocha + 0.5 && dentroPoligono(pc[0], pc[1], contorno)) escondidos.add(c.i); });
     // barras de vida dos monstros que estao atras da rocha
     if (corpos) corpos.forEach((c) => { if (!c.vida) return; const g = c.grupo.position, pm = proj(g.x, 0, g.z), r = c.vida.getBoundingClientRect(); const atras = pm[2] > wRocha + 0.5 && dentroPoligono(r.left + r.width / 2 - cv.left, r.top + r.height / 2 - cv.top, contorno); c.vida.style.visibility = atras ? 'hidden' : ''; });
     // o ALVO (circulo vermelho de mira) tambem some se o monstro mirado esta escondido atras da rocha

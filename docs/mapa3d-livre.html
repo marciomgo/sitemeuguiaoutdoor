@@ -277,14 +277,15 @@ function metrosAte(lat, lng) {
   var dl = (lat - POS.lat) * 111320, dn = (lng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
   return { d: Math.sqrt(dl * dl + dn * dn), ang: (Math.atan2(dn, dl) / rad + 360) % 360 };
 }
+function escondido(i) { return !!(window.MGO_ESCONDIDO && window.MGO_ESCONDIDO(i)); } /* monstro atras da montanha (bloco marcoMoeda): nao pode ser mirado */
 function escolherAlvo() {
-  if (alvoAtual && alvoAtual.vivo) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
+  if (alvoAtual && alvoAtual.vivo && !escondido(alvoAtual)) { // fica no mesmo alvo enquanto ele estiver ao alcance e perto da mira
     var ma = metrosAte(alvoAtual.lat, alvoAtual.lng);
     if (ma.d <= ALCANCE_TIRO_M && Math.abs(difAng(heading, ma.ang)) <= CONE_GRAUS + 2) return alvoAtual;
   }
   var melhor = null;
   inimigos.forEach(function (i) {
-    if (!i.vivo) return;
+    if (!i.vivo || escondido(i)) return;
     var m = metrosAte(i.lat, i.lng), e = Math.abs(difAng(heading, m.ang));
     if (m.d > ALCANCE_TIRO_M || e > CONE_GRAUS) return;
     var nota = e + m.d * 0.12; // vence quem está mais no centro da mira; a distância só desempata
