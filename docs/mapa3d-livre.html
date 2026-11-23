@@ -56,6 +56,8 @@
   .pedra-reserva.esp{border-color:#f9a825;background:#fff3c4}
   .vida{position:absolute;left:50%;top:-9px;width:32px;height:5px;margin-left:-16px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;border:1px solid #fff}
   .vida i{display:block;height:100%;width:100%;background:#43a047}
+  .p-zumbi .vida, .p-chefao .vida{visibility:hidden} /* a barra de energia do monstro so aparece depois que ele apanha (classe .ferido); a do Mineu (.mine-vida) fica sempre */
+  .p-zumbi.ferido .vida, .p-chefao.ferido .vida{visibility:visible}
   .golpe{animation:golpe .18s linear}
   @keyframes golpe{0%{filter:brightness(3) saturate(0)}100%{filter:none}}
   .pedrada{font-size:34px;pointer-events:none;filter:drop-shadow(0 3px 2px rgba(0,0,0,.5))}
@@ -559,7 +561,7 @@ function celebrar() {
   confete();
 }
 function acertou(i, dano) {
-  i.vida -= dano;
+  i.vida -= dano; i.el.classList.add('ferido');
   var em = i.el.querySelector('.em'); em.classList.remove('golpe'); void em.offsetWidth; em.classList.add('golpe');
   i.el.querySelector('.vida i').style.width = Math.max(0, (i.vida / i.max) * 100) + '%';
   if (i.vida <= 0) {
