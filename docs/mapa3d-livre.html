@@ -654,7 +654,7 @@ function empurrarFora(o, folga) { /* tira o objeto (POS ou monstro, com lat/lng)
     var f = r / d; o.lat = c.lat + (dl * f) / 111320; o.lng = c.lng + (dn * f) / (111320 * cl);
   }
 }
-var obstaculos = [];
+var obstaculos = [], aguas = []; /* aguas = so os poligonos de agua (o bloco pesca usa) */
 function carregarObstaculos(lat, lng) {
   obstaculos = [];
   var fs2 = [];
@@ -670,10 +670,12 @@ function carregarObstaculos(lat, lng) {
       obstaculos.push({ p: p, bb: [minx, miny, maxx, maxy] });
     });
   });
+  aguas = obstaculos.slice();
   obstaculosFixos.forEach(function (o) { obstaculos.push(o); }); /* a montanha etc. contam como obstaculo (a grade de caminhos desvia delas) */
   return obstaculos.length;
 }
-function dentroDoAnel(x, y, anel) {
+/* (era dentroDoAnel: tinha o MESMO nome de outra funcao mais abaixo, que a sobrescrevia; por isso agua e obstaculos nunca eram detectados. Renomeada em 22/11.) */
+function pontoNoAnel(x, y, anel) {
   var dentro = false;
   for (var i = 0, j = anel.length - 1; i < anel.length; j = i++) {
     var xi = anel[i][0], yi = anel[i][1], xj = anel[j][0], yj = anel[j][1];
@@ -685,9 +687,9 @@ function emObstaculo(lat, lng) {
   for (var k = 0; k < obstaculos.length; k++) {
     var o = obstaculos[k];
     if (lng < o.bb[0] || lng > o.bb[2] || lat < o.bb[1] || lat > o.bb[3]) continue;
-    if (!dentroDoAnel(lng, lat, o.p[0])) continue;
+    if (!pontoNoAnel(lng, lat, o.p[0])) continue;
     var buraco = false;
-    for (var h = 1; h < o.p.length; h++) { if (dentroDoAnel(lng, lat, o.p[h])) { buraco = true; break; } }
+    for (var h = 1; h < o.p.length; h++) { if (pontoNoAnel(lng, lat, o.p[h])) { buraco = true; break; } }
     if (!buraco) return true;
   }
   return false;
@@ -1123,7 +1125,7 @@ function atualizarBatalha(dt, agora) {
   if (era !== emBatalha) pintaInc();
   fBat += ((emBatalha ? 1 : 0) - fBat) * (1 - Math.exp(-3 * dt));
 }
-function congelado() { return satelite && !DADOS.dupla; } /* vista de cima: no solo o jogo para (nada te persegue); na dupla o mundo segue e voce fica invisivel (ver editar-dupla.js) */
+function congelado() { return (satelite && !DADOS.dupla) || !!window.MGO_PESCANDO; } /* vista de cima: no solo o jogo para (nada te persegue); na dupla o mundo segue e voce fica invisivel (ver editar-dupla.js) */
 function quadro(agora) {
   var dt = Math.min(0.05, (agora - ultimo) / 1000); ultimo = agora;
   var andando = false;
@@ -1439,7 +1441,39 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
   btn.onclick = baixar;
 })();
 </script>
-<!-- blocos do modo "livre": monstros3d, bauFinal, marcoMoeda, mineu3d, joystick, travaVoltar, telemetria, pesquisa -->
+<!-- blocos do modo "livre": monstros3d, bauFinal, marcoMoeda, mineu3d, pesca, joystick, travaVoltar, telemetria, pesquisa -->
+<style>/* bloco pesca */
+/* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */
+#btnPescar{position:fixed;left:50%;bottom:112px;transform:translateX(-50%);z-index:7;display:none;width:74px;height:74px;border-radius:50%;border:3px solid #29b6f6;background:rgba(255,255,255,.96);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;padding:0;line-height:1;touch-action:manipulation}
+#btnPescar span{display:block;font-size:30px}
+#btnPescar small{display:block;font-size:11px;font-weight:bold;color:#01579b;margin-top:1px}
+#btnPescar.parar{border-color:#90a4ae}
+#btnPescar.parar small{color:#455a64}
+#btnPescar.puxar{border-color:#ff7043;background:#fff3e0;width:96px;height:96px;animation:pescaPulsa .5s ease-in-out infinite}
+#btnPescar.puxar span{font-size:38px}
+#btnPescar.puxar small{font-size:14px;color:#d84315}
+@keyframes pescaPulsa{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.12)}}
+#pescaFaixa{position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:7;display:none;max-width:88vw;padding:8px 14px;border-radius:999px;background:rgba(1,87,155,.88);color:#fff;font:600 14px system-ui,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.pesca-boia{pointer-events:none;font-size:22px;text-align:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.pesca-boia span{display:inline-block;animation:boiaBalanca 2.6s ease-in-out infinite}
+.pesca-boia.mordeu span{animation:boiaPuxa .22s linear infinite}
+.pesca-boia:after{content:"";display:block;margin:-4px auto 0;width:26px;height:9px;border-radius:50%;border:2px solid rgba(255,255,255,.75);animation:boiaOnda 2.6s ease-out infinite}
+@keyframes boiaBalanca{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes boiaPuxa{0%,100%{transform:translate(-2px,2px)}50%{transform:translate(2px,6px)}}
+@keyframes boiaOnda{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(1.8)}}
+#pescaCard{position:fixed;inset:0;z-index:99996;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:16px}
+#pescaCard .pc{background:#fff;border-radius:18px;padding:20px 18px;max-width:340px;width:100%;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:system-ui,sans-serif}
+#pescaCard .pc-peixe{font-size:92px;line-height:1.05}
+#pescaCard h2{margin:6px 0 2px;font-size:24px;color:#01579b}
+#pescaCard .pc-raro{display:inline-block;margin-bottom:4px;padding:2px 10px;border-radius:999px;background:#ffd54f;color:#6d4c00;font-weight:bold;font-size:13px}
+#pescaCard p{margin:6px 0;font-size:15px;color:#37474f}
+#pescaCard .pc-vida{font-weight:bold;color:#2e7d32}
+#pescaCard .pc-total{font-size:13px;color:#78909c}
+#pescaCard .pc-botoes{display:flex;gap:8px;margin-top:12px}
+#pescaCard button{flex:1;padding:12px 8px;border-radius:12px;border:0;font-size:15px;font-weight:bold;cursor:pointer}
+#pescaCard .pc-continua{background:#29b6f6;color:#fff}
+#pescaCard .pc-para{background:#eceff1;color:#455a64}
+</style>
 <style>/* bloco pesquisa */
 /* bloco pesquisa: tela de perguntas dentro do jogo */
 #pesquisaJogo{position:fixed;inset:0;z-index:2147482000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:14px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -1463,11 +1497,12 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #pesquisaJogo .pq-obrigado{padding:34px 10px;text-align:center;font-size:24px;font-weight:bold}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","mineu-3d.js","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","mineu-3d.js","pesca.js","joystick.js","trava-voltar.js","telemetria.js","pesquisa.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script type="module" src="bau-final.js"></script>
 <script type="module" src="marco-moeda.js"></script>
 <script type="module" src="mineu-3d.js"></script>
+<script src="pesca.js"></script>
 <script src="joystick.js"></script>
 <script src="trava-voltar.js"></script>
 <script src="telemetria.js"></script>
