@@ -15,7 +15,12 @@ function iniciarBloco() {
   const DEV = Q.get('dev') === '1';
   if (DEV) { try { if (localStorage.getItem('mgo-pesquisa-pendente')) { localStorage.removeItem('mgo-pesquisa-pendente'); location.reload(); return; } } catch (e) {} } // teste de casa: a pesquisa obrigatoria do fim nao atrapalha
   if (DEV && location.search.indexOf('teste=1') < 0) { location.replace(location.pathname + location.search + '&teste=1' + location.hash); return; }
-  if (DEV && navigator.geolocation) { try { navigator.geolocation.watchPosition = function (ok, err) { setTimeout(function () { if (err) err({ code: 1 }); }, 50); return 0; }; } catch (e) {} }
+  if (DEV) { // sem GPS de verdade (celular incluido): troca o GPS do navegador por um que sempre 'nega', e liga o joystick para andar
+    const falso = { watchPosition: function (ok, err) { setTimeout(function () { if (err) err({ code: 1 }); }, 50); return 0; }, getCurrentPosition: function (ok, err) { setTimeout(function () { if (err) err({ code: 1 }); }, 50); }, clearWatch: function () {} };
+    try { Object.defineProperty(navigator, 'geolocation', { value: falso, configurable: true }); } catch (e) { try { navigator.geolocation.watchPosition = falso.watchPosition; } catch (e2) {} }
+    const js = document.createElement('script'); js.src = 'joystick.js'; document.head.appendChild(js);
+    setInterval(function () { try { if (typeof modoReal !== 'undefined' && modoReal) modoReal = false; } catch (e) {} }, 400);
+  }
   // 10 pontos no percurso (9 bases + o bau) e mais espalhados: so afeta a MONTAGEM do combate neste modo
   try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.bases) Object.assign(DADOS.regrasDinamicas.bases, { quantidade: 8, raioMaxDaLargadaM: 320, distMinEntreBasesM: 30, distMinDaLargadaM: 50 }); } catch (e) {}
   const rad = Math.PI / 180, CHEGADA_M = 10, GUARDIOES_M = 25, ESC = 2.2;
@@ -65,15 +70,16 @@ function iniciarBloco() {
   let M = { ativa: false };
   const el = {};
   function criarTelas() {
-    el.hud = $('div', '', ''); el.hud.id = 'ntHud'; el.cad = $('button', '', '📓 Pistas <b id="ntConta">0/4</b>'); el.cad.id = 'ntBtnCad'; el.cad.type = 'button';
+    el.hud = $('div', '', ''); el.hud.id = 'ntHud'; el.cad = $('button', '', '📓<b id="ntConta">0/4</b>'); el.cad.id = 'ntBtnCad'; el.cad.type = 'button';
     el.tela = $('div', '', ''); el.tela.id = 'ntTela'; el.pista = $('div', '', ''); el.pista.id = 'ntPista'; el.caderno = $('div', '', ''); el.caderno.id = 'ntCaderno'; el.senha = $('div', '', ''); el.senha.id = 'ntSenha';
     [el.hud, el.cad, el.tela, el.pista, el.caderno, el.senha].forEach((e) => document.body.appendChild(e));
     el.cad.addEventListener('click', (e) => { e.stopPropagation(); abrirCaderno(); });
+    el.hud.addEventListener('click', (e) => { e.stopPropagation(); msg(el.hud.getAttribute('data-txt') || '', 3500); }); // toque no icone = mostra o texto completo
     // FLECHA: aponta para a proxima parada (canto superior direito, ao lado dos botoes do mapa). A cor da luz muda com a distancia: gelado -> morninho -> quentinho -> pegando fogo
     el.seta = $('div', '', '<img alt="" src="' + (S.seta || '') + '"><span class="nt-seta-t">Siga a flecha</span><span class="nt-seta-q"></span>'); el.seta.id = 'ntSeta'; document.body.appendChild(el.seta);
     requestAnimationFrame(quadroSeta);
     if (DEV) { // painel de teste de casa
-      el.dev = $('div', '', '<b>🧪 Teste</b><button type="button" id="ntDevIr">📍 Ir à próxima parada</button><button type="button" id="ntDevGuardas">⚔️ Derrotar guardas</button><button type="button" id="ntDevNovo">🔄 Recomeçar</button>'); el.dev.id = 'ntDev'; document.body.appendChild(el.dev);
+      el.dev = $('div', '', '<button type="button" id="ntDevIr" title="Ir à próxima parada">📍</button><button type="button" id="ntDevGuardas" title="Derrotar guardas">⚔️</button><button type="button" id="ntDevNovo" title="Recomeçar">🔄</button>'); el.dev.id = 'ntDev'; document.body.appendChild(el.dev);
       el.dev.addEventListener('click', (e) => e.stopPropagation());
       // teste de casa: pula as telas de "baixar o parque" e "ativar GPS" (sem GPS de verdade o jogo comeca no Parcao)
       let tent = 0; const auto = setInterval(() => { tent++; if ((typeof jogoIniciado !== 'undefined' && jogoIniciado) || tent > 60) { clearInterval(auto); return; } if (!M.ativa) return; const bt = [].find.call(document.querySelectorAll('button'), (b) => /Jogar assim mesmo/.test(b.textContent)); const btVis = bt && bt.offsetParent; if (btVis) bt.click(); const bi = document.getElementById('bInicio'); if (bi && bi.offsetParent && !btVis) bi.click(); }, 500);
@@ -82,6 +88,7 @@ function iniciarBloco() {
       document.getElementById('ntDevNovo').onclick = () => { try { localStorage.removeItem('mgo-pesquisa-pendente'); } catch (e) {} location.reload(); };
     }
   }
+  function hudIcone(ic, n, longo) { const k = ic + '|' + n; if (el.hud._k !== k) { el.hud._k = k; el.hud.innerHTML = '<span>' + ic + '</span>' + (n ? '<small>' + n + '</small>' : ''); } el.hud.setAttribute('data-txt', longo); }
   function alvoSeta() { // para onde a flecha aponta: a proxima luzinha (na arvore apagada) ou o ponto atual
     if (!M.ativa) return null;
     if (M.luzes && !M.luzes.concluida && M.luzes.idx === M.idx) { const l = M.luzes.lista.filter((z) => !z.pega).sort((a, b) => metrosAte(a.lat, a.lng).d - metrosAte(b.lat, b.lng).d)[0]; if (l) return l; }
@@ -321,12 +328,12 @@ function iniciarBloco() {
       laçoLuzes();
       if (M.idx < M.n) {
         const p = M.pontos[M.idx], r = ROTEIRO[M.idx], d = Math.round(metrosAte(p.lat, p.lng).d), luzes = M.luzes && M.luzes.idx === M.idx && !M.luzes.concluida;
-        el.hud.textContent = luzes ? '⭐ Luzinhas ' + M.luzes.n + '/3' : '🎯 ' + (M.idx + 1) + '/' + M.pontos.length + ' · ' + r.nome + ' · ' + (d > 999 ? Math.round(d / 100) / 10 + ' km' : d + ' m');
+        { const longo = luzes ? '⭐ Luzinhas ' + M.luzes.n + '/3' : '🎯 Ponto ' + (M.idx + 1) + ' de ' + M.pontos.length + ' · ' + r.nome + ' · ' + (d > 999 ? Math.round(d / 100) / 10 + ' km' : d + ' m'); hudIcone(luzes ? '⭐' : '🎯', luzes ? M.luzes.n + '/3' : (M.idx + 1) + '/' + M.pontos.length, longo); }
         if (!window.MGO_DESAFIO && !luzes && d <= CHEGADA_M) {
           // REGRA (24/11): os monstros NAO travam a missao; podem ser ignorados. Chegou perto, abre.
           if (r.tipo === 'casa') CASAS[r.id](r, M.idx); else if (r.tipo === 'passagem') passagem(r, M.idx);
         }
-      } else el.hud.textContent = M.resolvido ? '🧰 Baú aberto!' : '🧰 Vá ao baú (derrote o Dragão Resmungão)';
+      } else hudIcone('🧰', '', M.resolvido ? '🧰 Baú aberto!' : '🧰 Vá ao baú (derrote o Dragão Resmungão)');
     } catch (e) { if (!window.__natalErro) { window.__natalErro = e; console.error('[natal]', e); } }
   }
 
