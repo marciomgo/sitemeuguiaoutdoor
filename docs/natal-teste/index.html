@@ -1682,6 +1682,13 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 /* painel de teste de casa (?dev=1) */
 #ntDev{position:fixed;left:8px;top:112px;z-index:99990;display:flex;flex-direction:column;gap:5px;padding:7px;background:rgba(20,20,30,.82);border-radius:10px;color:#fff;font:700 12px system-ui}
 #ntDev button{padding:8px 10px;border-radius:8px;border:0;background:#ffd54f;color:#3b2a00;font:700 13px system-ui;cursor:pointer;touch-action:manipulation}
+/* celular: o cartao da cena rola dentro da tela e os botoes de acao (Pronto!/Abrir!/É esse!/Dica) ficam SEMPRE visiveis no rodape */
+.nt-card{overflow:visible !important;max-height:none !important}
+.nt-card .ms-rodape{position:sticky;bottom:0;z-index:3;margin-top:8px;margin-bottom:0;padding:8px 12px 10px;background:#fffdf5;border-top:2px solid #e8dfc6;box-shadow:0 -6px 8px -6px rgba(0,0,0,.18)}
+.nt-card .ms-bts{position:sticky;bottom:0;z-index:3;padding:8px 0 4px;background:#fffdf5}
+.nt-banner{max-height:24vh}
+@media (min-height:760px){.nt-banner{max-height:32vh}}
+@media (max-height:700px){.nt-banner{max-height:14vh}.nt-banner .nt-titulo{font-size:14px}}
 </style>
 <style>/* bloco pesca */
 /* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */
