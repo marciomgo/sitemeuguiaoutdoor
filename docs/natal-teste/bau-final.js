@@ -14,7 +14,7 @@ cena.add(new THREE.AmbientLight(0xffffff, 2.4));
 const sol = new THREE.DirectionalLight(0xffffff, 1.5); sol.position.set(-20, 40, 30); cena.add(sol);
 const camera = new THREE.Camera(), relogio = new THREE.Clock();
 
-let pos = null, estado = 'travado', modelo = null, falhou = false, grupo = null, mixer = null, fechadoAc = null, abrirAc = null;
+let oculto = false, pos = null, estado = 'travado', modelo = null, falhou = false, grupo = null, mixer = null, fechadoAc = null, abrirAc = null;
 let tAbriu = 0, geradas = 0, avisouTravado = 0, moedas = [], esperandoSenha = false, cooldownSenha = 0;
 const missao = () => (window.MGO_MISSAO && window.MGO_MISSAO.ativa() ? window.MGO_MISSAO : null); // missaoEnigma ligada: o bau so abre com todas as pistas E a senha certa
 const geoMoeda = new THREE.CylinderGeometry(0.2, 0.2, 0.045, 22);
@@ -105,7 +105,7 @@ const camada = {
   id: 'bau-final', type: 'custom', renderingMode: '3d',
   onAdd(map, gl) { this.map = map; this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true }); this.renderer.autoClear = false; },
   render(gl, args) {
-    if (!pos) return;
+    if (!pos || oculto) return;
     const dt = Math.min(0.1, relogio.getDelta()), agora = performance.now();
     passo(dt, agora); if (mixer) mixer.update(dt);
     if (!grupo) { this.map.triggerRepaint(); return; }
@@ -123,6 +123,7 @@ if (mapa.loaded()) ligar(); else mapa.on('load', ligar);
 
 // API que o jogo usa (proto-modelo.html): colocar(lat,lng) no lugar da chegada; temBau() para nao celebrar sozinho; reiniciar() ao comecar um novo nivel
 window.MGO_BAU = {
+  ocultar(b) { oculto = !!b; mapa.triggerRepaint(); }, // missaoNatal: o bau so aparece quando e o ponto atual
   colocar(lat, lng) { limparTudo(); pos = { lat, lng }; mapa.triggerRepaint(); },
   reiniciar() { limparTudo(); pos = null; },
   temBau() { return !!pos && !falhou; },

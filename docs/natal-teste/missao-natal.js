@@ -17,7 +17,7 @@ function iniciarBloco() {
   if (DEV && location.search.indexOf('teste=1') < 0) { location.replace(location.pathname + location.search + '&teste=1' + location.hash); return; }
   if (DEV && navigator.geolocation) { try { navigator.geolocation.watchPosition = function (ok, err) { setTimeout(function () { if (err) err({ code: 1 }); }, 50); return 0; }; } catch (e) {} }
   // 10 pontos no percurso (9 bases + o bau) e mais espalhados: so afeta a MONTAGEM do combate neste modo
-  try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.bases) Object.assign(DADOS.regrasDinamicas.bases, { quantidade: 9, raioMaxDaLargadaM: 320, distMinEntreBasesM: 30, distMinDaLargadaM: 50 }); } catch (e) {}
+  try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.bases) Object.assign(DADOS.regrasDinamicas.bases, { quantidade: 8, raioMaxDaLargadaM: 320, distMinEntreBasesM: 30, distMinDaLargadaM: 50 }); } catch (e) {}
   const rad = Math.PI / 180, CHEGADA_M = 10, GUARDIOES_M = 25, ESC = 2.2;
   const IMG = (n) => 'natal/' + n + '.png';
 
@@ -30,8 +30,7 @@ function iniciarBloco() {
     { tipo: 'casa', id: 'sinos', nome: 'Casa dos Sinos do Tito', img: 'sinos', duende: 2, icone: '🔔', prop: () => PR.chale(0x2f8f4e, 0x3b2a1a), iy: 4.6 },
     { tipo: 'passagem', id: 'taberna', nome: 'Taberna', img: 'taberna', icone: '🍵', prop: () => PR.chale(0x8d5a2b, 0xb3392d), iy: 4.6 },
     { tipo: 'casa', id: 'biblioteca', nome: 'Biblioteca da Bia', img: 'biblioteca', duende: 3, icone: '📖', prop: () => PR.chale(0x6a3fa0, 0x3b2a1a), iy: 4.6 },
-    { tipo: 'passagem', id: 'caverna', nome: 'Caminho da caverna', img: 'caverna', icone: '🐉', prop: () => PR.caverna(), iy: 4.2 },
-    { tipo: 'bau', id: 'bau', nome: 'Baú do Papai Noel', img: 'final' },
+    { tipo: 'bau', id: 'bau', nome: 'Covil do Dragão', img: 'final', icone: '🐉', prop: () => PR.caverna(), iy: 4.2, off: { dist: 5.5, ang: 0 } }, // o BAU fica na entrada da caverna do dragao (o bloco bauFinal desenha o bau; aqui vai a caverna atras dele)
   ];
   const DUENDES = [['Pipo', 'o padeiro'], ['Lola', 'a inventora de brinquedos'], ['Tito', 'o guardião dos sinos'], ['Bia', 'a bibliotecária']];
 
@@ -261,9 +260,9 @@ function iniciarBloco() {
   // ================= PASSAGENS =================
   const FALAS = {
     largada: ['O portal se abriu!', 'Os parques escondem <b>portais secretos</b> para um <b>mundo de fantasias</b>, e vocês são o <b>canal de acesso</b> a ele! Do outro lado, o Natal está em perigo: o <b>Dragão Resmungão</b> quer levar a <b>Estrela do Natal</b>. O Papai Noel a trancou num baú e escondeu pistas da senha com <b>4 duendes</b>, cada um numa casa trancada por um enigma. Atravessem o portal e ajudem!', 'Atravessar o portal'],
-    rena: ['Rena presa', 'Os ajudantes do dragão prenderam a rena do Tito! Vocês derrotaram os guardas e <b>libertaram a rena</b>. Ela sai correndo, feliz, e deixa um rastro de brilho. 🦌✨', 'Continuar'],
+    rena: ['Rena presa', 'Os ajudantes do dragão prenderam a rena do Tito! Vocês chegaram a tempo e <b>libertaram a rena</b>. Ela sai correndo, feliz, e deixa um rastro de brilho. 🦌✨', 'Continuar'],
     taberna: ['Taberna', 'Que cheirinho bom! Vocês descansam um pouco, tomam um chocolate quente e <b>recuperam toda a vida</b>. ❤️ Dica do Mineu: pensem com calma nos próximos enigmas, as dicas ajudam sem entregar a resposta!', 'Recarregar e seguir'],
-    caverna: ['Caminho da caverna', 'Daqui para a frente o chão está queimado: é o <b>território do Dragão Resmungão</b>. Os últimos ajudantes dele estão aí. Derrotados eles, o baú está logo à frente!', 'Seguir']
+    caverna: ['Caminho da caverna', 'Daqui para a frente o chão está queimado: é o <b>território do Dragão Resmungão</b>. Os ajudantes dele estão por aí (cuidado!). O baú está logo à frente!', 'Seguir']
   };
   function abrirIntro() {
     const f = FALAS.largada;
@@ -295,11 +294,18 @@ function iniciarBloco() {
 
   // ================= SEQUENCIA =================
   function atualizarConta() { const b = document.getElementById('ntConta'); if (b) b.textContent = M.pecas + '/4'; }
+  // REGRA (24/11): UM PONTO POR VEZ no mapa. So aparece o ponto atual (pino, marcador 3D, enfeites, obstaculo); os proximos ficam escondidos e os anteriores somem. O bau tambem so aparece no fim.
+  const obst = {}; // obstaculos (casas/caverna) so existem enquanto o ponto e o atual
+  function obstaculo(i, ligado) {
+    const r = ROTEIRO[i], raio = r.tipo === 'casa' ? 3.8 : r.off ? 3.2 : 0; if (!raio) return;
+    if (ligado && !obst[i]) { try { const n = obstaculosFixos.length, pp = M.props[i] && M.props[i].userData.pos || M.pontos[i]; registrarObstaculoCircular(pp.lat, pp.lng, raio); obst[i] = obstaculosFixos[n]; } catch (e) {} }
+    else if (!ligado && obst[i]) { const k = obstaculosFixos.indexOf(obst[i]); if (k >= 0) obstaculosFixos.splice(k, 1); obst[i] = null; try { quandoMapaPronto(function () { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); }); } catch (e) {} }
+  }
   function estiloPinos() {
-    M.pinos.forEach((p, i) => { if (!p) return; const chegada = i === M.pontos.length - 1; p.classList.remove('ms-ativo', 'ms-feito');
-      if (chegada) { p.style.display = ''; return; }
-      if (i < M.idx) { p.style.display = ''; p.classList.add('ms-feito'); } else if (i === M.idx) { p.style.display = ''; p.classList.add('ms-ativo'); } else p.style.display = 'none'; });
-    M.props.forEach((g, i) => { if (g) g.visible = i <= M.idx; });
+    M.pinos.forEach((p, i) => { if (!p) return; p.classList.remove('ms-feito'); if (i === M.idx) { p.style.display = ''; p.classList.add('ms-ativo'); } else { p.style.display = 'none'; p.classList.remove('ms-ativo'); } });
+    M.props.forEach((g, i) => { if (g) g.visible = i === M.idx; });
+    ROTEIRO.forEach((r, i) => obstaculo(i, i === M.idx));
+    try { if (window.MGO_BAU && MGO_BAU.ocultar) MGO_BAU.ocultar(M.idx < M.n); } catch (e) {}
   }
   function avancar(i) {
     M.idx = i + 1; estiloPinos();
@@ -317,9 +323,8 @@ function iniciarBloco() {
         const p = M.pontos[M.idx], r = ROTEIRO[M.idx], d = Math.round(metrosAte(p.lat, p.lng).d), luzes = M.luzes && M.luzes.idx === M.idx && !M.luzes.concluida;
         el.hud.textContent = luzes ? '⭐ Luzinhas ' + M.luzes.n + '/3' : '🎯 ' + (M.idx + 1) + '/' + M.pontos.length + ' · ' + r.nome + ' · ' + (d > 999 ? Math.round(d / 100) / 10 + ' km' : d + ' m');
         if (!window.MGO_DESAFIO && !luzes && d <= CHEGADA_M) {
-          const guard = inimigos.some((e) => { if (!e.vivo || e.final) return false; const dl = (e.lat - p.lat) * 111320, dn = (e.lng - p.lng) * 111320 * Math.cos(p.lat * rad); return Math.sqrt(dl * dl + dn * dn) <= GUARDIOES_M; });
-          if (guard) { const agora = performance.now(); if (agora - avisouGuard > 7000) { avisouGuard = agora; msg('⚔️ Os guardiões ainda protegem este ponto! Derrote-os.', 3000); } }
-          else if (r.tipo === 'casa') CASAS[r.id](r, M.idx); else if (r.tipo === 'passagem') passagem(r, M.idx);
+          // REGRA (24/11): os monstros NAO travam a missao; podem ser ignorados. Chegou perto, abre.
+          if (r.tipo === 'casa') CASAS[r.id](r, M.idx); else if (r.tipo === 'passagem') passagem(r, M.idx);
         }
       } else el.hud.textContent = M.resolvido ? '🧰 Baú aberto!' : '🧰 Vá ao baú (derrote o Dragão Resmungão)';
     } catch (e) { if (!window.__natalErro) { window.__natalErro = e; console.error('[natal]', e); } }
@@ -340,9 +345,9 @@ function iniciarBloco() {
       const g = new THREE.Group(), obj = r.prop(); obj.scale.setScalar(ESC); g.add(obj);
       let acesa = null; if (r.prop2) { acesa = r.prop2(); acesa.scale.setScalar(ESC); acesa.visible = false; g.add(acesa); }
       const ic = iconeSprite(r.icone); ic.position.y = r.iy * ESC / 2.2 + 1.2; g.add(ic);
-      g.rotation.y = (i % 2 ? 0.5 : -0.4); g.userData = { obj, acesa, icone: ic, y0: ic.position.y, i };
+      g.rotation.y = r.off ? 0 : (i % 2 ? 0.5 : -0.4); g.userData = { obj, acesa, icone: ic, y0: ic.position.y, i, off: r.off || null, pos: null }; // (caverna: de frente para quem chega pelo sul)
+      if (r.off) g.userData.pos = deslocar(pontos[i].lat, pontos[i].lng, r.off.dist, r.off.ang);
       cena.add(g); props[i] = g; grupos[i] = g; g.visible = false;
-      if (r.tipo === 'casa' || r.id === 'caverna') { try { registrarObstaculoCircular(pontos[i].lat, pontos[i].lng, r.id === 'caverna' ? 3.2 : 3.8); } catch (e) {} } // nao da pra atravessar a casa
     });
     // PORTAL = a LARGADA: fica ao lado de onde o Mineu comeca; 
     const portal = new THREE.Group(), pg = PR.portal(); pg.scale.setScalar(ESC); portal.add(pg); portal.userData = { obj: pg, lat: portalPos.lat, lng: portalPos.lng };
@@ -361,11 +366,11 @@ function iniciarBloco() {
       onAdd(map, gl) { this.map = map; this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true }); this.renderer.autoClear = false; },
       render(gl, args) {
         if (!M.ativa) return; const t = relogio.getElapsedTime();
-        Mp.grupos.forEach((g, i) => { if (!g) return; const p = M.pontos[i]; g.position.set((p.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((p.lat - POS.lat) * 111320)); const u = g.userData; if (u.obj.userData && u.obj.userData.anima) u.obj.userData.anima(t); u.icone.position.y = u.y0 + Math.sin(t * 2 + i) * 0.35; if (u.acesa) { u.obj.visible = !M.arvoreAcesa; u.acesa.visible = !!M.arvoreAcesa; }
+        Mp.grupos.forEach((g, i) => { if (!g) return; const p = g.userData.pos || M.pontos[i]; g.position.set((p.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((p.lat - POS.lat) * 111320)); const u = g.userData; if (u.obj.userData && u.obj.userData.anima) u.obj.userData.anima(t); u.icone.position.y = u.y0 + Math.sin(t * 2 + i) * 0.35; if (u.acesa) { u.obj.visible = !M.arvoreAcesa; u.acesa.visible = !!M.arvoreAcesa; }
           // icone some quando ja foi feito
           u.icone.visible = i >= M.idx; });
         { const u = Mp.portal.userData; Mp.portal.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); if (u.obj.userData.anima) u.obj.userData.anima(t); }
-        Mp.decs.forEach((o) => { const u = o.userData; o.visible = u.i <= M.idx; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
+        Mp.decs.forEach((o) => { const u = o.userData; o.visible = u.i === M.idx; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
         const mc = maplibregl.MercatorCoordinate.fromLngLat([POS.lng, POS.lat], 0), s = mc.meterInMercatorCoordinateUnits();
         const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
         const l = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s)).multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
@@ -376,12 +381,18 @@ function iniciarBloco() {
   }
 
   // ================= INICIAR =================
+  const DIST_MARCO_M = 14; // a rocha com o logo MGO ocupa o meio do parque: nenhum ponto/portal pode nascer em cima dela
+  function afastar(p) { try { const m = DADOS.marco; if (!m || isNaN(m.lat)) return p; const dl = (p.lat - m.lat) * 111320, dn = (p.lng - m.lng) * 111320 * Math.cos(m.lat * rad), d = Math.hypot(dl, dn); if (d >= DIST_MARCO_M) return p; const ang = d < 0.5 ? 0 : Math.atan2(dn, dl) / rad; return deslocar(m.lat, m.lng, DIST_MARCO_M, ang); } catch (e) { return p; } }
+  function afastarDoMarco(d, pinos) {
+    d.pontos.forEach((p, i) => { const q = afastar(p); if (q.lat === p.lat && q.lng === p.lng) return; p.lat = q.lat; p.lng = q.lng; const pin = pinos && pinos[i]; try { if (pin && pin._mk) { pin._mk.setLngLat([q.lng, q.lat]); pin._ll = [q.lng, q.lat]; } } catch (e) {} if (i === d.pontos.length - 1) { try { MGO_BAU.colocar(q.lat, q.lng); } catch (e) {} } });
+  }
   function iniciar(d, pinos) {
     if (M.ativa) return;
     const nPontos = d.pontos.length;
     if (nPontos !== ROTEIRO.length) { console.warn('[natal] o percurso tem ' + nPontos + ' pontos (precisa de ' + ROTEIRO.length + '): devolvendo ao bloco missaoEnigma'); window.MGO_MISSAO = ENIGMA; if (ENIGMA && ENIGMA.iniciar) ENIGMA.iniciar(d, pinos); return; }
     const cofre = ENIGMA && ENIGMA._gerarCofre ? ENIGMA._gerarCofre(4, 1) : null; if (!cofre) { console.error('[natal] nao consegui gerar o cofre'); return; }
-    const portalPos = deslocar(POS.lat, POS.lng, 6, bearing + 50), Mp = montarProps(d.pontos, portalPos);
+    afastarDoMarco(d, pinos);
+    const portalPos = afastar(deslocar(POS.lat, POS.lng, 6, bearing + 50)), Mp = montarProps(d.pontos, portalPos);
     M = { ativa: true, pontos: d.pontos, n: ROTEIRO.length - 1, pinos, idx: 0, pecas: 0, intro: false, portal: portalPos, cofre, resolvido: false, props: Mp.grupos, arvoreAcesa: false, luzes: null };
     estiloPinos(); atualizarConta();
     const ligar = () => { if (!mapa.getLayer('natal-props')) mapa.addLayer(camada(Mp)); };
