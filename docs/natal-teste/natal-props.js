@@ -216,6 +216,58 @@ function mamoneira(){
   return g;
 }
 
+// ---------- BOMBAS DO CAMINHO (antes eram emojis): banana, abelha, cobra, coco e cachorro ----------
+function tubo(pontos, raio, mat, seg=24){ const c=new THREE.CatmullRomCurve3(pontos.map(p=>new THREE.Vector3(p[0],p[1],p[2]))); return G(new THREE.TubeGeometry(c,seg,raio,8,false),mat,0,0,0); }
+function banana(){
+  const g=new THREE.Group(), AM=M(0xffd633,{roughness:.55}), CL=M(0xfff2b0), ESC=M(0x6b4a1f);
+  g.add(tubo([[-.55,.55,0],[-.3,.25,0],[0,.16,0],[.3,.25,0],[.55,.55,0]],.17,AM));
+  g.add(sph(.1,ESC,-.58,.58,0)); g.add(cyl(.05,.07,.2,ESC,.6,.63,0,6));
+  for(const a of [0,2.1,4.2]){ const l=tubo([[0,.14,0],[Math.cos(a)*.45,.06,Math.sin(a)*.45],[Math.cos(a)*.8,.02,Math.sin(a)*.8]],.07,a?AM:CL,10); g.add(l); }
+  return g;
+}
+function abelha(){
+  const g=new THREE.Group(), c=new THREE.Group(), AM=M(0xffc400,{roughness:.5}), PR=M(0x222222), ASA=M(0xdff6ff,{transparent:true,opacity:.75});
+  c.add(sph(.34,AM,0,0,0,1.35,1,1));
+  for(const x of [-.18,.1]){ const f=G(new THREE.TorusGeometry(.315,.065,8,20),PR,x,0,0); f.rotation.y=Math.PI/2; c.add(f); }
+  c.add(sph(.24,AM,.52,.05,0)); c.add(sph(.06,PR,.7,.12,.13)); c.add(sph(.06,PR,.7,.12,-.13));
+  const fer=cone(.08,.24,PR,-.52,0,0,8); fer.rotation.z=Math.PI/2; c.add(fer);
+  const asas=[]; for(const s of [-1,1]){ const a=sph(.26,ASA,0,.36,s*.3,1,.18,1.35); c.add(a); asas.push(a); }
+  c.position.y=1.0; g.add(c); g.add(cyl(.26,.26,.02,M(0x000000,{transparent:true,opacity:.18}),0,.02,0,14));
+  g.userData.anima=(tt)=>{ c.position.y=1.0+Math.sin(tt*3)*.15; c.rotation.y=Math.sin(tt*1.4)*.8; asas.forEach((a,i)=>{a.rotation.x=Math.sin(tt*40)*.5*(i?1:-1);}); };
+  return g;
+}
+function cobra(){
+  const g=new THREE.Group(), VD=M(0x3fa34d,{roughness:.6}), AM=M(0xf2d13c), PR=M(0x111111);
+  const pts=[]; for(let i=0;i<=40;i++){ const a=i*.42, r=.62-i*.009; pts.push([Math.cos(a)*r,.12+i*.006,Math.sin(a)*r]); }
+  g.add(tubo(pts,.12,VD,80));
+  const fim=pts[pts.length-1]; g.add(tubo([fim,[fim[0]*.5,.55,fim[2]*.5],[0,.78,.05]],.11,VD,14));
+  g.add(sph(.2,VD,0,.84,.12,1,.85,1.25)); g.add(sph(.05,AM,.1,.92,.3)); g.add(sph(.05,AM,-.1,.92,.3)); g.add(sph(.025,PR,.1,.92,.345)); g.add(sph(.025,PR,-.1,.92,.345));
+  const li=box(.04,.015,.22,M(0xd7263d),0,.8,.42); g.add(li);
+  g.userData.anima=(tt)=>{ li.visible=Math.sin(tt*6)>0; g.rotation.y=Math.sin(tt*.9)*.6; };
+  return g;
+}
+function coco(){
+  const g=new THREE.Group(), MR=M(0x7a4a24,{roughness:.7}), BR=M(0xffffff), PR=M(0x111111);
+  g.add(sph(.5,MR,0,.22,0,1,.55,1)); g.add(sph(.36,MR,0,.5,0,1,.6,1)); g.add(sph(.24,MR,0,.72,0,1,.7,1)); g.add(cone(.12,.28,MR,.04,.95,0,10));
+  for(const s of [-1,1]){ g.add(sph(.1,BR,s*.13,.52,.34)); g.add(sph(.05,PR,s*.13,.52,.43)); }
+  const boca=G(new THREE.TorusGeometry(.12,.022,6,14,Math.PI),PR,0,.38,.47); boca.rotation.z=Math.PI; g.add(boca);
+  const moscas=[0,1].map(i=>{ const m=sph(.045,PR,0,1.2,0); g.add(m); return m; });
+  g.userData.anima=(tt)=>{ moscas.forEach((m,i)=>{ const a=tt*3+i*3; m.position.set(Math.cos(a)*.55,1.05+Math.sin(a*2)*.14,Math.sin(a)*.4); }); };
+  return g;
+}
+function cachorro(){
+  const g=new THREE.Group(), PEL=M(0xc98a4b), ESC=M(0x7a4a24), PR=M(0x111111);
+  g.add(sph(.36,PEL,0,.52,0,1.45,.95,.95));
+  for(const [x,z] of [[.34,.2],[.34,-.2],[-.34,.2],[-.34,-.2]]) g.add(cyl(.09,.08,.4,PEL,x,.2,z,8));
+  g.add(sph(.28,PEL,.55,.86,0)); g.add(sph(.15,M(0xf0d9b5),.8,.8,0,1.15,.85,.9)); g.add(sph(.065,PR,.96,.84,0));
+  g.add(sph(.045,PR,.74,.97,.13)); g.add(sph(.045,PR,.74,.97,-.13));
+  for(const s of [-1,1]){ g.add(sph(.12,ESC,.48,.98,s*.26,.8,1.6,.6)); }
+  const rabo=cyl(.04,.07,.4,PEL,-.6,.8,0,8); rabo.rotation.z=.8; g.add(rabo);
+  g.add(sph(.05,M(0xe8536b),.88,.7,0,1,.4,.8));
+  g.userData.anima=(tt)=>{ rabo.rotation.x=Math.sin(tt*10)*.7; };
+  return g;
+}
+
 // ---------- ESTRELA DO NATAL (baú/final) ----------
 function estrelaNatal(){
   const g=new THREE.Group();
@@ -305,4 +357,4 @@ function bau(){
 }
 
 
-export { chale, rena, arvore, luzinha, presente, placaLargada, portal, tendaHospital, mamoneira, estrelaNatal, carta, boneco, treno, caverna, bau, estrelaGeo, BRILHO, VERM, OURO };
+export { chale, rena, arvore, luzinha, presente, placaLargada, portal, tendaHospital, mamoneira, banana, abelha, cobra, coco, cachorro, estrelaNatal, carta, boneco, treno, caverna, bau, estrelaGeo, BRILHO, VERM, OURO };

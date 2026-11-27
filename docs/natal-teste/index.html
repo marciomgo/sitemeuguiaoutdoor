@@ -1729,6 +1729,9 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 .nt-voa{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;object-fit:contain;pointer-events:none;z-index:100010;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
 .nt-mais{position:fixed;transform:translate(-50%,-100%);z-index:100011;pointer-events:none;color:#fff;font:900 26px system-ui,sans-serif;text-shadow:0 0 4px #1b5e20,0 2px 4px #000;animation:ntSobe .85s ease-out forwards}
 @keyframes ntSobe{0%{opacity:0;margin-top:8px}20%{opacity:1}100%{opacity:0;margin-top:-48px}}
+/* popups CENTRALIZADOS na tela (margin:auto centra e, se o cartao for mais alto que a tela, continua dando para rolar desde o topo) */
+#ntTela>.ms-card,#ntPista>.ms-card,#ntCaderno>.ms-card,#ntSenha>.ms-card{margin:auto}
+#ntTela,#ntPista,#ntCaderno,#ntSenha{align-items:flex-start}
 </style>
 <style>/* bloco pesca */
 /* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */

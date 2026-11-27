@@ -271,15 +271,15 @@ function iniciarBloco() {
   function passagemArvore(r, i) {
     if (M.luzes && M.luzes.idx === i) { fecharTela(); return; }
     const p = M.pontos[i], luzes = [];
-    for (let k = 0; k < 3; k++) { const q = deslocar(p.lat, p.lng, 12 + Math.random() * 10, k * 120 + Math.random() * 60); const e = pino('p-luz', '<span class="nt-luz">⭐</span>', q.lat, q.lng); luzes.push({ lat: q.lat, lng: q.lng, el: e, pega: false }); }
+    for (let k = 0; k < 3; k++) { const q = deslocar(p.lat, p.lng, 12 + Math.random() * 10, k * 120 + Math.random() * 60); const o = PR.luzinha([0xffd54f, 0xff5252, 0x4fc3f7][k]); o.scale.setScalar(1.6); o.userData.pos = q; if (M.cena) M.cena.add(o); luzes.push({ lat: q.lat, lng: q.lng, obj: o, pega: false }); }
     M.luzes = { idx: i, lista: luzes, n: 0 };
     mostrarTela(cabecalho(r, '') + '<h2 class="nt-h">A árvore está apagada!</h2><p class="nt-p">Sem as luzinhas, a árvore de Natal do parque não acende. Procure as <b>3 luzinhas ⭐</b> espalhadas aqui perto e volte à árvore!</p><div class="ms-bts"><button class="ms-bt ms-ok" type="button" id="ntOk">Procurar as luzinhas</button></div>', () => {
-      document.getElementById('ntOk').onclick = () => { fecharTela(); msg('⭐ Pegue as 3 luzinhas perto da árvore!', 4500); };
+      document.getElementById('ntOk').onclick = () => { fecharTela(); msg('Pegue as 3 luzinhas brilhantes perto da árvore!', 4500); };
     });
   }
   function laçoLuzes() {
     const L = M.luzes; if (!L || L.concluida) return;
-    L.lista.forEach((z) => { if (z.pega) return; if (metrosAte(z.lat, z.lng).d <= 6) { z.pega = true; z.el.style.display = 'none'; L.n++; som('ok'); msg('⭐ Luzinha ' + L.n + '/3!', 2000); } });
+    L.lista.forEach((z) => { if (z.pega) return; if (metrosAte(z.lat, z.lng).d <= 6) { z.pega = true; z.obj.visible = false; L.n++; som('ok'); msg('⭐ Luzinha ' + L.n + '/3!', 2000); } });
     if (L.n >= 3) { L.concluida = true; M.arvoreAcesa = true; som('pista'); const r = ROTEIRO[L.idx]; mostrarTela(cabecalho(r, '') + '<h2 class="nt-h">A árvore acendeu! 🎄✨</h2><p class="nt-p">As luzinhas voltaram aos galhos e a Estrela de cima brilha de novo. O parque inteiro ficou mais bonito!</p><div class="ms-bts"><button class="ms-bt ms-ok" type="button" id="ntOk">Continuar</button></div>', () => { document.getElementById('ntOk').onclick = () => { fecharTela(); avancar(L.idx); }; }); }
   }
 
@@ -438,8 +438,41 @@ function iniciarBloco() {
   }
   // chegou na mamoneira/tenda: o alvo secundario acabou, a linha volta para o proximo ponto
   function conferirSecundario() { const s = M.secundario; if (s && metrosAte(s.lat, s.lng).d <= 7) { M.secundario = null; atualizarAlvo(); } }
+  // BOMBAS EM 3D: cada pino de bomba vira um objeto 3D (o emoji nao aparece mais)
+  const BOMBA3D = [['🍌', () => PR.banana()], ['🐝', () => PR.abelha()], ['🐍', () => PR.cobra()], ['💩', () => PR.coco()], ['🐶', () => PR.cachorro()]];
+  function criarBombas3D(cena) {
+    const lista = [];
+    document.querySelectorAll('.pino.p-bomba').forEach((e, k) => {
+      if (!e._ll) return; const tx = e.textContent || '', par = BOMBA3D.find((b) => tx.indexOf(b[0]) >= 0) || BOMBA3D[k % BOMBA3D.length];
+      const o = par[1](); o.scale.setScalar(1.5); const pos = { lat: e._ll[1], lng: e._ll[0] }; o.userData.pos = pos; o.rotation.y = (k * 1.7) % 6.28; o.visible = false; cena.add(o); lista.push(o); e.style.display = 'none';
+    });
+    return lista;
+  }
+  // GUIA NO CHAO: setinhas que correm pela linha tracejada na direcao do alvo
+  function criarGuia(cena) {
+    const forma = (L, A, E) => { const s = new THREE.Shape(); s.moveTo(0, A); s.lineTo(L, 0); s.lineTo(L, -E); s.lineTo(0, A - E); s.lineTo(-L, -E); s.lineTo(-L, 0); s.closePath(); return new THREE.ShapeGeometry(s); };
+    const geoBorda = forma(0.52, 0.42, 0.33), geo = forma(0.43, 0.35, 0.22), setas = [];
+    for (let k = 0; k < 9; k++) {
+      const g = new THREE.Group(), borda = new THREE.Mesh(geoBorda, new THREE.MeshBasicMaterial({ color: 0x7a3d00, transparent: true, depthWrite: false, side: THREE.DoubleSide })), meio = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xffc400, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+      borda.rotation.x = meio.rotation.x = -Math.PI / 2; meio.position.set(0, 0.02, -0.035); g.add(borda, meio); g.userData = { mats: [borda.material, meio.material] }; g.visible = false; cena.add(g); setas.push(g);
+    }
+    const fadas = [];
+    return { setas, fadas };
+  }
+  function animarGuia(guia, t) {
+    const a = alvoSeta(), liga = a && typeof jogoIniciado !== 'undefined' && jogoIniciado && !M.resolvido && !window.MGO_DESAFIO && !window.MGO_PESCANDO;
+    let d = 0; if (liga) d = metrosAte(a.lat, a.lng).d;
+    if (!liga || d < 7) { guia.setas.concat(guia.fadas).forEach((o) => { o.visible = false; }); return; }
+    const leste = (a.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), norte = (a.lat - POS.lat) * 111320, L = Math.hypot(leste, norte), ux = leste / L, uz = -norte / L, rumo = Math.atan2(leste, norte);
+    const ini = 3.6, fim = Math.min(d - 2, 24), vao = Math.max(1, fim - ini), passo = 2.6;
+    guia.setas.forEach((s, k) => {
+      const m = (t * 4.2 + k * passo) % (passo * guia.setas.length); if (m > vao) { s.visible = false; return; }
+      const dist = ini + m, aparece = Math.max(0, Math.min(1, m / 1.2 + 0.35, (vao - m) / 3));
+      s.visible = true; s.position.set(ux * dist, 0.12, uz * dist); s.rotation.y = -rumo; s.scale.setScalar(1 + 0.15 * Math.sin(t * 5 - k)); s.userData.mats.forEach((mt, j) => { mt.opacity = aparece * (j ? 1 : 0.75); });
+    });
+  }
   // so aparecem as bombas dentro do alcance de visao (o mesmo do tiro): o resto se descobre explorando
-  function bombasNoAlcance() { document.querySelectorAll('.pino.p-bomba').forEach((e) => { if (!e._ll) return; e.style.visibility = metrosAte(e._ll[1], e._ll[0]).d <= ALCANCE_TIRO_M ? '' : 'hidden'; }); }
+  function bombasNoAlcance() { (M.bombas3d || []).forEach((o) => { o.visible = metrosAte(o.userData.pos.lat, o.userData.pos.lng).d <= ALCANCE_TIRO_M; }); }
   // desenho da mamoneira (o mesmo modelo 3D, fotografado uma vez) para o aviso
   let fotoArvore = '';
   function desenhoDaArvore() {
@@ -534,6 +567,10 @@ function iniciarBloco() {
           // icone some quando ja foi feito
           u.icone.visible = i >= M.idx; });
         { const u = Mp.portal.userData; Mp.portal.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); if (u.obj.userData.anima) u.obj.userData.anima(t); }
+        { const por = (o) => { const q = o.userData.pos; o.position.set((q.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((q.lat - POS.lat) * 111320)); };
+          (M.bombas3d || []).forEach((o) => { if (!o.visible) return; por(o); if (o.userData.anima) o.userData.anima(t); });
+          if (M.luzes) M.luzes.lista.forEach((z) => { if (!z.obj || !z.obj.visible) return; por(z.obj); z.obj.position.y = 0.3 + Math.sin(t * 3 + z.obj.userData.pos.lat * 1e5) * 0.2; if (z.obj.userData.gira) z.obj.userData.gira.rotation.y = Math.sin(t * 1.8) * 0.9; });
+          if (Mp.guia) animarGuia(Mp.guia, t); }
         (Mp.estacoes || []).forEach((o) => { const u = o.userData; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
         Mp.decs.forEach((o) => { const u = o.userData; o.visible = u.i === M.idx; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
         const mc = maplibregl.MercatorCoordinate.fromLngLat([POS.lng, POS.lat], 0), s = mc.meterInMercatorCoordinateUnits();
@@ -559,7 +596,7 @@ function iniciarBloco() {
     afastarDoMarco(d, pinos);
     const portalPos = afastar(deslocar(POS.lat, POS.lng, 6, bearing + 50)), Mp = montarProps(d.pontos, portalPos);
     M = { ativa: true, pontos: d.pontos, n: ROTEIRO.length - 1, pinos, idx: 0, pecas: 0, intro: false, portal: portalPos, cofre, resolvido: false, props: Mp.grupos, arvoreAcesa: false, luzes: null };
-    M.monstros = prepararMonstros(d.pontos); Mp.estacoes = [];
+    M.monstros = prepararMonstros(d.pontos); Mp.estacoes = []; M.cena = Mp.cena; M.bombas3d = criarBombas3D(Mp.cena); Mp.guia = criarGuia(Mp.cena);
     estiloPinos(); atualizarConta();
     try { municao.normal = MAMONAS_INICIAIS; pintaMunicao(); } catch (e) {}
     try { zoom = 20.6; } catch (e) {} // zoom de perto: um passo antes do maximo (21)
