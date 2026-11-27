@@ -1722,6 +1722,13 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 .nt-ops{display:flex;gap:8px;margin:8px 0 2px}
 .nt-op{flex:1;min-height:60px;display:flex;align-items:center;justify-content:center;gap:0;padding:4px 2px;border:3px solid #1b5e20;border-radius:12px;background:#fff;color:#111;font:900 30px system-ui;cursor:pointer;touch-action:manipulation;overflow:hidden}
 .nt-op .nt-ei{width:24px;height:34px}
+/* efeito da colheita: botao de municao crescendo e brilhando, mamonas voando e "+N" */
+#btnTrocaPedra.nt-enchendo{animation:ntEnche .5s ease-in-out infinite;border-color:#43a047 !important;transform-origin:50% 100%}
+#btnTrocaPedra.nt-enchendo #qtdPedra{font-size:20px;color:#1b5e20}
+@keyframes ntEnche{0%,100%{transform:scale(1.28);box-shadow:0 0 0 4px rgba(124,220,60,.85),0 0 18px 8px rgba(124,220,60,.55)}50%{transform:scale(1.5);box-shadow:0 0 0 9px rgba(124,220,60,.45),0 0 30px 14px rgba(124,220,60,.35)}}
+.nt-voa{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;object-fit:contain;pointer-events:none;z-index:100010;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.nt-mais{position:fixed;transform:translate(-50%,-100%);z-index:100011;pointer-events:none;color:#fff;font:900 26px system-ui,sans-serif;text-shadow:0 0 4px #1b5e20,0 2px 4px #000;animation:ntSobe .85s ease-out forwards}
+@keyframes ntSobe{0%{opacity:0;margin-top:8px}20%{opacity:1}100%{opacity:0;margin-top:-48px}}
 </style>
 <style>/* bloco pesca */
 /* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */

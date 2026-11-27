@@ -340,6 +340,28 @@ function iniciarBloco() {
       M.estacoes.push({ tipo, lat: q.lat, lng: q.lng });
     });
   }
+  // EFEITO DA COLHEITA: enquanto as mamonas sobem, o botao de municao cresce e brilha, mamonas voam da arvore ate ele e aparece o "+N"
+  let fimEfeito = 0;
+  function efeitoColheita(s, n) {
+    try {
+      const bt = document.getElementById('btnTrocaPedra'); if (!bt) return;
+      bt.classList.add('nt-enchendo'); clearTimeout(fimEfeito); fimEfeito = setTimeout(() => bt.classList.remove('nt-enchendo'), 900);
+      const alvo = bt.getBoundingClientRect(), cx = alvo.left + alvo.width / 2, cy = alvo.top + alvo.height / 2;
+      const cv = mapa.getCanvas().getBoundingClientRect(), p = mapa.project([s.lng, s.lat]);
+      const x0 = Math.max(20, Math.min(window.innerWidth - 20, cv.left + p.x)), y0 = Math.max(60, Math.min(window.innerHeight - 60, cv.top + p.y - 70)); // copa da arvore
+      for (let k = 0; k < n; k++) {
+        const m = document.createElement('img'); m.className = 'nt-voa'; m.alt = ''; m.src = S.mamona || IMG('mamona'); document.body.appendChild(m);
+        const dx = (Math.random() - 0.5) * 60, dur = 620 + k * 130;
+        const an = m.animate([
+          { transform: 'translate(' + (x0 + dx) + 'px,' + y0 + 'px) scale(.6)', opacity: 0.2 },
+          { transform: 'translate(' + ((x0 + cx) / 2 + dx * 1.6) + 'px,' + (Math.min(y0, cy) - 50) + 'px) scale(1.35)', opacity: 1, offset: 0.45 },
+          { transform: 'translate(' + cx + 'px,' + cy + 'px) scale(.7)', opacity: 1 }
+        ], { duration: dur, easing: 'ease-in' });
+        an.onfinish = () => m.remove(); setTimeout(() => m.remove(), dur + 300);
+      }
+      const mais = document.createElement('span'); mais.className = 'nt-mais'; mais.textContent = '+' + n; mais.style.left = cx + 'px'; mais.style.top = (alvo.top - 6) + 'px'; document.body.appendChild(mais); setTimeout(() => mais.remove(), 850);
+    } catch (e) { if (!window.__colheitaErro) { window.__colheitaErro = e; console.error('[natal] efeito colheita', e); } }
+  }
   let tickEst = 0, ultimoAvisoEst = 0;
   function usarEstacoes(agora) {
     (M.estacoes || []).forEach((s) => {
@@ -349,7 +371,8 @@ function iniciarBloco() {
         if (vidaMineu < 100) { vidaMineu = Math.min(100, vidaMineu + 12); pintaVidaMineu(); if (agora - ultimoAvisoEst > 1500) { ultimoAvisoEst = agora; msg('❤️ Recuperando a energia na tenda…', 1600); try { tocarTom(523, 784, 160, 'triangle', 0.08); } catch (e) {} } }
         else if (agora - ultimoAvisoEst > 4000) { ultimoAvisoEst = agora; msg('❤️ Energia cheia!', 2000); }
       } else {
-        municao.normal += tickEst % 2 ? 1 : 2; pintaMunicao(); // ~3 mamonas por segundo
+        const ganhou = tickEst % 2 ? 1 : 2; municao.normal += ganhou; pintaMunicao(); // ~3 mamonas por segundo
+        efeitoColheita(s, ganhou);
         if (agora - ultimoAvisoEst > 900) { ultimoAvisoEst = agora; msg('Colhendo mamonas… ' + municao.normal, 1200); try { tocarTom(700, 900, 70, 'sine', 0.06); } catch (e) {} }
       }
     });
