@@ -123,7 +123,7 @@
       if (dicaAte && agora > dicaAte) { dicaAte = 0; try { aviso(''); } catch (e) {} }
       if (estado === 'livre') {
         if (typeof satelite !== 'undefined' && satelite) { pintaBotao(null); return; }
-        pintaBotao(aguaPerto() ? 'pescar' : null);
+        pintaBotao(!window.MGO_PESCA_MANUAL && aguaPerto() ? 'pescar' : null); /* missao de Natal: a pescaria comeca pela vara no chao */
       } else {
         var dl = (POS.lat - inicio.lat) * 111320, dn = (POS.lng - inicio.lng) * 111320 * Math.cos(POS.lat * Math.PI / 180);
         if (Math.sqrt(dl * dl + dn * dn) > CFG.afastaMax) { parar('Você se afastou do lago: pescaria encerrada.'); pintaBotao(null); return; }

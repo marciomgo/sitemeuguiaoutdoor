@@ -472,7 +472,7 @@ function tiroDoMineu() {
   var iniX = 24 * escM, iniY = 142 * escM * SY_ATUAL;
   var reto = { lat: POS.lat + (ALCANCE_TIRO_M * Math.cos(heading * rad)) / 111320, lng: POS.lng + (ALCANCE_TIRO_M * Math.sin(heading * rad)) / (111320 * Math.cos(POS.lat * rad)) };
   var fora = document.createElement('div'); fora.style.zIndex = 100001;
-  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : '🪨'; fora.appendChild(el);
+  var el = document.createElement('div'); el.className = 'pedrada' + (tipo === 'esp' ? ' esp' : ''); el.innerHTML = tipo === 'esp' ? '<span class="pe-amarela">🪨</span>' : (window.MGO_ICONE_MUNICAO || '🪨'); fora.appendChild(el);
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now();
   var dist = alvo ? metrosAte(alvo.lat, alvo.lng).d : ALCANCE_TIRO_M;
@@ -534,6 +534,7 @@ function soltarFogo(i) {
   var dur = (FOGO_ALCANCE_M / FOGO_VEL_MS) * 1000;
   var fora = document.createElement('div'); fora.style.zIndex = 99990;
   var el = document.createElement('div'); el.className = 'fogo'; el.textContent = '🔥'; fora.appendChild(el); // fogo sempre laranja
+  if (i.mini) { el.style.fontSize = '20px'; } /* mini dragao: foguinho pequeno */
   var mk = new maplibregl.Marker({ element: fora, anchor: 'center', pitchAlignment: 'viewport', rotationAlignment: 'viewport' }).setLngLat([de.lng, de.lat]).addTo(mapa);
   var t0 = performance.now(), ultRastro = 0;
   (function voo(agora) {
@@ -542,7 +543,7 @@ function soltarFogo(i) {
     el.style.transform = 'translateY(' + (-(34 - 22 * t)) + 'px)';
     if (agora - ultRastro > 90) { ultRastro = agora; rastro(el, false, 'fogo'); }
     var ex = (plat - POS.lat) * 111320, ey = (plng - POS.lng) * 111320 * Math.cos(POS.lat * rad);
-    if (Math.sqrt(ex * ex + ey * ey) <= RAIO_ACERTO_FOGO_M) { mk.remove(); i.balaEmVoo = false; tocarSomAtingido(); levarDano(i.final ? DANO_FOGO_FINAL : DANO_FOGO); return; }
+    if (Math.sqrt(ex * ex + ey * ey) <= RAIO_ACERTO_FOGO_M) { mk.remove(); i.balaEmVoo = false; tocarSomAtingido(); levarDano(i.mini ? DANO_MORDIDA : (i.final ? DANO_FOGO_FINAL : DANO_FOGO)); return; }
     if (t < 1) { requestAnimationFrame(voo); return; }
     mk.remove(); i.balaEmVoo = false;
   })(t0);
@@ -1689,6 +1690,14 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 .nt-banner{max-height:24vh}
 @media (min-height:760px){.nt-banner{max-height:32vh}}
 @media (max-height:700px){.nt-banner{max-height:14vh}.nt-banner .nt-titulo{font-size:14px}}
+/* estacoes (tenda de cura / mamoneiras), vara de pescar no chao */
+.p-natal-est .bola{background:none;border:0;width:auto;height:auto;box-shadow:none;transform:translateY(-110px)}
+.nt-est{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid #2e7d32;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.nt-est img{width:24px;height:24px;object-fit:contain}
+.nt-est-cura{border-color:#d7263d;color:#d7263d;font:900 20px/1 system-ui}
+.nt-vara img{width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 0 6px #fff59d) drop-shadow(0 3px 3px rgba(0,0,0,.4))}
+.nt-vara-card{display:flex;justify-content:center;padding-top:12px}
+.nt-vara-card img{width:150px;height:150px;object-fit:contain}
 </style>
 <style>/* bloco pesca */
 /* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */
@@ -1753,7 +1762,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #bAssimMesmo{display:none;background:none;border:0;color:#fff;text-decoration:underline;font-size:12px;text-align:center;opacity:.85;cursor:pointer;touch-action:manipulation;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","missao-enigma.js","banco-desafios.json","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","missao-natal.js","natal-props.js","natal/portal.png","natal/padaria.png","natal/oficina.png","natal/sinos.png","natal/biblioteca.png","natal/arvore.png","natal/rena.png","natal/taberna.png","natal/caverna.png","natal/final.png","natal/duendes.png","natal/biscoitos.png","natal/caixas.png","natal/objetos.png","natal/seta.png","joystick.js","mineu-3d.js","pesca.js","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","missao-enigma.js","banco-desafios.json","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","missao-natal.js","natal-props.js","natal/portal.png","natal/padaria.png","natal/oficina.png","natal/sinos.png","natal/biblioteca.png","natal/arvore.png","natal/rena.png","natal/taberna.png","natal/caverna.png","natal/final.png","natal/duendes.png","natal/biscoitos.png","natal/caixas.png","natal/objetos.png","natal/seta.png","joystick.js","natal/mamona.png","natal/vara.png","mineu-3d.js","pesca.js","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script type="module" src="bau-final.js"></script>
 <script src="missao-enigma.js"></script>

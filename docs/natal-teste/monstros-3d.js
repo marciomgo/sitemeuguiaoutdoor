@@ -12,7 +12,8 @@ const VIVO = { matiz: 0, luz: 1, sat: 1.5 };
 const TIPOS = {
   zumbi: { arquivo: 'modelos/Orc.gltf', altura: 1.7, fonte: 36, anim: { golpe: 'Weapon' }, cor: VIVO },
   chefao: { arquivo: 'modelos/BlueDemon.gltf', altura: 3.0, fonte: 68, anim: { golpe: 'Weapon' }, cor: VIVO },
-  final: { arquivo: 'modelos/Dragon_Evolved.gltf', altura: 3.6, fonte: 90, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO }
+  final: { arquivo: 'modelos/Dragon_Evolved.gltf', altura: 3.6, fonte: 90, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO },
+  mini: { arquivo: 'modelos/Dragon_Evolved.gltf', altura: 1.3, fonte: 34, voo: 1.0, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO } // mini dragao laranja: voa e solta foguinho
 };
 const rad = Math.PI / 180;
 const cena = new THREE.Scene();
@@ -54,8 +55,8 @@ new Set(Object.values(TIPOS).map((t) => t.arquivo)).forEach((arq) => {
 });
 
 function criar(i) {
-  const tipo = i.chefao ? (i.final ? TIPOS.final : TIPOS.chefao) : TIPOS.zumbi, m = modelos[tipo.arquivo]; if (!m) return null;
-  const chave = i.final ? 'final' : 'chefao'; m.copias = m.copias || {};
+  const tipo = i.mini ? TIPOS.mini : i.chefao ? (i.final ? TIPOS.final : TIPOS.chefao) : TIPOS.zumbi, m = modelos[tipo.arquivo]; if (!m) return null;
+  const chave = i.final || i.mini ? 'final' : 'chefao'; m.copias = m.copias || {};
   const origem = tipo.cor ? (m.copias[chave] || (m.copias[chave] = comMatiz(m.cena, tipo.cor))) : m.cena; // chefao comum = copia vermelha, final = copia lilas (cada uma feita uma vez)
   const corpo = SkeletonUtils.clone(origem), k = tipo.altura / m.altura;
   corpo.scale.setScalar(k); corpo.position.y = -m.base * k; // em pe no chao
@@ -90,6 +91,7 @@ function giraPara(atual, alvo, passo) { let d = alvo - atual; while (d > Math.PI
 function atualizar(c, dt, agora) {
   const i = c.i, p = metros(i), dist = Math.hypot(p.e, p.n);
   c.grupo.position.set(p.e, 0, -p.n); // origem = jogador; leste = +x, norte = -z
+  if (c.tipo.voo) c.grupo.position.y = c.i.vivo ? c.tipo.voo + Math.sin(agora / 300 + (c.i.id || 0)) * 0.18 : Math.max(0, c.grupo.position.y); // voadores
   // direcao: andando -> vira para onde anda; parado -> olha para o jogador
   const dm = Math.hypot((i.lat - c.lat) * 111320, (i.lng - c.lng) * 111320 * Math.cos(i.lat * rad));
   c.vel = (c.vel || 0) * 0.9 + (dt > 0 ? dm / dt : 0) * 0.1; // velocidade suavizada (m/s): o zumbi anda 0,5 m/s, so uns 8 mm por quadro
@@ -107,7 +109,7 @@ function atualizar(c, dt, agora) {
   if (i.vida < c.vidaAnt) c.tHit = agora; c.vidaAnt = i.vida;
   const vel = i.chefao ? (i.final ? CHEFAO_FINAL_VEL : CHEFAO_VEL) : ZUMBI_VEL;
   if (agora - c.tHit < 450) tocar(c, 'HitReact');
-  else if (i.final && i.tCabecada && agora - i.tCabecada < 1500) tocar(c, 'Headbutt'); // UMA cabecada ao soltar o fogo (1,5 s); depois volta a voar parado enquanto o fogo viaja
+  else if ((i.final || i.mini) && i.tCabecada && agora - i.tCabecada < 1500) tocar(c, 'Headbutt'); // UMA cabecada ao soltar o fogo (1,5 s); depois volta a voar parado enquanto o fogo viaja
   else if (dist <= (i.chefao ? CONTATO_CHEFAO_M : CONTATO_M) + 0.6) tocar(c, 'golpe');
   else if (andando) tocar(c, 'Walk', Math.max(0.4, Math.min(1.3, vel / 1.1)));
   else tocar(c, 'Idle');
@@ -120,7 +122,7 @@ function posicionarBarrasDeVida(alturaTelaPx) {
   corpos.forEach((c) => {
     if (!c.vida || !c.i.vivo) return;
     const g = c.grupo.position;
-    pGround.set(g.x, 0, g.z).applyMatrix4(camera.projectionMatrix); pHead.set(g.x, c.altura + 0.15, g.z).applyMatrix4(camera.projectionMatrix);
+    pGround.set(g.x, 0, g.z).applyMatrix4(camera.projectionMatrix); pHead.set(g.x, c.altura + 0.15 + (c.tipo.voo || 0), g.z).applyMatrix4(camera.projectionMatrix);
     const acimaDoPe = ((pHead.y - pGround.y) / 2) * alturaTelaPx; // pixels do pe ate o topo da cabeca
     if (!isFinite(acimaDoPe)) return;
     const top = Math.round(c.hCaixa - acimaDoPe - 8); // 8 = altura da barra + folga

@@ -21,6 +21,8 @@ function iniciarBloco() {
     const js = document.createElement('script'); js.src = 'joystick.js'; document.head.appendChild(js);
     setInterval(function () { try { if (typeof modoReal !== 'undefined' && modoReal) modoReal = false; } catch (e) {} }, 400);
   }
+  window.MGO_PESCA_MANUAL = true; // pescaria: so pela vara de pescar caida na beira do lago
+  try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.itens) Object.assign(DADOS.regrasDinamicas.itens, { curasPorBase: 0, pedrasPorBase: 0, curas: 0, pedras: 0 }); } catch (e) {} // cura = tenda hospital; municao = mamoneiras
   // 10 pontos no percurso (9 bases + o bau) e mais espalhados: so afeta a MONTAGEM do combate neste modo
   try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.bases) Object.assign(DADOS.regrasDinamicas.bases, { quantidade: 8, raioMaxDaLargadaM: 320, distMinEntreBasesM: 30, distMinDaLargadaM: 50 }); } catch (e) {}
   const rad = Math.PI / 180, CHEGADA_M = 10, GUARDIOES_M = 25, ESC = 2.2;
@@ -58,6 +60,13 @@ function iniciarBloco() {
 
   recortar(IMG('seta'), 1, 0).then((u) => { S.seta = u; const i = document.querySelector('#ntSeta img'); if (i) i.src = u; });
 
+  recortar(IMG('mamona'), 1, 0).then((u) => { S.mamona = u; trocarIconeMunicao(); });
+  recortar(IMG('vara'), 1, 0).then((u) => { S.vara = u; });
+  function trocarIconeMunicao() {
+    if (!S.mamona) return; const img = '<img src="' + S.mamona + '" alt="Mamona" style="width:32px;height:32px;object-fit:contain;vertical-align:middle">';
+    try { window.MGO_ICONE_MUNICAO = img; const orig = window.iconeArma; if (orig && !orig._mamona) { const novo = (k) => (k === 'normal' ? img : orig(k)); novo._mamona = true; window.iconeArma = novo; } pintaMunicao(); } catch (e) { console.error('[natal] icone mamona', e); }
+  }
+
   // ================= UTIL =================
   const $ = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h !== undefined) e.innerHTML = h; return e; };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -76,13 +85,12 @@ function iniciarBloco() {
     el.cad.addEventListener('click', (e) => { e.stopPropagation(); abrirCaderno(); });
     el.hud.addEventListener('click', (e) => { e.stopPropagation(); msg(el.hud.getAttribute('data-txt') || '', 3500); }); // toque no icone = mostra o texto completo
     // FLECHA: aponta para a proxima parada (canto superior direito, ao lado dos botoes do mapa). A cor da luz muda com a distancia: gelado -> morninho -> quentinho -> pegando fogo
-    el.seta = $('div', '', '<img alt="" src="' + (S.seta || '') + '"><span class="nt-seta-t">Siga a flecha</span><span class="nt-seta-q"></span>'); el.seta.id = 'ntSeta'; document.body.appendChild(el.seta);
-    requestAnimationFrame(quadroSeta);
+    setInterval(linhaRota, 200); // linha tracejada ate a proxima parada
     if (DEV) { // painel de teste de casa
       el.dev = $('div', '', '<button type="button" id="ntDevIr" title="Ir à próxima parada">📍</button><button type="button" id="ntDevGuardas" title="Derrotar guardas">⚔️</button><button type="button" id="ntDevNovo" title="Recomeçar">🔄</button>'); el.dev.id = 'ntDev'; document.body.appendChild(el.dev);
       el.dev.addEventListener('click', (e) => e.stopPropagation());
       // teste de casa: pula as telas de "baixar o parque" e "ativar GPS" (sem GPS de verdade o jogo comeca no Parcao)
-      let tent = 0; const auto = setInterval(() => { tent++; if ((typeof jogoIniciado !== 'undefined' && jogoIniciado) || tent > 60) { clearInterval(auto); return; } if (!M.ativa) return; const bt = [].find.call(document.querySelectorAll('button'), (b) => /Jogar assim mesmo/.test(b.textContent)); const btVis = bt && bt.offsetParent; if (btVis) bt.click(); const bi = document.getElementById('bInicio'); if (bi && bi.offsetParent && !btVis) bi.click(); }, 500);
+      let tent = 0; const auto = setInterval(() => { if ((typeof jogoIniciado !== 'undefined' && jogoIniciado) || tent > 60) { clearInterval(auto); return; } if (!M.ativa) return; tent++; const bt = [].find.call(document.querySelectorAll('button'), (b) => /Jogar assim mesmo/.test(b.textContent)); const btVis = bt && bt.offsetParent; if (btVis) bt.click(); const bi = document.getElementById('bInicio'); if (bi && bi.offsetParent && !btVis) bi.click(); }, 500);
       document.getElementById('ntDevIr').onclick = () => { if (!M.ativa) return; const a = alvoSeta(); if (!a) return; const q = deslocar(a.lat, a.lng, 6, 180); ALVO.lat = POS.lat = q.lat; ALVO.lng = POS.lng = q.lng; };
       document.getElementById('ntDevGuardas').onclick = () => { if (!M.ativa) return; const a = alvoSeta(); if (!a) return; inimigos.forEach((e) => { if (!e.vivo) return; if (e.final && M.idx < M.n) return; const dl = (e.lat - a.lat) * 111320, dn = (e.lng - a.lng) * 111320 * Math.cos(a.lat * rad); if (Math.sqrt(dl * dl + dn * dn) <= GUARDIOES_M + 5) acertou(e, 99999); }); };
       document.getElementById('ntDevNovo').onclick = () => { try { localStorage.removeItem('mgo-pesquisa-pendente'); } catch (e) {} location.reload(); };
@@ -274,7 +282,7 @@ function iniciarBloco() {
   function abrirIntro() {
     const f = FALAS.largada;
     mostrarTela(cabecalho({ nome: 'O portal do Natal', img: 'portal' }, '') + '<h2 class="nt-h">' + f[0] + '</h2><p class="nt-p">' + f[1] + '</p><div class="ms-bts"><button class="ms-bt ms-ok" type="button" id="ntOk">' + f[2] + '</button></div>', () => {
-      document.getElementById('ntOk').onclick = () => { som('ok'); fecharTela(); msg('Siga a flecha até: ' + ROTEIRO[0].nome + '.', 5000); };
+      document.getElementById('ntOk').onclick = () => { som('ok'); fecharTela(); msg('Sigam a linha tracejada até: ' + ROTEIRO[0].nome + '.', 5000); };
     });
   }
   function passagem(r, i) {
@@ -308,7 +316,95 @@ function iniciarBloco() {
     if (ligado && !obst[i]) { try { const n = obstaculosFixos.length, pp = M.props[i] && M.props[i].userData.pos || M.pontos[i]; registrarObstaculoCircular(pp.lat, pp.lng, raio); obst[i] = obstaculosFixos[n]; } catch (e) {} }
     else if (!ligado && obst[i]) { const k = obstaculosFixos.indexOf(obst[i]); if (k >= 0) obstaculosFixos.splice(k, 1); obst[i] = null; try { quandoMapaPronto(function () { if (carregarObstaculos(POS.lat, POS.lng)) construirGrade(POS.lat, POS.lng); }); } catch (e) {} }
   }
+  // Cada monstro pertence a UM ponto (o mais proximo; o chefao final = o bau). So os do ponto atual existem no mapa; os outros ficam guardados (nem aparecem nem andam).
+  function distM(a, b) { return Math.hypot((a.lat - b.lat) * 111320, (a.lng - b.lng) * 111320 * Math.cos(a.lat * rad)); }
+  function prepararMonstros(pontos) {
+    inimigos.forEach((e) => { if (e.final) { e._pt = pontos.length - 1; return; } let k = 0, md = 1e9; pontos.forEach((p, i) => { const d = distM(e, p); if (d < md) { md = d; k = i; } }); e._pt = k; });
+    // mini dragoes laranja: 3 no jogo todo, 2 pedradas cada (vida 10), mordida igual a dos outros monstros e um foguinho
+    [1, 3, 5].forEach((k, n) => { const p = pontos[k]; if (!p) return; const q = deslocar(p.lat, p.lng, 13, 60 + n * 130); novoInimigo(q.lat, q.lng, 'p-zumbi', '🐲', 10); const e = inimigos[inimigos.length - 1]; e.mini = true; e._pt = k; });
+    return inimigos.slice();
+  }
+  function mostrarMonstros(idx) {
+    (M.monstros || []).forEach((e) => {
+      const deve = e._pt === idx, no = inimigos.indexOf(e);
+      if (deve && no < 0 && e.vivo) { try { if (!livreDeConstrucao(e.lat, e.lng)) { const q = pontoLivrePerto(e.lat, e.lng); if (q) { e.lat = q.lat; e.lng = q.lng; e.el._ll = [q.lng, q.lat]; e.el._mk.setLngLat([q.lng, q.lat]); } } } catch (x) {} inimigos.push(e); e.el._mk.addTo(mapa); }
+      else if (!deve) { if (no >= 0) inimigos.splice(no, 1); e.el._mk.remove(); try { if (alvoAtual === e) alvoAtual = null; } catch (x) {} }
+    });
+  }
+  function fogoDosMinis(agora) {
+    inimigos.forEach((e) => { if (!e.mini || !e.vivo) return; const d = metrosAte(e.lat, e.lng).d; if (d > 18 || d < 3) return; if (!e.proximoFogo) e.proximoFogo = agora + 3000; else if (agora >= e.proximoFogo && !e.balaEmVoo) { e.proximoFogo = agora + 7000; dispararFogo(e); } });
+  }
+
+  // ================= ESTACOES: tenda hospital (cura, meio do percurso) e 2 mamoneiras (municao, 1o e ultimo terco) =================
+  function pontoNaRota(rota, f) {
+    const seg = []; let total = 0; for (let i = 1; i < rota.length; i++) { const d = distM(rota[i - 1], rota[i]); seg.push(d); total += d; }
+    let alvo = total * f; for (let i = 0; i < seg.length; i++) { if (alvo <= seg[i] || i === seg.length - 1) { const k = seg[i] ? Math.min(1, alvo / seg[i]) : 0, a = rota[i], b = rota[i + 1]; return { lat: a.lat + (b.lat - a.lat) * k, lng: a.lng + (b.lng - a.lng) * k, rumo: Math.atan2((b.lng - a.lng) * Math.cos(a.lat * rad), b.lat - a.lat) / rad }; } alvo -= seg[i]; }
+    return rota[0];
+  }
+  function lugarLivre(base, ocupados) {
+    for (const d of [9, 13, 17, 22, 28]) for (const lado of [90, -90, 45, -45, 135, -135]) { const q = deslocar(base.lat, base.lng, d, (base.rumo || 0) + lado); let livre = true; try { livre = livreDeConstrucao(q.lat, q.lng); } catch (e) {} if (livre && ocupados.every((o) => distM(q, o) >= 11)) return afastar(q); }
+    return deslocar(base.lat, base.lng, 12, (base.rumo || 0) + 90);
+  }
+  function criarEstacoes(Mp) {
+    if (M.estacoes) return; const rota = [M.portal].concat(M.pontos), ocupados = rota.slice(); M.estacoes = [];
+    [['cura', 0.5], ['municao', 0.17], ['municao', 0.83]].forEach(([tipo, f]) => {
+      const q = lugarLivre(pontoNaRota(rota, f), ocupados); ocupados.push(q);
+      const o = tipo === 'cura' ? PR.tendaHospital() : PR.mamoneira(); o.scale.setScalar(ESC * (tipo === 'cura' ? 0.9 : 1.15)); o.userData = { lat: q.lat, lng: q.lng }; Mp.cena.add(o); Mp.estacoes.push(o);
+      pino('p-natal-est', tipo === 'cura' ? '<span class="nt-est nt-est-cura">✚</span>' : '<span class="nt-est"><img alt="Mamonas" src="' + (S.mamona || IMG('mamona')) + '"></span>', q.lat, q.lng);
+      M.estacoes.push({ tipo, lat: q.lat, lng: q.lng });
+    });
+  }
+  let tickEst = 0, ultimoAvisoEst = 0;
+  function usarEstacoes(agora) {
+    (M.estacoes || []).forEach((s) => {
+      if (metrosAte(s.lat, s.lng).d > 7) return;
+      tickEst++;
+      if (s.tipo === 'cura') {
+        if (vidaMineu < 100) { vidaMineu = Math.min(100, vidaMineu + 12); pintaVidaMineu(); if (agora - ultimoAvisoEst > 1500) { ultimoAvisoEst = agora; msg('❤️ Recuperando a energia na tenda…', 1600); try { tocarTom(523, 784, 160, 'triangle', 0.08); } catch (e) {} } }
+        else if (agora - ultimoAvisoEst > 4000) { ultimoAvisoEst = agora; msg('❤️ Energia cheia!', 2000); }
+      } else {
+        municao.normal += tickEst % 2 ? 1 : 2; pintaMunicao(); // ~3 mamonas por segundo
+        if (agora - ultimoAvisoEst > 900) { ultimoAvisoEst = agora; msg('Colhendo mamonas… ' + municao.normal, 1200); try { tocarTom(700, 900, 70, 'sine', 0.06); } catch (e) {} }
+      }
+    });
+  }
+
+  // ================= VARA DE PESCAR caida na beira do lago =================
+  function naAgua(lat, lng) { try { return aguas.some((o) => { const w = (o.bb[2] - o.bb[0]) * 111320 * Math.cos(lat * rad), h = (o.bb[3] - o.bb[1]) * 111320; if (Math.max(w, h) < 20 || lng < o.bb[0] || lng > o.bb[2] || lat < o.bb[1] || lat > o.bb[3] || !pontoNoAnel(lng, lat, o.p[0])) return false; return !o.p.slice(1).some((a) => pontoNoAnel(lng, lat, a)); }); } catch (e) { return false; } }
+  let ultimaBuscaVara = 0;
+  function procurarVara(agora) {
+    if (M.vara || agora - ultimaBuscaVara < 3000 || typeof aguas === 'undefined' || !aguas.length) return; ultimaBuscaVara = agora; if (naAgua(POS.lat, POS.lng)) return;
+    for (let d = 10; d <= 60; d += 3) for (let a = 0; a < 360; a += 15) {
+      const w = deslocar(POS.lat, POS.lng, d, a); if (!naAgua(w.lat, w.lng)) continue;
+      const q = deslocar(w.lat, w.lng, 6, a + 180); if (naAgua(q.lat, q.lng)) continue; // 6 m para tras: na margem, em terra
+      const e = document.createElement('div'); e.className = 'nt-vara'; e.innerHTML = '<img alt="Vara de pescar" src="' + (S.vara || IMG('vara')) + '">';
+      new maplibregl.Marker({ element: e, anchor: 'center', pitchAlignment: 'map', rotationAlignment: 'map' }).setLngLat([q.lng, q.lat]).addTo(mapa);
+      M.vara = { lat: q.lat, lng: q.lng, perguntou: false }; return;
+    }
+  }
+  function usarVara() {
+    const v = M.vara; if (!v || window.MGO_PESCANDO) return; const d = metrosAte(v.lat, v.lng).d;
+    if (d > 12) { v.perguntou = false; return; }
+    if (d > 5 || v.perguntou) return; v.perguntou = true;
+    mostrarTela('<div class="nt-vara-card"><img alt="" src="' + (S.vara || IMG('vara')) + '"></div><h2 class="nt-h">Vocês acharam uma vara de pescar!</h2><p class="nt-p">Querem passar um tempo pescando e descobrir que peixe pegam? Enquanto pescam, <b>o jogo fica parado</b>: os monstros não atacam.</p><div class="ms-bts"><button class="ms-bt" type="button" id="ntNao">Agora não</button><button class="ms-bt ms-ok" type="button" id="ntPescar">Pescar 🎣</button></div>', () => {
+      document.getElementById('ntNao').onclick = () => fecharTela();
+      document.getElementById('ntPescar').onclick = () => { fecharTela(); try { if (!window.MGO_PESCA || !window.MGO_PESCA.iniciar()) msg('Cheguem um pouco mais perto da água.', 3000); } catch (e) { console.error('[natal] pesca', e); } };
+    });
+  }
+
+  // ================= LINHA TRACEJADA ate a proxima parada (no lugar da flecha) =================
+  function linhaRota() {
+    try {
+      if (!M.ativa) return;
+      if (!mapa.getSource('natal-rota')) { if (!mapa.getSource('area-fora')) return; mapa.addSource('natal-rota', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }); mapa.addLayer({ id: 'natal-rota', type: 'line', source: 'natal-rota', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ff3d00', 'line-width': 5, 'line-opacity': 0.9, 'line-dasharray': [0.4, 2] } }); }
+      const a = alvoSeta(); let f = [];
+      if (a && typeof jogoIniciado !== 'undefined' && jogoIniciado && !M.resolvido) { const d = metrosAte(a.lat, a.lng); if (d.d > 9) { const ini = deslocar(POS.lat, POS.lng, 4, d.ang); f = [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[ini.lng, ini.lat], [a.lng, a.lat]] } }]; } }
+      mapa.getSource('natal-rota').setData({ type: 'FeatureCollection', features: f });
+    } catch (e) { if (!window.__rotaErro) { window.__rotaErro = e; console.error('[natal] linha', e); } }
+  }
+
   function estiloPinos() {
+    mostrarMonstros(M.idx);
     M.pinos.forEach((p, i) => { if (!p) return; p.classList.remove('ms-feito'); if (i === M.idx) { p.style.display = ''; p.classList.add('ms-ativo'); } else { p.style.display = 'none'; p.classList.remove('ms-ativo'); } });
     M.props.forEach((g, i) => { if (g) g.visible = i === M.idx; });
     ROTEIRO.forEach((r, i) => obstaculo(i, i === M.idx));
@@ -325,11 +421,12 @@ function iniciarBloco() {
       if (!M.ativa || typeof jogoIniciado === 'undefined' || !jogoIniciado || (typeof celebrou !== 'undefined' && celebrou)) { el.hud.style.display = 'none'; el.cad.style.display = 'none'; return; }
       el.cad.style.display = 'block'; el.hud.style.display = 'block';
       if (!M.intro && !window.MGO_DESAFIO) { M.intro = true; abrirIntro(); }
+      { const agora = performance.now(); if (!window.MGO_DESAFIO && !window.MGO_PESCANDO) { usarEstacoes(agora); fogoDosMinis(agora); procurarVara(agora); usarVara(); } }
       laçoLuzes();
       if (M.idx < M.n) {
         const p = M.pontos[M.idx], r = ROTEIRO[M.idx], d = Math.round(metrosAte(p.lat, p.lng).d), luzes = M.luzes && M.luzes.idx === M.idx && !M.luzes.concluida;
         { const longo = luzes ? '⭐ Luzinhas ' + M.luzes.n + '/3' : '🎯 Ponto ' + (M.idx + 1) + ' de ' + M.pontos.length + ' · ' + r.nome + ' · ' + (d > 999 ? Math.round(d / 100) / 10 + ' km' : d + ' m'); hudIcone(luzes ? '⭐' : '🎯', luzes ? M.luzes.n + '/3' : (M.idx + 1) + '/' + M.pontos.length, longo); }
-        if (!window.MGO_DESAFIO && !luzes && d <= CHEGADA_M) {
+        if (!window.MGO_DESAFIO && !window.MGO_PESCANDO && !luzes && d <= CHEGADA_M) {
           // REGRA (24/11): os monstros NAO travam a missao; podem ser ignorados. Chegou perto, abre.
           if (r.tipo === 'casa') CASAS[r.id](r, M.idx); else if (r.tipo === 'passagem') passagem(r, M.idx);
         }
@@ -377,6 +474,7 @@ function iniciarBloco() {
           // icone some quando ja foi feito
           u.icone.visible = i >= M.idx; });
         { const u = Mp.portal.userData; Mp.portal.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); if (u.obj.userData.anima) u.obj.userData.anima(t); }
+        (Mp.estacoes || []).forEach((o) => { const u = o.userData; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
         Mp.decs.forEach((o) => { const u = o.userData; o.visible = u.i === M.idx; o.position.set((u.lng - POS.lng) * 111320 * Math.cos(POS.lat * rad), 0, -((u.lat - POS.lat) * 111320)); });
         const mc = maplibregl.MercatorCoordinate.fromLngLat([POS.lng, POS.lat], 0), s = mc.meterInMercatorCoordinateUnits();
         const m = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix);
@@ -401,7 +499,10 @@ function iniciarBloco() {
     afastarDoMarco(d, pinos);
     const portalPos = afastar(deslocar(POS.lat, POS.lng, 6, bearing + 50)), Mp = montarProps(d.pontos, portalPos);
     M = { ativa: true, pontos: d.pontos, n: ROTEIRO.length - 1, pinos, idx: 0, pecas: 0, intro: false, portal: portalPos, cofre, resolvido: false, props: Mp.grupos, arvoreAcesa: false, luzes: null };
+    M.monstros = prepararMonstros(d.pontos); Mp.estacoes = [];
     estiloPinos(); atualizarConta();
+    try { zoom = 20.6; } catch (e) {} // zoom de perto: um passo antes do maximo (21)
+    quandoMapaPronto(() => setTimeout(() => criarEstacoes(Mp), 600));
     const ligar = () => { if (!mapa.getLayer('natal-props')) mapa.addLayer(camada(Mp)); };
     if (mapa.loaded()) ligar(); else mapa.on('load', ligar);
     console.log('[natal] pronta | senha (so para teste):', cofre.codigo, '| bilhetes:', cofre.pistas.map((p) => p.g + ' ' + p.A + '/' + p.B).join(' · '));

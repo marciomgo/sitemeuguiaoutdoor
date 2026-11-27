@@ -176,6 +176,46 @@ function portal(){
   return g;
 }
 
+// ---------- TENDA DE HOSPITAL DE CAMPANHA (cura) ----------
+function tendaHospital(){
+  const g=new THREE.Group(), LONA=M(0xf2f1ea), LONA2=M(0xd9d6c8), VERMELHO=M(0xd7263d,{roughness:.5});
+  g.add(box(3.4,.12,3.0,M(0x8f8b7a),0,.06,0));
+  g.add(box(3.0,1.2,2.6,LONA,0,.72,0));
+  const sh=new THREE.Shape();sh.moveTo(-1.45,0);sh.lineTo(1.45,0);sh.lineTo(0,1.1);sh.closePath();
+  const telhado=G(new THREE.ExtrudeGeometry(sh,{depth:3.1,bevelEnabled:false}),LONA2);telhado.position.set(0,1.3,-1.55);g.add(telhado);
+  g.add(box(.9,1.1,.06,M(0x4a4a42),0,.67,1.32));                       // abertura
+  const aba=box(.4,1.1,.08,LONA2,-.58,.67,1.38);aba.rotation.y=.5;g.add(aba);
+  const aba2=box(.4,1.1,.08,LONA2,.58,.67,1.38);aba2.rotation.y=-.5;g.add(aba2);
+  // cruz vermelha na frente (frontao) e nas laterais
+  g.add(box(.62,.2,.08,VERMELHO,0,1.7,1.58)); g.add(box(.2,.62,.08,VERMELHO,0,1.7,1.58));
+  for(const s of [-1,1]){ g.add(box(.08,.22,.7,VERMELHO,s*1.54,.8,0)); g.add(box(.08,.7,.22,VERMELHO,s*1.54,.8,0)); }
+  // mastro com bandeira de cruz
+  g.add(cyl(.05,.05,2.2,MADEIRA2,1.9,1.1,1.3,6));
+  g.add(box(.9,.6,.05,M(0xffffff),2.35,1.95,1.3)); g.add(box(.42,.13,.07,VERMELHO,2.35,1.95,1.3)); g.add(box(.13,.42,.07,VERMELHO,2.35,1.95,1.3));
+  for(const [x,z] of [[-1.9,1.5],[-1.9,-1.4],[1.9,-1.4]]) g.add(cyl(.05,.05,.35,MADEIRA2,x,.18,z,6));
+  g.add(box(.5,.35,.35,M(0xffffff),-1.9,.3,.6)); g.add(box(.22,.07,.37,VERMELHO,-1.9,.3,.6)); g.add(box(.07,.22,.37,VERMELHO,-1.9,.3,.6)); // maleta
+  return g;
+}
+
+// ---------- MAMONEIRA (municao) ----------
+function mamoneira(){
+  const g=new THREE.Group(), CAULE=M(0x8d4a3c), FOLHA=M(0x3d9a45,{side:THREE.DoubleSide}), FOLHA2=M(0x2f7d39,{side:THREE.DoubleSide}), CACHO=M(0x8ccf3f), CACHO2=M(0xc2543f);
+  g.add(cyl(.12,.2,2.2,CAULE,0,1.1,0,8));
+  const galhos=[[.8,1.65,.25],[-.85,1.85,-.1],[.15,2.25,-.75],[-.25,2.45,.75],[.05,2.95,0],[.7,2.5,.4],[-.65,2.7,-.35],[.45,2.1,-.55],[-.7,2.15,.55],[.1,1.75,.85]];
+  const estrela=(R)=>{const s=new THREE.Shape();for(let i=0;i<14;i++){const a=i*Math.PI/7,r=i%2?R*.42:R;const x=Math.cos(a)*r,y=Math.sin(a)*r;i?s.lineTo(x,y):s.moveTo(x,y);}s.closePath();return new THREE.ShapeGeometry(s);};
+  galhos.forEach(([x,y,z],i)=>{
+    const b=cyl(.05,.07,Math.hypot(x,z)+.35,CAULE,x*.5,y-.2,z*.5,6); b.lookAt(x,y,z); b.rotateX(Math.PI/2); g.add(b);
+    const folha=G(estrela(.78),i%2?FOLHA2:FOLHA,x,y,z); folha.rotation.set(-Math.PI/2+.75,.3*(x>0?1:-1),i); g.add(folha);
+  });
+  // cachos de mamonas (bolinhas com espinhos)
+  [[.45,1.45,.45,CACHO],[-.5,1.55,.4,CACHO2],[.1,2.0,.35,CACHO],[-.15,1.2,-.45,CACHO],[.55,2.15,-.3,CACHO2]].forEach(([x,y,z,mt])=>{
+    for(let k=0;k<4;k++){ const px=x+Math.cos(k*1.9)*.13, py=y-k*.07, pz=z+Math.sin(k*1.9)*.13; g.add(sph(.15,mt,px,py,pz));
+      for(let e=0;e<6;e++){ const a=e*1.05, sp=cone(.025,.09,mt,px+Math.cos(a)*.13,py+Math.sin(a*2)*.07,pz+Math.sin(a)*.13,5); sp.lookAt(px+Math.cos(a)*.5,py+Math.sin(a*2)*.25,pz+Math.sin(a)*.5); sp.rotateX(Math.PI/2); g.add(sp); } }
+  });
+  g.add(cyl(.55,.65,.1,M(0x7a5a3a),0,.05,0,14));
+  return g;
+}
+
 // ---------- ESTRELA DO NATAL (baú/final) ----------
 function estrelaNatal(){
   const g=new THREE.Group();
@@ -265,4 +305,4 @@ function bau(){
 }
 
 
-export { chale, rena, arvore, luzinha, presente, placaLargada, portal, estrelaNatal, carta, boneco, treno, caverna, bau, estrelaGeo, BRILHO, VERM, OURO };
+export { chale, rena, arvore, luzinha, presente, placaLargada, portal, tendaHospital, mamoneira, estrelaNatal, carta, boneco, treno, caverna, bau, estrelaGeo, BRILHO, VERM, OURO };
