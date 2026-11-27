@@ -95,7 +95,7 @@ function iniciarBloco() {
     const atirar = document.getElementById('btnAtirar'); if (atirar) atirar.addEventListener('click', () => { if (M.ativa && municao.normal <= 0 && ativa === 'normal') avisarSemMamona(true); });
     el.hud.addEventListener('click', (e) => { e.stopPropagation(); if (M.secundario) { M.secundario = null; msg('Voltando para o próximo ponto.', 2000); atualizarAlvo(); return; } msg(el.hud.getAttribute('data-txt') || '', 3500); }); // toque no icone = mostra o texto completo
     // FLECHA: aponta para a proxima parada (canto superior direito, ao lado dos botoes do mapa). A cor da luz muda com a distancia: gelado -> morninho -> quentinho -> pegando fogo
-    setInterval(linhaRota, 200); // linha tracejada ate a proxima parada
+    setInterval(linhaRota, 50); // linha tracejada ate a proxima parada (atualiza rapido para acompanhar os pes do Mineu)
     if (DEV) { // painel de teste de casa
       el.dev = $('div', '', '<button type="button" id="ntDevIr" title="Ir à próxima parada">📍</button><button type="button" id="ntDevGuardas" title="Derrotar guardas">⚔️</button><button type="button" id="ntDevNovo" title="Recomeçar">🔄</button>'); el.dev.id = 'ntDev'; document.body.appendChild(el.dev);
       el.dev.addEventListener('click', (e) => e.stopPropagation());
@@ -317,14 +317,24 @@ function iniciarBloco() {
     let alvo = total * f; for (let i = 0; i < seg.length; i++) { if (alvo <= seg[i] || i === seg.length - 1) { const k = seg[i] ? Math.min(1, alvo / seg[i]) : 0, a = rota[i], b = rota[i + 1]; return { lat: a.lat + (b.lat - a.lat) * k, lng: a.lng + (b.lng - a.lng) * k, rumo: Math.atan2((b.lng - a.lng) * Math.cos(a.lat * rad), b.lat - a.lat) / rad }; } alvo -= seg[i]; }
     return rota[0];
   }
-  function lugarLivre(base, ocupados) {
-    for (const d of [9, 13, 17, 22, 28]) for (const lado of [90, -90, 45, -45, 135, -135]) { const q = deslocar(base.lat, base.lng, d, (base.rumo || 0) + lado); let livre = true; try { livre = livreDeConstrucao(q.lat, q.lng); } catch (e) {} if (livre && ocupados.every((o) => distM(q, o) >= 11)) return afastar(q); }
-    return deslocar(base.lat, base.lng, 12, (base.rumo || 0) + 90);
+  function noParque(q) { try { return dentroDaArea(q.lat, q.lng); } catch (e) { return true; } }
+  // procura um lugar DENTRO do parque, fora de construcao/agua e afastado dos pontos: perto da fracao f do percurso (e, se nao der, um pouco antes/depois)
+  function lugarLivre(rota, f, ocupados) {
+    for (const folga of [11, 6]) for (const df of [0, 0.04, -0.04, 0.08, -0.08, 0.13, -0.13]) {
+      const base = pontoNaRota(rota, Math.max(0.05, Math.min(0.95, f + df)));
+      for (const d of [9, 13, 17, 22, 28, 5]) for (const lado of [90, -90, 45, -45, 135, -135]) {
+        const q = afastar(deslocar(base.lat, base.lng, d, (base.rumo || 0) + lado)); let livre = true; try { livre = livreDeConstrucao(q.lat, q.lng) && !naAgua(q.lat, q.lng); } catch (e) {}
+        if (livre && noParque(q) && ocupados.every((o) => distM(q, o) >= folga)) return q;
+      }
+    }
+    // ultimo recurso: ao lado de um ponto do percurso (os pontos estao sempre dentro do parque)
+    const p = rota[Math.round((rota.length - 1) * f)]; for (let a = 0; a < 360; a += 30) { const q = deslocar(p.lat, p.lng, 10, a); if (noParque(q)) return q; }
+    return { lat: p.lat, lng: p.lng };
   }
   function criarEstacoes(Mp) {
     if (M.estacoes) return; const rota = [M.portal].concat(M.pontos), ocupados = rota.slice(); M.estacoes = [];
     [['cura', 0.5], ['municao', 0.17], ['municao', 0.83]].forEach(([tipo, f]) => {
-      const q = lugarLivre(pontoNaRota(rota, f), ocupados); ocupados.push(q);
+      const q = lugarLivre(rota, f, ocupados); ocupados.push(q);
       const o = tipo === 'cura' ? PR.tendaHospital() : PR.mamoneira(); o.scale.setScalar(ESC * (tipo === 'cura' ? 0.9 : 1.15)); o.userData = { lat: q.lat, lng: q.lng }; Mp.cena.add(o); Mp.estacoes.push(o);
       pino('p-natal-est', tipo === 'cura' ? '<span class="nt-est nt-est-cura">✚</span>' : '<span class="nt-est"><img alt="Mamonas" src="' + (S.mamona || IMG('mamona')) + '"></span>', q.lat, q.lng);
       M.estacoes.push({ tipo, lat: q.lat, lng: q.lng });
@@ -352,7 +362,7 @@ function iniciarBloco() {
     if (M.vara || agora - ultimaBuscaVara < 3000 || typeof aguas === 'undefined' || !aguas.length) return; ultimaBuscaVara = agora; if (naAgua(POS.lat, POS.lng)) return;
     for (let d = 10; d <= 60; d += 3) for (let a = 0; a < 360; a += 15) {
       const w = deslocar(POS.lat, POS.lng, d, a); if (!naAgua(w.lat, w.lng)) continue;
-      const q = deslocar(w.lat, w.lng, 6, a + 180); if (naAgua(q.lat, q.lng)) continue; // 6 m para tras: na margem, em terra
+      const q = deslocar(w.lat, w.lng, 6, a + 180); if (naAgua(q.lat, q.lng) || !noParque(q)) continue; // 6 m para tras: na margem, em terra, dentro do parque
       const e = document.createElement('div'); e.className = 'nt-vara'; e.innerHTML = '<img alt="Vara de pescar" src="' + (S.vara || IMG('vara')) + '">';
       new maplibregl.Marker({ element: e, anchor: 'center', pitchAlignment: 'map', rotationAlignment: 'map' }).setLngLat([q.lng, q.lat]).addTo(mapa);
       M.vara = { lat: q.lat, lng: q.lng, perguntou: false }; return;
@@ -372,9 +382,11 @@ function iniciarBloco() {
   function linhaRota() {
     try {
       if (!M.ativa || !mapa.style) return;
-      if (!mapa.getSource('natal-rota')) { if (!mapa.getSource('area-fora')) return; mapa.addSource('natal-rota', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }); mapa.addLayer({ id: 'natal-rota', type: 'line', source: 'natal-rota', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ff3d00', 'line-width': 5, 'line-opacity': 0.9, 'line-dasharray': [0.4, 2] } }); }
+      if (!mapa.getSource('natal-rota')) { if (!mapa.getSource('area-fora')) return; mapa.addSource('natal-rota', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }); mapa.addLayer({ id: 'natal-rota', type: 'line', source: 'natal-rota', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#dfe3e6', 'line-width': 5, 'line-opacity': 0.95, 'line-dasharray': [0.4, 2] } }); }
+      // a linha fica NO CHAO, por baixo de tudo que e 3D (Mineu, monstros, casas): senao ela passa por cima do Mineu quando o alvo esta atras dele
+      { const ordem = mapa.getLayersOrder(), i3d = ordem.findIndex((id) => /^(monstros-3d|bau-final|marco-moeda|natal-props|mineu-3d)$/.test(id)); if (i3d >= 0 && ordem.indexOf('natal-rota') > i3d) mapa.moveLayer('natal-rota', ordem[i3d]); }
       const a = alvoSeta(); let f = [];
-      if (a && typeof jogoIniciado !== 'undefined' && jogoIniciado && !M.resolvido) { const d = metrosAte(a.lat, a.lng); if (d.d > 9) { const ini = deslocar(POS.lat, POS.lng, 4, d.ang); f = [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[ini.lng, ini.lat], [a.lng, a.lat]] } }]; } }
+      if (a && typeof jogoIniciado !== 'undefined' && jogoIniciado && !M.resolvido) { const d = metrosAte(a.lat, a.lng); if (d.d > 3) f = [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[POS.lng, POS.lat], [a.lng, a.lat]] } }]; /* sai dos pes do Mineu */ }
       mapa.getSource('natal-rota').setData({ type: 'FeatureCollection', features: f });
     } catch (e) { if (!window.__rotaErro) { window.__rotaErro = e; console.error('[natal] linha', e); } }
   }
