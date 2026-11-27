@@ -1,10 +1,10 @@
-// BLOCO marcoMoeda (ver blocos/blocos.json): o MARCO do parque (e do modo livre). Uma rocha alta (Kenney Nature Kit, CC0: rock_tallB) no MEIO do parque, com o LOGO do MGO (no lugar da moeda de ouro) girando e flutuando em cima.
+// BLOCO marcoMoeda (ver blocos/blocos.json): o MARCO do parque (e do modo livre). Uma rocha alta (Kenney Nature Kit, CC0: stone_tallB desde 27/11) no MEIO do parque, com o LOGO do MGO (no lugar da moeda de ouro) girando e flutuando em cima.
 // O lugar vem do build (DADOS.marco = centro do terreno seguro do parque). Por enquanto e so enfeite/referencia (aparece tambem um pino no mapa); nao muda regra nenhuma do jogo.
 // Roda como modulo DEPOIS do script do jogo (usa POS, DADOS, pino). Mesma tecnica 3D dos blocos monstros3d e bauFinal.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const ARQ = 'modelos/rock_tallB.glb', LOGO = 'modelos/logo-multiverso-mgo.png', ESCALA_ROCHA = 11, LARGURA_LOGO = 5.8, PROPORCAO_LOGO = 832 / 565, ALTURA_LOGO = LARGURA_LOGO / PROPORCAO_LOGO, RAIO_MOEDA = ALTURA_LOGO / 2, DIST_ESCONDE_PINO_M = 30, RAIO_BLOQUEIO_M = 4.3 /* pegada da montanha no chao */;
+const ARQ = 'modelos/stone_tallB.glb', LOGO = 'modelos/logo-multiverso-mgo.png', ESCALA_ROCHA = 11, LARGURA_LOGO = 5.8, PROPORCAO_LOGO = 832 / 565, ALTURA_LOGO = LARGURA_LOGO / PROPORCAO_LOGO, RAIO_MOEDA = ALTURA_LOGO / 2, DIST_ESCONDE_PINO_M = 30, RAIO_BLOQUEIO_M = 4.3 /* pegada da montanha no chao */;
 const rad = Math.PI / 180;
 // parques: o lugar vem do build (DADOS.marco). Modo livre: nao ha parque; o marco aparece a ~24 m de onde a pessoa esta quando o jogo comeca (uma vez por sessao).
 if (typeof DADOS !== 'undefined' && DADOS.marco) iniciar(DADOS.marco, false);
