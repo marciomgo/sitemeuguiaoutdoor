@@ -51,7 +51,10 @@ function iniciarBloco() {
           const g = c.getContext('2d'); g.drawImage(im, k * w, 0, w, im.naturalHeight, 0, 0, w, im.naturalHeight);
           const d = g.getImageData(0, 0, w, im.naturalHeight), p = d.data;
           for (let i = 0; i < p.length; i += 4) { const m = Math.min(p[i], p[i + 1], p[i + 2]); if (m > 238) p[i + 3] = 0; else if (m > 212) p[i + 3] = Math.round(255 * (238 - m) / 26); }
-          g.putImageData(d, 0, 0); ok(c.toDataURL('image/png'));
+          g.putImageData(d, 0, 0);
+          // apara as bordas vazias: o desenho ocupa o espaco todo (fica legivel no sol)
+          let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0; for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (p[(y * c.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+          if (x1 > x0 && y1 > y0) { const j = document.createElement('canvas'); j.width = x1 - x0 + 1; j.height = y1 - y0 + 1; j.getContext('2d').drawImage(c, x0, y0, j.width, j.height, 0, 0, j.width, j.height); ok(j.toDataURL('image/png')); } else ok(c.toDataURL('image/png'));
         } catch (e) { ok(src); }
       }; im.onerror = () => ok(''); im.src = src;
     });
@@ -180,102 +183,67 @@ function iniciarBloco() {
   function dicasHtml(dicas, usadas) { return '<div class="nt-dicas">' + dicas.slice(0, usadas).map((t, i) => '<div class="ms-cur">💡 <b>Dica ' + (i + 1) + ':</b> ' + esc(t) + '</div>').join('') + '</div>'; }
   function botaoDica(usadas, total) { return '<button class="ms-peq" type="button" id="ntDica"' + (usadas >= total ? ' disabled' : '') + '>💡 Dica do Mineu (' + usadas + '/' + total + ')</button>'; }
 
-  // ---------- CASA 1: PADARIA — ordem com regras ----------
-  function casaPadaria(r, i) {
-    const NOMES = ['Estrela', 'Sino', 'Pinheiro', 'Boneco'], CERTA = ['Sino', 'Boneco', 'Pinheiro', 'Estrela'];
-    const tray = [null, null, null, null]; let dicas = 0, texto = '', ok = false;
-    const DICAS = ['Comece pelo Boneco: a regra 2 diz onde ele não pode ficar.', 'Imagine o Boneco na 3ª posição. Pinheiro e Estrela precisam ficar colados e só cabem na 1ª e 2ª… então onde iria o Sino? Dá certo?', 'Então o Boneco está na 2ª posição. Sobra um lugar antes dele: quem pode ocupá-lo?'];
+  // ---------- ENIGMAS DAS 4 CASAS (aprovados pelo Marcio em 27/11): visuais, quase sem texto (lidos no sol), escolha entre botoes grandes, 3 dicas que nao entregam a resposta ----------
+  function casaEscolha(r, i, cfg) {
+    let dicas = 0, texto = '', trava = 0;
+    const ordem = cfg.opcoes.map((o, k) => k).sort(() => Math.random() - 0.5);
     function ver() {
-      const slots = tray.map((k, p) => '<button type="button" class="nt-slot" data-p="' + p + '">' + (k === null ? '<span class="nt-slotn">' + (p + 1) + '</span>' : imgSprite(S.biscoitos, k, 'nt-bisc')) + '</button>').join('');
-      const bisc = NOMES.map((n, k) => '<button type="button" class="nt-bisc-b' + (tray.indexOf(k) >= 0 ? ' nt-off' : '') + '" data-k="' + k + '">' + imgSprite(S.biscoitos, k, 'nt-bisc') + '<small>' + n + '</small></button>').join('');
-      mostrarTela(cabecalho(r, '<b>' + DUENDES[0][0] + ':</b> Só dou o bilhete a quem monta a bandeja <b>na ordem da receita</b>, da esquerda para a direita!') +
-        '<ol class="nt-regras"><li>O <b>Sino</b> fica em algum lugar <b>antes</b> do <b>Boneco</b>.</li><li>O <b>Boneco</b> <b>não</b> fica numa das pontas.</li><li>O <b>Pinheiro</b> fica <b>colado</b> na <b>Estrela</b>.</li><li>O <b>Pinheiro</b> <b>não</b> é o último.</li></ol>' +
-        '<div class="nt-bandeja">' + slots + '</div><div class="nt-fila">' + bisc + '</div><div class="ms-msg">' + texto + '</div>' + dicasHtml(DICAS, dicas) +
-        '<div class="ms-rodape">' + botaoDica(dicas, 3) + '<button class="ms-bt ms-ok" type="button" id="ntPronto" style="flex:1">Pronto!</button></div>', () => {
-        [].forEach.call(el.tela.querySelectorAll('.nt-bisc-b'), (b) => { b.onclick = () => { const k = Number(b.getAttribute('data-k')); if (tray.indexOf(k) >= 0) return; const p = tray.indexOf(null); if (p >= 0) { tray[p] = k; texto = ''; ver(); } }; });
-        [].forEach.call(el.tela.querySelectorAll('.nt-slot'), (b) => { b.onclick = () => { tray[Number(b.getAttribute('data-p'))] = null; texto = ''; ver(); }; });
-        document.getElementById('ntDica').onclick = () => { if (dicas < 3) { dicas++; ver(); } };
-        document.getElementById('ntPronto').onclick = () => {
-          if (tray.indexOf(null) >= 0) { texto = 'Coloque os 4 biscoitos na bandeja.'; ver(); return; }
-          const certos = tray.filter((k, p) => NOMES[k] === CERTA[p]).length;
-          if (certos === 4) { som('ok'); concluirCasa(r, i); } else { som('erro'); texto = certos === 0 ? 'Ainda não! Nenhum biscoito está no lugar certo.' : 'Ainda não! ' + certos + (certos > 1 ? ' biscoitos já estão' : ' biscoito já está') + ' no lugar certo.'; ver(); }
-        };
-      });
-    }
-    ver();
-  }
-
-  // ---------- CASA 2: OFICINA — verdade e mentira ----------
-  function casaOficina(r, i) {
-    const COR = ['vermelha', 'verde', 'dourada'], ET = [['A chave está na caixa <b>verde</b>.', (k) => k === 1], ['A chave <b>não</b> está <b>nesta</b> caixa.', (k) => k !== 1], ['A chave <b>não</b> está na caixa <b>vermelha</b>.', (k) => k !== 0]];
-    const riscada = [false, false, false]; let dicas = 0, texto = '';
-    const DICAS = ['Teste uma caixa de cada vez: imagine que a chave está nela e conte quantas etiquetas ficam verdadeiras.', 'O certo é dar exatamente UMA verdadeira. Se a chave estivesse na caixa verde, quantas dariam verdade?', 'Com a chave na verde, dão duas verdadeiras. Não serve! Restam duas caixas para testar.'];
-    function ver() {
-      const caixas = COR.map((c, k) => '<button type="button" class="nt-caixa' + (riscada[k] ? ' nt-vazia' : '') + '" data-k="' + k + '"' + (riscada[k] ? ' disabled' : '') + '>' + imgSprite(S.caixas, k, 'nt-cx') + '<span class="nt-etq">' + ET[k][0] + '</span>' + (riscada[k] ? '<em>vazia</em>' : '') + '</button>').join('');
-      mostrarTela(cabecalho(r, '<b>' + DUENDES[1][0] + ':</b> A chave da minha gaveta está numa destas caixas. Mas atenção: <b>só UMA etiqueta diz a verdade</b>. As outras duas mentem!') +
-        '<div class="nt-caixas">' + caixas + '</div><div class="ms-msg">' + texto + '</div>' + dicasHtml(DICAS, dicas) + '<div class="ms-rodape">' + botaoDica(dicas, 3) + '</div>', () => {
-        [].forEach.call(el.tela.querySelectorAll('.nt-caixa'), (b) => { b.onclick = () => {
-          const k = Number(b.getAttribute('data-k')), n = ET.filter((e) => e[1](k)).length;
-          if (n === 1) { som('ok'); concluirCasa(r, i); } else { som('erro'); riscada[k] = true; texto = 'Vazia! Com a chave na caixa ' + COR[k] + ', <b>' + n + '</b> etiquetas ficariam verdadeiras. Mas só pode ser uma!'; ver(); }
+      const ops = ordem.map((k) => '<button type="button" class="nt-op" data-k="' + k + '">' + cfg.opcoes[k].html() + '</button>').join('');
+      mostrarTela(cabecalho(r, '<b>' + DUENDES[r.duende][0] + ':</b> ' + cfg.fala) + '<div class="nt-quebra">' + cfg.corpo() + '</div><div class="nt-ops">' + ops + '</div><div class="ms-msg">' + texto + '</div>' + dicasHtml(cfg.dicas, dicas) + '<div class="ms-rodape">' + botaoDica(dicas, 3) + '</div>', () => {
+        [].forEach.call(el.tela.querySelectorAll('.nt-op'), (b) => { b.onclick = () => {
+          if (performance.now() < trava) return;
+          if (cfg.opcoes[Number(b.getAttribute('data-k'))].certo) { som('ok'); concluirCasa(r, i); }
+          else { som('erro'); trava = performance.now() + 1500; texto = 'Ainda não! Pensem de novo.'; const topo = el.tela.scrollTop; ver(); el.tela.scrollTop = topo; } // espera curtinha: evita ficar chutando
         }; });
-        document.getElementById('ntDica').onclick = () => { if (dicas < 3) { dicas++; ver(); } };
+        document.getElementById('ntDica').onclick = () => { if (dicas < 3) { dicas++; const topo = el.tela.scrollTop; ver(); el.tela.scrollTop = topo; } };
       });
     }
     ver();
   }
+  const vezes = (html, n) => new Array(n + 1).join(html);
+  const bisc = (k, n) => vezes(imgSprite(S.biscoitos, k, 'nt-ei'), n);
+  const num = (v) => ({ html: () => '<b>' + v + '</b>' });
+  const opNum = (lista, certo) => lista.map((v) => Object.assign(num(v), { certo: v === certo }));
 
-  // ---------- CASA 3: CASA DOS SINOS — cifra ----------
+  // CASA 1 - PADARIA: tabela 3x3 com duas regras (o desenho nao repete na linha; a quantidade muda). Falta: 3 sinos.
+  function casaPadaria(r, i) {
+    const SINO = 1, ESTRELA = 0, PINHEIRO = 2;
+    casaEscolha(r, i, {
+      fala: 'Que biscoitos faltam na minha forma?',
+      corpo: () => '<div class="nt-tab">' + [[ESTRELA, 1], [SINO, 2], [PINHEIRO, 3], [SINO, 1], [PINHEIRO, 2], [ESTRELA, 3], [PINHEIRO, 1], [ESTRELA, 2], null].map((c) => c ? '<span class="nt-cel">' + bisc(c[0], c[1]) + '</span>' : '<span class="nt-cel nt-falta">?</span>').join('') + '</div>',
+      opcoes: [[SINO, 2], [PINHEIRO, 3], [SINO, 3], [ESTRELA, 3]].map((o) => ({ html: () => bisc(o[0], o[1]), certo: o[0] === SINO && o[1] === 3 })),
+      dicas: ['Olhem uma linha inteira: os três desenhos são diferentes.', 'A quantidade também muda de um quadrado para o outro.', 'Na última linha já tem pinheiro e estrela. Qual desenho falta? Agora contem quantos.']
+    });
+  }
+  // CASA 2 - OFICINA: o valor escondido do presente e da estrela. Resposta: 13.
+  function casaOficina(r, i) {
+    const P = () => imgSprite(S.caixas, 0, 'nt-ep'), E = '<span class="nt-em">⭐</span>', mais = '<span>+</span>', ig = '<span>=</span>';
+    casaEscolha(r, i, {
+      fala: 'Quanto dá a última conta?',
+      corpo: () => '<div class="nt-conta">' + P() + mais + P() + ig + '<b>6</b></div><div class="nt-conta">' + P() + mais + E + ig + '<b>8</b></div><div class="nt-conta">' + E + mais + E + mais + P() + ig + '<b class="nt-falta">?</b></div>',
+      opcoes: opNum([11, 13, 16], 13),
+      dicas: ['Comecem pela primeira linha: são dois presentes iguais.', 'Quanto vale UM presente? Depois olhem a segunda linha.', 'O presente vale 3. Agora descubram quanto vale a estrela.']
+    });
+  }
+  // CASA 3 - CASA DOS SINOS: os sinos dobram (1, 2, 4, ?). Resposta: 8.
   function casaSinos(r, i) {
-    const LEG = [['⭐', 'A'], ['🔔', 'L'], ['🎄', 'R'], ['❄️', 'E'], ['🎁', 'I'], ['🕯️', 'O'], ['🧦', 'S'], ['🍪', 'C']], PALAVRA = 'LAREIRA';
-    const letra = {}; LEG.forEach((p) => { letra[p[1]] = p[0]; });
-    const rec = PALAVRA.split('').map((l) => letra[l]), TILES = 'ACDEILMNORST'.split('');
-    let resp = [], dicas = 0, texto = '';
-    const DICAS = ['A legenda traduz cada desenho em uma letra. Troque um desenho de cada vez.', 'O primeiro desenho é o sino. Qual letra ele vale na legenda?', 'As três primeiras letras são L, A, R. Continue a decifrar o resto.'];
-    function ver() {
-      const leg = LEG.map((p) => '<span class="nt-chip">' + p[0] + ' = <b>' + p[1] + '</b></span>').join('');
-      const caixas = PALAVRA.split('').map((x, k) => '<span class="ms-cx nt-cxl">' + (resp[k] || '') + '</span>').join('');
-      const tiles = TILES.map((t) => '<button type="button" class="ms-tecla nt-tile" data-t="' + t + '">' + t + '</button>').join('') + '<button type="button" class="ms-tecla nt-tile" data-t="⌫">⌫</button>';
-      mostrarTela(cabecalho(r, '<b>' + DUENDES[2][0] + ':</b> Escondi o bilhete no lugar mais quentinho da casa. Só que escrevi o nome dele em <b>desenhos</b>! A legenda está no quadro.') +
-        '<div class="nt-quadro"><div class="nt-leg">' + leg + '</div><div class="nt-rec">' + rec.join(' ') + '</div></div><div class="nt-resp">' + caixas + '</div><div class="nt-tiles">' + tiles + '</div><div class="ms-msg">' + texto + '</div>' + dicasHtml(DICAS, dicas) +
-        '<div class="ms-rodape">' + botaoDica(dicas, 3) + '<button class="ms-bt ms-ok" type="button" id="ntAbrir" style="flex:1">Abrir!</button></div>', () => {
-        [].forEach.call(el.tela.querySelectorAll('.nt-tile'), (b) => { b.onclick = () => { const t = b.getAttribute('data-t'); if (t === '⌫') resp.pop(); else if (resp.length < PALAVRA.length) resp.push(t); texto = ''; ver(); }; });
-        document.getElementById('ntDica').onclick = () => { if (dicas < 3) { dicas++; ver(); } };
-        document.getElementById('ntAbrir').onclick = () => {
-          if (resp.length !== PALAVRA.length) { texto = 'A palavra tem ' + PALAVRA.length + ' letras.'; ver(); return; }
-          if (resp.join('') === PALAVRA) { som('ok'); concluirCasa(r, i); }
-          else { som('erro'); const c = resp.filter((l, k) => l === PALAVRA[k]).length; texto = c ? 'Ainda não! ' + c + (c > 1 ? ' letras estão' : ' letra está') + ' no lugar certo.' : 'Ainda não! Releia desenho por desenho.'; ver(); }
-        };
-      });
-    }
-    ver();
+    const linha = (n) => '<div class="nt-sinos">' + vezes('<span class="nt-em">🔔</span>', n) + '</div>';
+    casaEscolha(r, i, {
+      fala: 'Quantos sinos vêm agora?',
+      corpo: () => linha(1) + linha(2) + linha(4) + '<div class="nt-sinos"><b class="nt-falta">?</b></div>',
+      opcoes: opNum([6, 7, 8], 8),
+      dicas: ['Comparem cada linha com a de cima.', 'Não é só colocar mais um: vejam quanto cresce.', 'De 1 para 2 e de 2 para 4… o que aconteceu com os sinos?']
+    });
   }
-
-  // ---------- CASA 4: BIBLIOTECA — poema por eliminacao ----------
+  // CASA 4 - BIBLIOTECA: a maquina de numeros (2n + 1): 1->3, 2->5, 4->9, 6->?. Resposta: 13.
   function casaBiblioteca(r, i) {
-    const OBJ = [['Vela', 'cera'], ['Livro', 'papel'], ['Meia', 'pano'], ['Lanterna', 'metal'], ['Relógio', 'metal'], ['Urso', 'pano']];
-    const VERSOS = [
-      ['Não durmo nas pontas da prateleira, nem na primeira, nem na derradeira.', (p) => p !== 0 && p !== 5],
-      ['Não sou de pano, nem sou de cera.', (p) => OBJ[p][1] !== 'pano' && OBJ[p][1] !== 'cera'],
-      ['O Urso é meu amigo, mas <b>não é meu vizinho</b>.', (p) => Math.abs(p - 5) !== 1],
-      ['O meu vizinho da <b>direita</b> não é de pano.', (p) => p < 5 && OBJ[p + 1][1] !== 'pano'],
-    ];
-    const risc = [false, false, false, false, false, false]; let dicas = 0, texto = '';
-    const DICAS = ['Cada verso risca alguns objetos. Comece pelo verso 1: quem dorme nas pontas está fora.', 'Depois dos versos 1 e 2, sobram três objetos. Quais são?', 'O verso 3 risca quem fica ao lado do Urso. Quem sobrou? O verso 4 decide entre os dois.'];
-    function ver() {
-      const rest = risc.map((x, k) => (x ? -1 : k)).filter((k) => k >= 0);
-      const prat = OBJ.map((o, k) => '<button type="button" class="nt-obj' + (risc[k] ? ' nt-risc' : '') + '" data-k="' + k + '">' + imgSprite(S.objetos, k, 'nt-ob') + '<small>' + o[0] + '</small></button>').join('');
-      mostrarTela(cabecalho(r, '<b>' + DUENDES[3][0] + ':</b> O bilhete dorme dentro de <b>um</b> destes seis objetos. Escrevi um poema para quem souber <b>riscar</b> os que <b>não</b> são. Toque num objeto para riscá-lo.') +
-        '<div class="nt-poema"><i>Seis amigos na estante, de olho em quem vem aqui. Só um guarda o bilhete: descubra quem é, vai!</i><ol>' + VERSOS.map((v) => '<li>' + v[0] + '</li>').join('') + '</ol></div><div class="nt-prat">' + prat + '</div><div class="ms-msg">' + texto + '</div>' + dicasHtml(DICAS, dicas) +
-        '<div class="ms-rodape">' + botaoDica(dicas, 3) + '<button class="ms-bt ms-ok" type="button" id="ntEsse" style="flex:1"' + (rest.length === 1 ? '' : ' disabled') + '>É esse!</button></div>', () => {
-        [].forEach.call(el.tela.querySelectorAll('.nt-obj'), (b) => { b.onclick = () => { const k = Number(b.getAttribute('data-k')); risc[k] = !risc[k]; texto = ''; ver(); }; });
-        document.getElementById('ntDica').onclick = () => { if (dicas < 3) { dicas++; ver(); } };
-        document.getElementById('ntEsse').onclick = () => {
-          const k = rest[0], falha = VERSOS.findIndex((v) => !v[1](k));
-          if (falha < 0) { som('ok'); concluirCasa(r, i); } else { som('erro'); texto = 'Esse objeto não combina com o verso ' + (falha + 1) + '. Risque de novo!'; risc[k] = true; ver(); }
-        };
-      });
-    }
-    ver();
+    const linha = (a, b) => '<div class="nt-conta"><b>' + a + '</b><span>➡️</span>' + b + '</div>';
+    casaEscolha(r, i, {
+      fala: 'Que número sai da minha máquina?',
+      corpo: () => linha(1, '<b>3</b>') + linha(2, '<b>5</b>') + linha(4, '<b>9</b>') + linha(6, '<b class="nt-falta">?</b>'),
+      opcoes: opNum([11, 12, 13], 13),
+      dicas: ['A mesma regra vale para todas as linhas.', 'Quando o número da esquerda sobe 1, quanto sobe o da direita?', 'A máquina usa o número duas vezes… e coloca mais um pouquinho.']
+    });
   }
   const CASAS = { padaria: casaPadaria, oficina: casaOficina, sinos: casaSinos, biblioteca: casaBiblioteca };
   function concluirCasa(r, i) { fecharTela(); const nCasa = ROTEIRO.slice(0, i).filter((x) => x.tipo === 'casa').length; M.pecas++; atualizarConta(); mostrarBilhete(nCasa, () => avancar(i)); }
