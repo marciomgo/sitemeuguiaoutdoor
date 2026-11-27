@@ -1698,6 +1698,17 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 .nt-vara img{width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 0 6px #fff59d) drop-shadow(0 3px 3px rgba(0,0,0,.4))}
 .nt-vara-card{display:flex;justify-content:center;padding-top:12px}
 .nt-vara-card img{width:150px;height:150px;object-fit:contain}
+/* nome do alvo atual (da linha tracejada) e botoes laterais: mamoneira e tenda */
+#ntAlvo{position:fixed;left:50%;top:44px;transform:translateX(-50%);z-index:7;max-width:calc(100vw - 130px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.62);color:#fff;font:700 12px system-ui,sans-serif;pointer-events:none}
+#ntAlvo.sec{background:rgba(46,125,50,.92)}
+.nt-lado{position:fixed;left:6px;width:44px;height:44px;z-index:7;padding:0;border-radius:50%;border:2px solid #fff;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation}
+#ntBtnMamona{top:150px;border-color:#2e7d32}
+#ntBtnMamona img{width:30px;height:30px;object-fit:contain}
+#ntBtnCura{top:200px;border-color:#d7263d;color:#d7263d;font:900 24px/1 system-ui}
+.nt-lado.sel{box-shadow:0 0 0 4px #ffd54f,0 2px 6px rgba(0,0,0,.35)}
+#ntBtnMamona.vazio{animation:msPulsa 1s ease-in-out infinite}
+.nt-arvore{display:flex;justify-content:center;padding-top:8px;background:#eaf6df}
+.nt-arvore img{width:210px;height:210px;object-fit:contain}
 </style>
 <style>/* bloco pesca */
 /* bloco pesca: botao de pescar, faixa "pescando", cartao do peixe e boia no lago */
@@ -1762,7 +1773,7 @@ if (DADOS.livre && MUSICA_NO_JOGO) {
 #bAssimMesmo{display:none;background:none;border:0;color:#fff;text-decoration:underline;font-size:12px;text-align:center;opacity:.85;cursor:pointer;touch-action:manipulation;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","missao-enigma.js","banco-desafios.json","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-mgo-recortado.png","missao-natal.js","natal-props.js","natal/portal.png","natal/padaria.png","natal/oficina.png","natal/sinos.png","natal/biblioteca.png","natal/arvore.png","natal/rena.png","natal/taberna.png","natal/caverna.png","natal/final.png","natal/duendes.png","natal/biscoitos.png","natal/caixas.png","natal/objetos.png","natal/seta.png","joystick.js","natal/mamona.png","natal/vara.png","mineu-3d.js","pesca.js","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
+<script>window.MGO_ATIVOS={"proprios":["monstros-3d.js","modelos/BlueDemon.gltf","modelos/Dragon_Evolved.gltf","modelos/Orc.gltf","modelos/Dragon.gltf","bau-final.js","modelos/Chest_Wood.gltf","modelos/Chest_Wood.bin","modelos/T_Trim_Furniture_BaseColor.png","modelos/T_Trim_Metal_BaseColor.png","missao-enigma.js","banco-desafios.json","marco-moeda.js","modelos/rock_tallB.glb","modelos/logo-multiverso-mgo.png","missao-natal.js","natal-props.js","natal/portal.png","natal/padaria.png","natal/oficina.png","natal/sinos.png","natal/biblioteca.png","natal/arvore.png","natal/rena.png","natal/taberna.png","natal/caverna.png","natal/final.png","natal/duendes.png","natal/biscoitos.png","natal/caixas.png","natal/objetos.png","natal/seta.png","joystick.js","natal/mamona.png","natal/vara.png","mineu-3d.js","pesca.js","trava-voltar.js","telemetria.js","pesquisa.js","pacote-obrigatorio.js"],"externos":["https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/BufferGeometryUtils.js","https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/utils/SkeletonUtils.js"],"modulos":["three","three/addons/loaders/GLTFLoader.js","three/addons/utils/SkeletonUtils.js"]};</script>
 <script type="module" src="monstros-3d.js"></script>
 <script type="module" src="bau-final.js"></script>
 <script src="missao-enigma.js"></script>

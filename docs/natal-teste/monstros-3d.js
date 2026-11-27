@@ -13,7 +13,7 @@ const TIPOS = {
   zumbi: { arquivo: 'modelos/Orc.gltf', altura: 1.7, fonte: 36, anim: { golpe: 'Weapon' }, cor: VIVO },
   chefao: { arquivo: 'modelos/BlueDemon.gltf', altura: 3.0, fonte: 68, anim: { golpe: 'Weapon' }, cor: VIVO },
   final: { arquivo: 'modelos/Dragon_Evolved.gltf', altura: 3.6, fonte: 90, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO },
-  mini: { arquivo: 'modelos/Dragon_Evolved.gltf', altura: 1.3, fonte: 34, voo: 1.0, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO } // mini dragao laranja: voa e solta foguinho
+  mini: { arquivo: 'modelos/Dragon.gltf', altura: 1.3, fonte: 34, voo: 1.0, anim: { Idle: 'Flying_Idle', Walk: 'Fast_Flying', golpe: 'Punch' }, cor: VIVO } // mini dragao (modelo Dragon, pedido do Marcio em 27/11): voa e solta foguinho
 };
 const rad = Math.PI / 180;
 const cena = new THREE.Scene();
@@ -56,7 +56,7 @@ new Set(Object.values(TIPOS).map((t) => t.arquivo)).forEach((arq) => {
 
 function criar(i) {
   const tipo = i.mini ? TIPOS.mini : i.chefao ? (i.final ? TIPOS.final : TIPOS.chefao) : TIPOS.zumbi, m = modelos[tipo.arquivo]; if (!m) return null;
-  const chave = i.final || i.mini ? 'final' : 'chefao'; m.copias = m.copias || {};
+  const chave = i.final ? 'final' : i.mini ? 'mini' : 'chefao'; m.copias = m.copias || {};
   const origem = tipo.cor ? (m.copias[chave] || (m.copias[chave] = comMatiz(m.cena, tipo.cor))) : m.cena; // chefao comum = copia vermelha, final = copia lilas (cada uma feita uma vez)
   const corpo = SkeletonUtils.clone(origem), k = tipo.altura / m.altura;
   corpo.scale.setScalar(k); corpo.position.y = -m.base * k; // em pe no chao

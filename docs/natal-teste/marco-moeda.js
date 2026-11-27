@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const ARQ = 'modelos/rock_tallB.glb', LOGO = 'modelos/logo-mgo-recortado.png', ESCALA_ROCHA = 11, LARGURA_LOGO = 6.4, RAIO_MOEDA = LARGURA_LOGO / 4 /* metade da altura do logo (proporcao 2:1) */, DIST_ESCONDE_PINO_M = 30, RAIO_BLOQUEIO_M = 4.3 /* pegada da montanha no chao */;
+const ARQ = 'modelos/rock_tallB.glb', LOGO = 'modelos/logo-multiverso-mgo.png', ESCALA_ROCHA = 11, LARGURA_LOGO = 5.8, PROPORCAO_LOGO = 832 / 565, ALTURA_LOGO = LARGURA_LOGO / PROPORCAO_LOGO, RAIO_MOEDA = ALTURA_LOGO / 2, DIST_ESCONDE_PINO_M = 30, RAIO_BLOQUEIO_M = 4.3 /* pegada da montanha no chao */;
 const rad = Math.PI / 180;
 // parques: o lugar vem do build (DADOS.marco). Modo livre: nao ha parque; o marco aparece a ~24 m de onde a pessoa esta quando o jogo comeca (uma vez por sessao).
 if (typeof DADOS !== 'undefined' && DADOS.marco) iniciar(DADOS.marco, false);
@@ -21,7 +21,6 @@ function iniciar(marco, esperaJogo) {
   const mostrar = () => { // so aparece com o modelo carregado E o lugar definido
     if (!modeloPronto || !posPronta) return; grupo.visible = true;
     if (!bloqueou) { bloqueou = true; try { registrarObstaculoCircular(marco.lat, marco.lng, RAIO_BLOQUEIO_M); } catch (e) { console.error('[marco] nao consegui registrar o obstaculo', e); } } /* a montanha NAO pode ser atravessada: jogador e monstros dao a volta */
-    if (!pinoFeito) { pinoFeito = true; try { pino('p-ponto p-marco', '<img src="' + LOGO + '" alt="Marco" style="width:60px;height:30px">', marco.lat, marco.lng); } catch (e) {} } // pino no mapa para o jogador saber onde fica
     console.log('[marco] pronto | altura', alturaRocha.toFixed(2), 'm | em', marco.lat, marco.lng); mapa.triggerRepaint();
   };
   if (esperaJogo) { const espera = setInterval(() => { if (typeof jogoIniciado !== 'undefined' && jogoIniciado) { clearInterval(espera); const p = deslocar(POS.lat, POS.lng, 24, Math.random() * 360); marco.lat = p.lat; marco.lng = p.lng; posPronta = true; mostrar(); } }, 500); }
@@ -30,7 +29,7 @@ function iniciar(marco, esperaJogo) {
   moeda = new THREE.Group();
   const tex = new THREE.TextureLoader().load(LOGO); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
   const matLogo = new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.35, side: THREE.FrontSide });
-  const frente = new THREE.Mesh(new THREE.PlaneGeometry(LARGURA_LOGO, LARGURA_LOGO / 2), matLogo); frente.position.z = 0.03;
+  const frente = new THREE.Mesh(new THREE.PlaneGeometry(LARGURA_LOGO, ALTURA_LOGO), matLogo); frente.position.z = 0.03;
   const costas = frente.clone(); costas.rotation.y = Math.PI; costas.position.z = -0.03;
   moeda.add(frente, costas); grupo.add(moeda);
 
@@ -71,7 +70,7 @@ function iniciar(marco, esperaJogo) {
     }
     // LOGO MGO (plano girando em cima da rocha): tambem tapa o Mineu quando ele esta atras dele. O clip vai no elemento interno (os dois recortes se somam).
     if (elM) {
-      const wM2 = proj(0, 0, 0)[2], ang = moeda.rotation.y, cy0 = moeda.position.y, hw = LARGURA_LOGO / 2, hh = LARGURA_LOGO / 4, rx = Math.cos(ang), rz = -Math.sin(ang);
+      const wM2 = proj(0, 0, 0)[2], ang = moeda.rotation.y, cy0 = moeda.position.y, hw = LARGURA_LOGO / 2, hh = ALTURA_LOGO / 2, rx = Math.cos(ang), rz = -Math.sin(ang);
       const quad = [[-hw, hh], [hw, hh], [hw, -hh], [-hw, -hh]].map((q) => proj(gx + q[0] * rx, cy0 + q[1], gz + q[0] * rz)), wLogo = proj(gx, cy0, gz)[2];
       const poliLogo = quad.map((p) => [p[0], p[1]]), inn = elM.querySelector('.interno');
       if (inn && wM2 > wLogo + 0.5) { const r = inn.getBoundingClientRect(); inn.style.clipPath = furoStr(poliLogo, cv.left - r.left, cv.top - r.top); clipLogoAtivo = true; }

@@ -25,7 +25,7 @@ function iniciarBloco() {
   try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.itens) Object.assign(DADOS.regrasDinamicas.itens, { curasPorBase: 0, pedrasPorBase: 0, curas: 0, pedras: 0 }); } catch (e) {} // cura = tenda hospital; municao = mamoneiras
   // 10 pontos no percurso (9 bases + o bau) e mais espalhados: so afeta a MONTAGEM do combate neste modo
   try { if (DADOS.regrasDinamicas && DADOS.regrasDinamicas.bases) Object.assign(DADOS.regrasDinamicas.bases, { quantidade: 8, raioMaxDaLargadaM: 320, distMinEntreBasesM: 30, distMinDaLargadaM: 50 }); } catch (e) {}
-  const rad = Math.PI / 180, CHEGADA_M = 10, GUARDIOES_M = 25, ESC = 2.2;
+  const MAMONAS_INICIAIS = 10, rad = Math.PI / 180, CHEGADA_M = 10, GUARDIOES_M = 25, ESC = 2.2;
   const IMG = (n) => 'natal/' + n + '.png';
 
   // ================= ROTEIRO DOS 10 PONTOS =================
@@ -83,7 +83,14 @@ function iniciarBloco() {
     el.tela = $('div', '', ''); el.tela.id = 'ntTela'; el.pista = $('div', '', ''); el.pista.id = 'ntPista'; el.caderno = $('div', '', ''); el.caderno.id = 'ntCaderno'; el.senha = $('div', '', ''); el.senha.id = 'ntSenha';
     [el.hud, el.cad, el.tela, el.pista, el.caderno, el.senha].forEach((e) => document.body.appendChild(e));
     el.cad.addEventListener('click', (e) => { e.stopPropagation(); abrirCaderno(); });
-    el.hud.addEventListener('click', (e) => { e.stopPropagation(); msg(el.hud.getAttribute('data-txt') || '', 3500); }); // toque no icone = mostra o texto completo
+    el.alvo = $('div', '', ''); el.alvo.id = 'ntAlvo'; document.body.appendChild(el.alvo);
+    el.bMamona = $('button', 'nt-lado', '<img alt="" src="' + IMG('mamona') + '">'); el.bMamona.id = 'ntBtnMamona'; el.bMamona.type = 'button'; el.bMamona.title = 'Caminho ate a mamoneira mais proxima';
+    el.bCura = $('button', 'nt-lado', '✚'); el.bCura.id = 'ntBtnCura'; el.bCura.type = 'button'; el.bCura.title = 'Caminho ate a tenda de cura';
+    [el.bMamona, el.bCura].forEach((b) => document.body.appendChild(b));
+    el.bMamona.addEventListener('click', (e) => { e.stopPropagation(); alternarSecundario('municao'); });
+    el.bCura.addEventListener('click', (e) => { e.stopPropagation(); alternarSecundario('cura'); });
+    const atirar = document.getElementById('btnAtirar'); if (atirar) atirar.addEventListener('click', () => { if (M.ativa && municao.normal <= 0 && ativa === 'normal') avisarSemMamona(true); });
+    el.hud.addEventListener('click', (e) => { e.stopPropagation(); if (M.secundario) { M.secundario = null; msg('Voltando para o próximo ponto.', 2000); atualizarAlvo(); return; } msg(el.hud.getAttribute('data-txt') || '', 3500); }); // toque no icone = mostra o texto completo
     // FLECHA: aponta para a proxima parada (canto superior direito, ao lado dos botoes do mapa). A cor da luz muda com a distancia: gelado -> morninho -> quentinho -> pegando fogo
     setInterval(linhaRota, 200); // linha tracejada ate a proxima parada
     if (DEV) { // painel de teste de casa
@@ -97,8 +104,9 @@ function iniciarBloco() {
     }
   }
   function hudIcone(ic, n, longo) { const k = ic + '|' + n; if (el.hud._k !== k) { el.hud._k = k; el.hud.innerHTML = '<span>' + ic + '</span>' + (n ? '<small>' + n + '</small>' : ''); } el.hud.setAttribute('data-txt', longo); }
-  function alvoSeta() { // para onde a flecha aponta: a proxima luzinha (na arvore apagada) ou o ponto atual
+  function alvoSeta() { // para onde a linha tracejada aponta: o alvo secundario (mamoneira/tenda), senao a proxima luzinha, senao o ponto atual
     if (!M.ativa) return null;
+    if (M.secundario) return M.secundario;
     if (M.luzes && !M.luzes.concluida && M.luzes.idx === M.idx) { const l = M.luzes.lista.filter((z) => !z.pega).sort((a, b) => metrosAte(a.lat, a.lng).d - metrosAte(b.lat, b.lng).d)[0]; if (l) return l; }
     return M.pontos[Math.min(M.idx, M.pontos.length - 1)];
   }
@@ -395,12 +403,59 @@ function iniciarBloco() {
   // ================= LINHA TRACEJADA ate a proxima parada (no lugar da flecha) =================
   function linhaRota() {
     try {
-      if (!M.ativa) return;
+      if (!M.ativa || !mapa.style) return;
       if (!mapa.getSource('natal-rota')) { if (!mapa.getSource('area-fora')) return; mapa.addSource('natal-rota', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } }); mapa.addLayer({ id: 'natal-rota', type: 'line', source: 'natal-rota', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#ff3d00', 'line-width': 5, 'line-opacity': 0.9, 'line-dasharray': [0.4, 2] } }); }
       const a = alvoSeta(); let f = [];
       if (a && typeof jogoIniciado !== 'undefined' && jogoIniciado && !M.resolvido) { const d = metrosAte(a.lat, a.lng); if (d.d > 9) { const ini = deslocar(POS.lat, POS.lng, 4, d.ang); f = [{ type: 'Feature', geometry: { type: 'LineString', coordinates: [[ini.lng, ini.lat], [a.lng, a.lat]] } }]; } }
       mapa.getSource('natal-rota').setData({ type: 'FeatureCollection', features: f });
     } catch (e) { if (!window.__rotaErro) { window.__rotaErro = e; console.error('[natal] linha', e); } }
+  }
+
+  function alternarSecundario(tipo) {
+    if (!M.ativa) return;
+    if (M.secundario && M.secundario.tipo === tipo) { M.secundario = null; msg('Voltando para o próximo ponto.', 2000); atualizarAlvo(); return; }
+    const lista = (M.estacoes || []).filter((s) => s.tipo === tipo).sort((a, b) => metrosAte(a.lat, a.lng).d - metrosAte(b.lat, b.lng).d);
+    if (!lista.length) { msg('Ainda procurando no mapa…', 2000); return; }
+    M.secundario = { tipo, lat: lista[0].lat, lng: lista[0].lng };
+    msg(tipo === 'cura' ? 'Sigam a linha até a tenda de cura.' : 'Sigam a linha até a mamoneira mais próxima.', 3500); atualizarAlvo();
+  }
+  function atualizarAlvo() {
+    if (!el.alvo || !M.ativa) return;
+    const ligado = typeof jogoIniciado !== 'undefined' && jogoIniciado && !(typeof celebrou !== 'undefined' && celebrou) && !M.resolvido;
+    [el.alvo, el.bMamona, el.bCura].forEach((e) => { e.style.display = ligado ? '' : 'none'; });
+    if (!ligado) return;
+    const a = alvoSeta(); if (!a) return; const d = Math.round(metrosAte(a.lat, a.lng).d);
+    const nome = M.secundario ? (M.secundario.tipo === 'cura' ? '✚ Tenda de cura' : '🌿 Mamoneira') : (M.luzes && !M.luzes.concluida && M.luzes.idx === M.idx ? '⭐ Luzinha' : '🎯 ' + ROTEIRO[Math.min(M.idx, ROTEIRO.length - 1)].nome);
+    const txt = nome + ' · ' + (d > 999 ? Math.round(d / 100) / 10 + ' km' : d + ' m');
+    if (el.alvo.textContent !== txt) el.alvo.textContent = txt;
+    el.alvo.classList.toggle('sec', !!M.secundario);
+    el.bMamona.classList.toggle('sel', !!M.secundario && M.secundario.tipo === 'municao');
+    el.bCura.classList.toggle('sel', !!M.secundario && M.secundario.tipo === 'cura');
+    el.bMamona.classList.toggle('vazio', municao.normal <= 0);
+  }
+  // chegou na mamoneira/tenda: o alvo secundario acabou, a linha volta para o proximo ponto
+  function conferirSecundario() { const s = M.secundario; if (s && metrosAte(s.lat, s.lng).d <= 7) { M.secundario = null; atualizarAlvo(); } }
+  // so aparecem as bombas dentro do alcance de visao (o mesmo do tiro): o resto se descobre explorando
+  function bombasNoAlcance() { document.querySelectorAll('.pino.p-bomba').forEach((e) => { if (!e._ll) return; e.style.visibility = metrosAte(e._ll[1], e._ll[0]).d <= ALCANCE_TIRO_M ? '' : 'hidden'; }); }
+  // desenho da mamoneira (o mesmo modelo 3D, fotografado uma vez) para o aviso
+  let fotoArvore = '';
+  function desenhoDaArvore() {
+    if (fotoArvore) return fotoArvore;
+    try {
+      const rd = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); rd.setSize(360, 360);
+      const cena = new THREE.Scene(); cena.add(new THREE.AmbientLight(0xffffff, 1.8)); const luz = new THREE.DirectionalLight(0xfff0d8, 2); luz.position.set(3, 6, 5); cena.add(luz); cena.add(PR.mamoneira());
+      const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 50); cam.position.set(0, 2.9, 5.8); cam.lookAt(0, 1.7, 0); rd.render(cena, cam);
+      fotoArvore = rd.domElement.toDataURL('image/png'); rd.dispose(); if (rd.forceContextLoss) rd.forceContextLoss();
+    } catch (e) { console.error('[natal] desenho da arvore', e); fotoArvore = IMG('mamona'); }
+    return fotoArvore;
+  }
+  let ultimoAvisoSem = 0;
+  function avisarSemMamona(forcar) {
+    if (window.MGO_DESAFIO || window.MGO_PESCANDO) return; const agora = performance.now(); if (!forcar && M.avisouSemMamona) return; if (forcar && agora - ultimoAvisoSem < 3000) return; M.avisouSemMamona = true; ultimoAvisoSem = agora;
+    mostrarTela('<div class="nt-arvore"><img alt="Mamoneira" src="' + desenhoDaArvore() + '"></div><h2 class="nt-h">As mamonas acabaram!</h2><p class="nt-p">Procurem uma <b>mamoneira</b> como esta e fiquem perto dela para colher mais.</p><div class="ms-bts"><button class="ms-bt" type="button" id="ntNao">Depois</button><button class="ms-bt ms-ok" type="button" id="ntLevar">Mostrar o caminho</button></div>', () => {
+      document.getElementById('ntNao').onclick = () => { fecharTela(); ultimoAvisoSem = performance.now(); };
+      document.getElementById('ntLevar').onclick = () => { fecharTela(); ultimoAvisoSem = performance.now(); if (!M.secundario || M.secundario.tipo !== 'municao') alternarSecundario('municao'); };
+    });
   }
 
   function estiloPinos() {
@@ -411,17 +466,19 @@ function iniciarBloco() {
     try { if (window.MGO_BAU && MGO_BAU.ocultar) MGO_BAU.ocultar(M.idx < M.n); } catch (e) {}
   }
   function avancar(i) {
-    M.idx = i + 1; estiloPinos();
+    M.secundario = null; M.idx = i + 1; estiloPinos(); atualizarAlvo();
     if (M.idx >= M.n) msg('🎉 Todos os bilhetes! Derrote o Dragão Resmungão e vá ao baú 🧰 para digitar a senha.', 7000);
     else msg('Muito bem! Próximo ponto: ' + ROTEIRO[M.idx].nome + '.', 4500);
   }
   let avisouGuard = 0;
   function laco() {
     try {
-      if (!M.ativa || typeof jogoIniciado === 'undefined' || !jogoIniciado || (typeof celebrou !== 'undefined' && celebrou)) { el.hud.style.display = 'none'; el.cad.style.display = 'none'; return; }
+      if (!M.ativa || typeof jogoIniciado === 'undefined' || !jogoIniciado || (typeof celebrou !== 'undefined' && celebrou)) { el.hud.style.display = 'none'; el.cad.style.display = 'none'; atualizarAlvo(); return; }
       el.cad.style.display = 'block'; el.hud.style.display = 'block';
       if (!M.intro && !window.MGO_DESAFIO) { M.intro = true; abrirIntro(); }
       { const agora = performance.now(); if (!window.MGO_DESAFIO && !window.MGO_PESCANDO) { usarEstacoes(agora); fogoDosMinis(agora); procurarVara(agora); usarVara(); } }
+      conferirSecundario(); atualizarAlvo(); bombasNoAlcance();
+      if (municao.normal > 0) M.avisouSemMamona = false; else avisarSemMamona(false);
       laçoLuzes();
       if (M.idx < M.n) {
         const p = M.pontos[M.idx], r = ROTEIRO[M.idx], d = Math.round(metrosAte(p.lat, p.lng).d), luzes = M.luzes && M.luzes.idx === M.idx && !M.luzes.concluida;
@@ -501,6 +558,7 @@ function iniciarBloco() {
     M = { ativa: true, pontos: d.pontos, n: ROTEIRO.length - 1, pinos, idx: 0, pecas: 0, intro: false, portal: portalPos, cofre, resolvido: false, props: Mp.grupos, arvoreAcesa: false, luzes: null };
     M.monstros = prepararMonstros(d.pontos); Mp.estacoes = [];
     estiloPinos(); atualizarConta();
+    try { municao.normal = MAMONAS_INICIAIS; pintaMunicao(); } catch (e) {}
     try { zoom = 20.6; } catch (e) {} // zoom de perto: um passo antes do maximo (21)
     quandoMapaPronto(() => setTimeout(() => criarEstacoes(Mp), 600));
     const ligar = () => { if (!mapa.getLayer('natal-props')) mapa.addLayer(camada(Mp)); };
